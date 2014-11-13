@@ -3,9 +3,8 @@
 
 #include <set>
 #include <string>
-#include <tuple>
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include "tokens.hxx"
 #include "scanner.hxx"
@@ -28,15 +27,15 @@ private:
 
 private:
   void match( Token );
-  void parseEol();
+  void parseEols();
   void parseGlobal();
   void parseStatement();
   void parseSequence();
   void parseDim();
-  void parseNameDecl();
+  std::pair<std::string,std::string> parseNameDecl();
   void parseType();
   void parseDeclare();
-  std::tuple<std::string,std::pair<std::string,std::string>>> parseSubrHeader();
+  void parseSubrHeader();
   void parseSubroutine();
   void parseFuncHeader();
   void parseFunction();
@@ -44,6 +43,10 @@ private:
   void parseIf();
   void parseFor();
   void parseWhile();
+  void parseRelation();
+  void parseExpression();
+  void parseTerm();
+  void parseFactor();
 };
 
 #endif

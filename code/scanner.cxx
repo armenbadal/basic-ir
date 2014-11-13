@@ -15,6 +15,7 @@ std::map<std::string,Token> Scanner::keywords{
   {"End", xEnd},
   {"Sub", xSubroutine},
   {"Function", xFunction},
+  {"Let", xLet},
   {"If", xIf},
   {"Then", xThen},
   {"ElseIf", xElseIf},
