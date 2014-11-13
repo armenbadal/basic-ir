@@ -5,45 +5,12 @@
 
 namespace {
   std::vector<std::string> TN = {
-    "NIL", 
-    "EOL", 
-    "Integer",
-    "Real",
-    "True",
-    "False",
-    "Ident",
-    "Dim",
-    "As",
-    "Type",
-    "End",
-    "Declare",
-    "Sub",
-    "Function",
-    "Let",
-    "If",
-    "Then",
-    "ElseIf",
-    "Else",
-    "For",
-    "To",
-    "Step",
-    "While",
-    "(",
-    ")",
-    ",",
-    "=",
-    "<>",
-    ">",
-    ">=",
-    "<",
-    "<=",
-    "+",
-    "-",
-    "*",
-    "/",
-    "\\",
-    "^",
-    "EOF"
+    "NIL", "EOL", "Integer", "Double", "True", "False", 
+    "Ident", "Dim", "As", "Type", "End", "Declare", 
+    "Sub", "Function", "Let", "If", "Then", "ElseIf",
+    "Else", "For", "To", "Step", "While", 
+    "(", ")", ",", "=", "<>", ">", ">=", "<", "<=",
+    "+", "-", "*", "/", "\\", "^", "EOF"
   };
 }
 
@@ -119,7 +86,7 @@ void Parser::parseGlobal()
 }
 
 /**/
-void Parser::parseStatement()
+Statement* Parser::parseStatement()
 {
   switch( lookahead ) {
     case xDim:
@@ -140,22 +107,15 @@ void Parser::parseStatement()
     default:
       break;
   }
+  return nullptr;
 }
 
 /**/
-void Parser::parseSequence()
+Statement* Parser::parseSequence()
 {
   while( inSet(FS) )
     parseStatement();
-}
-
-/**/
-void Parser::parseDim()
-{
-  match( xDim );
-  auto nv = parseNameDecl();
-  parseEols();
-  /* DEBUG */ std::cout << '<' << nv.first << ',' << nv.second << '>' << std::endl;
+  return nullptr;
 }
 
 /**/
@@ -195,7 +155,7 @@ void Parser::parseDeclare()
 }
 
 /**/
-void Parser::parseSubrHeader()
+Function* Parser::parseSubrHeader()
 {
   match( xSubroutine );
   std::string nm = sc.lexeme();
@@ -205,20 +165,22 @@ void Parser::parseSubrHeader()
     match( xRPar );
   }
   parseEols();
+  return nullptr;
 }
 
 /**/
-void Parser::parseSubroutine()
+Function* Parser::parseSubroutine()
 {
   parseSubrHeader();
   parseSequence();
   match( xEnd );
   match( xSubroutine );
   parseEols();
+  return nullptr;
 }
 
 /**/
-void Parser::parseFuncHeader()
+Function* Parser::parseFuncHeader()
 {
   match( xFunction );
   match( xIdent );
@@ -227,20 +189,31 @@ void Parser::parseFuncHeader()
   match( xAs );
   match( xIdent );
   match( xEol );
+  return nullptr;
 }
 
 /**/
-void Parser::parseFunction()
+Function* Parser::parseFunction()
 {
   parseFuncHeader();
   // parse statement list
   match( xEnd );
   match( xFunction );
   match( xEol );
+  return nullptr;
 }
 
 /**/
-void Parser::parseLet()
+Statement* Parser::parseDim()
+{
+  match( xDim );
+  auto nv = parseNameDecl();
+  parseEols();
+  return nullptr;
+}
+
+/**/
+Statement* Parser::parseLet()
 {
   match( xLet );
   auto vn = sc.lexeme();
@@ -248,11 +221,11 @@ void Parser::parseLet()
   match( xEq );
   parseRelation();
   parseEols();
-  /* DEBUG */ std::cout << vn << std::endl;
+  return nullptr;
 }
 
 /**/
-void Parser::parseIf()
+Statement* Parser::parseIf()
 {
   match( xIf );
   parseRelation();
@@ -274,10 +247,11 @@ void Parser::parseIf()
   match( xEnd );
   match( xIf );
   parseEols();
+  return nullptr;
 }
 
 /**/
-void Parser::parseFor()
+Statement* Parser::parseFor()
 {
   match( xFor );
   match( xIdent );
@@ -294,10 +268,11 @@ void Parser::parseFor()
   match( xEnd );
   match( xFor );
   parseEols();
+  return nullptr;
 }
 
 /**/
-void Parser::parseWhile()
+Statement* Parser::parseWhile()
 {
   match( xWhile );
   parseRelation();
@@ -306,61 +281,92 @@ void Parser::parseWhile()
   match( xEnd );
   match( xWhile );
   parseEols();
+  return nullptr;
 }
 
 /**/
-void Parser::parseRelation()
+Expression* Parser::parseRelation()
 {
   parseExpression();
   if( lookahead >= xEq && lookahead <= xLe ) {
     lookahead = sc.next();
     parseExpression();
   }
+  return nullptr;
 }
 
 /**/
-void Parser::parseExpression()
+Expression* Parser::parseExpression()
 {
   parseTerm();
   while( lookahead == xAdd || lookahead == xSub ) {
     lookahead = sc.next();
     parseTerm();
   }
+  return nullptr;
 }
 
 /**/
-void Parser::parseTerm()
+Expression* Parser::parseTerm()
 {
   parseFactor();
   while( lookahead == xMul || lookahead == xDiv || lookahead == xMod ) {
     lookahead = sc.next();
     parseFactor();
   }
+  return nullptr;
 }
 
 /**/
-void Parser::parseFactor()
+Expression* Parser::parsePower()
 {
-  if( lookahead == xIdent )
+  return nullptr;
+}
+
+/**/
+Expression* Parser::parseFactor()
+{
+  if( lookahead == xIdent ) {
+    auto vn = sc.lexeme();
     match( xIdent );
-  else if( lookahead == xInteger )
+    return new Variable(vn);
+  }
+
+  if( lookahead == xInteger ) {
+    auto nm = asNumber(sc.lexeme());
     match( xInteger );
-  else if( lookahead == xReal )
-    match( xReal );
-  else if( lookahead == xTrue )
+    return new Integer(nm);
+  }
+
+  if( lookahead == xDouble ) {
+    int nm = asNumber(sc.lexeme());
+    match( xDouble );
+    return new Double(nm);
+  }
+
+  if( lookahead == xTrue ) {
     match( xTrue );
-  else if( lookahead == xFalse )
+    return new Boolean(true);
+  }
+
+  if( lookahead == xFalse ) {
     match( xFalse );
-  else if( lookahead == xSub ) {
+    return new Boolean(false);
+  }
+
+  if( lookahead == xSub ) {
     match( xSub );
-    parseFactor();
+    return new Unary("-", parseFactor());
   }
-  else if( lookahead == xLPar ) {
+
+  if( lookahead == xLPar ) {
     match( xLPar );
-    parseRelation();
+    auto rs = parseRelation();
     match( xRPar );
+    return rs;
   }
-  else
-    std::cerr << "Syntax Error: Unexpected factor" << std::endl;
+  
+  std::cerr << "Syntax Error: Unexpected factor" << std::endl;
+  return nullptr;
 }
 

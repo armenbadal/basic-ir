@@ -29,5 +29,8 @@ private:
   std::string sequence( std::function<bool(char)> );
 };
 
+template<typename T>
+T asNumber(const std::string&);
+
 #endif
 

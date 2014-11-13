@@ -7,7 +7,7 @@ enum Token {
   xNull,
   xEol,
   xInteger,
-  xReal,
+  xDouble,
   xTrue,
   xFalse,
   xIdent,

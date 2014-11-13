@@ -8,7 +8,7 @@
 
 #include "tokens.hxx"
 #include "scanner.hxx"
-
+#include "ast.hxx"
 
 /**/
 class Parser {
@@ -29,24 +29,25 @@ private:
   void match( Token );
   void parseEols();
   void parseGlobal();
-  void parseStatement();
-  void parseSequence();
-  void parseDim();
   std::pair<std::string,std::string> parseNameDecl();
   void parseType();
   void parseDeclare();
-  void parseSubrHeader();
-  void parseSubroutine();
-  void parseFuncHeader();
-  void parseFunction();
-  void parseLet();
-  void parseIf();
-  void parseFor();
-  void parseWhile();
-  void parseRelation();
-  void parseExpression();
-  void parseTerm();
-  void parseFactor();
+  Function* parseSubrHeader();
+  Function* parseSubroutine();
+  Function* parseFuncHeader();
+  Function* parseFunction();
+  Statement* parseStatement();
+  Statement* parseSequence();
+  Statement* parseDim();
+  Statement* parseLet();
+  Statement* parseIf();
+  Statement* parseFor();
+  Statement* parseWhile();
+  Expression* parseRelation();
+  Expression* parseExpression();
+  Expression* parseTerm();
+  Expression* parsePower();
+  Expression* parseFactor();
 };
 
 #endif

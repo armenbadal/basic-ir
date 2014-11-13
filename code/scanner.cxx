@@ -5,6 +5,7 @@
 #include "scanner.hxx"
 
 #include <iostream>
+#include <sstream>
 
 std::map<std::string,Token> Scanner::keywords{
   {"Dim",xDim},
@@ -70,7 +71,7 @@ Token Scanner::next()
     if( c != '.' ) return xInteger;
     text += "."; source >> c;
     text += sequence( isdigit );
-    return xReal;
+    return xDouble;
   }
 
   // identifiers and keywords
@@ -133,5 +134,14 @@ std::string Scanner::sequence( std::function<bool(char)> predicate )
   return buffer.str();
 }
 
+/**/
+template<typename T>
+auto asNumber(const std::string& v) -> T
+{
+  std::stringstream ss(v);
+  T num{0};
+  ss >> num;
+  return num;
+}
 
 
