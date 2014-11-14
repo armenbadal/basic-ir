@@ -1,9 +1,11 @@
 
 #include <iostream>
+#include <sstream>
 
 #include "parser.hxx"
 
 namespace {
+  /**/
   std::vector<std::string> TN = {
     "NIL", "EOL", "Integer", "Double", "True", "False", 
     "Ident", "Dim", "As", "Type", "End", "Declare", 
@@ -12,6 +14,16 @@ namespace {
     "(", ")", ",", "=", "<>", ">", ">=", "<", "<=",
     "+", "-", "*", "/", "\\", "^", "EOF"
   };
+
+  /**/
+  template<typename T>
+  T asNumber(const std::string& v)
+  {
+    std::stringstream ss(v);
+    T num{0};
+    ss >> num;
+    return num;
+  }
 }
 
 /**/
@@ -333,13 +345,13 @@ Expression* Parser::parseFactor()
   }
 
   if( lookahead == xInteger ) {
-    auto nm = asNumber(sc.lexeme());
+    auto nm = asNumber<int>(sc.lexeme());
     match( xInteger );
     return new Integer(nm);
   }
 
   if( lookahead == xDouble ) {
-    int nm = asNumber(sc.lexeme());
+    auto nm = asNumber<double>(sc.lexeme());
     match( xDouble );
     return new Double(nm);
   }
