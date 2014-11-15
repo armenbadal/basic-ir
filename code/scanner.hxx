@@ -20,7 +20,7 @@ private:
   static std::map<std::string,Token> keywords;
 
 public:
-  Scanner( const char* );
+  Scanner( const std::string& );
   std::string lexeme() const;
   int line() { return linenum; }
   Token next();

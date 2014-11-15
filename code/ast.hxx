@@ -5,29 +5,43 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Module.h>
 
-#include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 
 /**/
 class Statement;
+class Function;
+
+/* ---------------------------------------------------------------- */
+class Module {
+private:
+  std::string name;
+  llvm::Module* module;
+  std::vector<Function*> subs;
+
+public:
+  Module(const std::string&);
+  void addFunction(Function*);
+  void code(const std::string&);
+};
 
 /* ---------------------------------------------------------------- */
 class Function {
 private:
   std::string name;
-  std::map<std::string,std::string> args;
+  std::vector<std::pair<std::string,std::string>> args;
   std::string type;
   Statement* body;
   llvm::Module* module;
 public:
   std::map<std::string,llvm::Value*> locals;
 public:
-  Function(const std::string&, const std::map<std::string,std::string>&, 
-	   const std::string&, Statement*, llvm::Module*);
+  Function(const std::string&, const std::vector<std::pair<std::string,std::string>>&, const std::string&);
   void setModule(llvm::Module*);
-  void Generate();
+  void setBody(Statement*);
+  llvm::Function* code();
 };
 
 /* ---------------------------------------------------------------- */
@@ -154,6 +168,18 @@ private:
 public:
   Assign(const std::string& n, Expression* e)
     : name{n}, expr{e} {}
+  void setEnv(Function*);
+  void code(llvm::IRBuilder<>&);
+};
+
+/**/
+class WhileLoop : public Statement {
+private:
+  Expression* cond;
+  Statement* body;
+public:
+  WhileLoop(Expression* co, Statement* bo)
+    : cond{co}, body{bo} {}
   void setEnv(Function*);
   void code(llvm::IRBuilder<>&);
 };

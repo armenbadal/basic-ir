@@ -16,6 +16,7 @@ std::map<std::string,Token> Scanner::keywords{
   {"End", xEnd},
   {"Sub", xSubroutine},
   {"Function", xFunction},
+  {"Return", xReturn},
   {"Let", xLet},
   {"If", xIf},
   {"Then", xThen},
@@ -24,12 +25,14 @@ std::map<std::string,Token> Scanner::keywords{
   {"For", xFor},
   {"To", xTo},
   {"Step", xStep},
-  {"While", xWhile}
+  {"While", xWhile},
+  {"Input", xInput},
+  {"Print", xPrint}
 };
 
 /**/
-Scanner::Scanner( const char* name )
-  : source{name}, linenum{-1}, text{""}
+Scanner::Scanner( const std::string& name )
+  : source{name.c_str()}, linenum{-1}, text{""}
 {
   source.unsetf( std::ios::skipws );
   c = source.get();

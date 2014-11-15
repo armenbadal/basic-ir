@@ -21,15 +21,48 @@ namespace {
 }
 
 /**/
-Function::Function(const std::string& n, const std::map<std::string,std::string>& a, 
-		   const std::string& t, Statement* b, llvm::Module* m)
-  : name{n}, args{a}, type{t}, body{b}, module{m}
+Module::Module(const std::string& nm)
+  : name{nm}
 {
-  body->setEnv(this);
+  module = new llvm::Module(name, llvm::getGlobalContext());
 }
 
 /**/
-void Function::Generate()
+void Module::addFunction(Function* su)
+{
+  su->setModule(module);
+  subs.push_back( su );
+}
+
+/**/
+void Module::code(const std::string& on)
+{
+  for( auto& e : subs ) {
+    auto cc = e->code();
+    cc->dump();
+  }
+}
+
+/**/
+Function::Function(const std::string& n, const std::vector<std::pair<std::string,std::string>>& a, const std::string& t)
+  : name{n}, args{a}, type{t}, body{nullptr}, module{nullptr}
+{}
+
+/**/
+void Function::setModule(llvm::Module* mo)
+{ module = mo; }
+
+/**/
+void Function::setBody(Statement* bo)
+{
+  if( bo != nullptr ) {
+    body = bo;
+    body->setEnv(this);
+  }
+}
+
+/**/
+llvm::Function* Function::code()
 {
   std::vector<llvm::Type*> atypes;
   for( auto& a : args ) atypes.push_back(asType(a.second));
@@ -41,6 +74,7 @@ void Function::Generate()
     ai->setName(a.first);
     ++ai;
   }
+  if( body == nullptr ) return func;
   auto block = llvm::BasicBlock::Create(llvm::getGlobalContext(), "start", func);
   llvm::IRBuilder<> builder(llvm::getGlobalContext());
   builder.SetInsertPoint(block);
@@ -52,6 +86,7 @@ void Function::Generate()
   }
 
   body->code(builder);
+  return func;
 }
 
 /**/
@@ -155,4 +190,16 @@ void Assign::code(llvm::IRBuilder<>& bu)
   bu.CreateStore(s, d);
 }
 
+/**/
+void WhileLoop::setEnv(Function* e)
+{
+  Statement::setEnv(e);
+  cond->setEnv(e);
+  body->setEnv(e);
+}
+
+/**/
+void WhileLoop::code(llvm::IRBuilder<>& bu)
+{
+}
 

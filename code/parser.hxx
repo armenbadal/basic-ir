@@ -10,15 +10,21 @@
 #include "scanner.hxx"
 #include "ast.hxx"
 
+using pairofstrings = std::pair<std::string,std::string>;
+using vectorofpairsofstrings = std::vector<pairofstrings>;
+
 /**/
 class Parser {
 private:
+  std::string file;
   Scanner sc;
   Token lookahead;
 
 public:
-  Parser( const char* );
-  void parse(); // TODO create AST
+  Parser(const char* nm) 
+    : file{std::string{nm}}, sc{file}
+  {}
+  Module* parse();
 
 private:
   static std::set<Token> FD;
@@ -28,10 +34,10 @@ private:
 private:
   void match( Token );
   void parseEols();
-  void parseGlobal();
-  std::pair<std::string,std::string> parseNameDecl();
+  pairofstrings parseNameDecl();
+  void parseDeclList(vectorofpairsofstrings&);
   void parseType();
-  void parseDeclare();
+  Function* parseDeclare();
   Function* parseSubrHeader();
   Function* parseSubroutine();
   Function* parseFuncHeader();
@@ -43,6 +49,9 @@ private:
   Statement* parseIf();
   Statement* parseFor();
   Statement* parseWhile();
+  Statement* parseInput();
+  Statement* parsePrint();
+  Statement* parseReturn();
   Expression* parseRelation();
   Expression* parseExpression();
   Expression* parseTerm();
