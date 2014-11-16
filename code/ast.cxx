@@ -132,6 +132,26 @@ llvm::Value* Unary::code(llvm::IRBuilder<>& bu)
   return nullptr; // TODO
 }
 
+/**/
+void TypeCast::setEnv(Function* e)
+{
+  Expression::setEnv( e );
+  expr->setEnv(e);
+}
+
+/**/
+llvm::Value* TypeCast::code(llvm::IRBuilder<>& bu)
+{
+  auto& cx = llvm::getGlobalContext();
+  auto exc = expr->code(bu);
+  if( from == "Integer" && to == "Double" )
+    return bu.CreateSIToFP( exc, llvm::Type::getDoubleTy(cx) );
+  if( from == "Double" && to == "Integer" )
+    return bu.CreateFPToSI( exc, llvm::Type::getInt32Ty(cx) );
+  return exc;
+}
+
+/**/
 void Binary::setEnv(Function* e)
 {
   Expression::setEnv(e);
@@ -213,6 +233,16 @@ void Assign::code(llvm::IRBuilder<>& bu)
 }
 
 /**/
+void Branch::setEnv(Function* e)
+{
+}
+
+/**/
+void Branch::code(llvm::IRBuilder<>& bu)
+{
+}
+
+/**/
 void WhileLoop::setEnv(Function* e)
 {
   Statement::setEnv(e);
@@ -224,4 +254,22 @@ void WhileLoop::setEnv(Function* e)
 void WhileLoop::code(llvm::IRBuilder<>& bu)
 {
 }
+
+/**/
+void Input::code(llvm::IRBuilder<>& bu)
+{
+}
+
+/**/
+void Print::setEnv(Function* e)
+{
+  Statement::setEnv( e );
+  for( auto& v : vals ) v->setEnv( e );
+}
+
+/**/
+void code(llvm::IRBuilder<>& bu)
+{
+}
+
 

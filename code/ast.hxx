@@ -107,6 +107,19 @@ public:
 };
 
 /**/
+class TypeCast : public Expression {
+private:
+  Expression* expr;
+  std::string from;
+  std::string to;
+public:
+  TypeCast(Expression* e, const std::string& f, const std::string& t)
+    : expr{e}, from{f}, to{t} {}
+  void setEnv(Function*);
+  llvm::Value* code(llvm::IRBuilder<>&);
+};
+
+/**/
 class Binary : public Expression {
 private:
   std::string oper;
@@ -188,6 +201,19 @@ public:
 };
 
 /**/
+class Branch : public Statement {
+private:
+  Expression* cond;
+  Statement* thenp;
+  Statement* elsep;
+public:
+  Branch(Expression* c, Statement* t, Statement* e)
+    : cond{c}. thenp{t}, elsep{e} {}
+  void setEnv(Function*);
+  void code(llvm::IRBuilder<>&);
+};
+
+/**/
 class WhileLoop : public Statement {
 private:
   Expression* cond;
@@ -195,6 +221,27 @@ private:
 public:
   WhileLoop(Expression* co, Statement* bo)
     : cond{co}, body{bo} {}
+  void setEnv(Function*);
+  void code(llvm::IRBuilder<>&);
+};
+
+/**/
+class Input : public Sequence {
+private:
+  std::vector<std::string> vars;
+public:
+  Input(const std::vector<std::string>& vs)
+    : vars{vs} {}
+  void code(llvm::IRBuilder<>&);
+};
+
+/**/
+class Print : public Sequence {
+private:
+  std::vector<Expression*> vals;
+public:
+  Print(const std::vector<Expression*>& vl)
+    : vals{vl} {}
   void setEnv(Function*);
   void code(llvm::IRBuilder<>&);
 };
