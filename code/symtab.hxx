@@ -2,8 +2,8 @@
 #ifndef SYMTAB_H
 #define SYMTAB_H
 
-#include <list>
 #include <string>
+#include <vector>
 
 /**/
 enum class Scope : bool {
@@ -11,7 +11,28 @@ enum class Scope : bool {
   Global = false
 };
 
+/* -------------------------------------------------------------------- */
+class Type {
+public:
+  virtual ~Type() {}
+};
 /**/
+class Scalar : public Type {
+public:
+  std::string kind;
+public:
+  Scalar(const std::string& k) : kind{k} {}
+};
+/**/
+class FuncType : public Type {
+public:
+  Type* rtype;
+  std::vector<Type*> atypes;
+public:
+  FuncType(Type* r, std::vector<Type*>& a) : rtype{r}, atypes{a} {}
+};
+
+/* -------------------------------------------------------------------- */
 class Symbol {
 public:
   Scope scope;
@@ -28,7 +49,7 @@ public:
 class SymbolTable {
 private:
   SymbolTable* top;
-  std::list<Symbol*> items;
+  std::vector<Symbol*> items;
 public:
   SymbolTable() {}
   void insert(Symbol*);

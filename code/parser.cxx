@@ -47,7 +47,8 @@ void Parser::parseEols()
 
 /* FIRST sets */
 std::set<Token> Parser::FD{ xDim, xType, xDeclare, xSubroutine, xFunction };
-std::set<Token> Parser::FS{ xDim, xLet, xIf, xFor, xWhile, xReturn };
+std::set<Token> Parser::FS{ xDim, xLet, xIdent, xIf, xFor, xWhile, xReturn };
+std::set<Token> Parser::FF{ xIdent, xInteger, xDouble, xTrue, xFalse, xSub, xLPar };
 
 /**/
 bool Parser::inSet( const std::set<Token>& es )
@@ -247,15 +248,34 @@ Statement* Parser::parseDim()
 }
 
 /**/
-Statement* Parser::parseLet()
+Statement* Parser::parseAssignment()
 {
-  match( xLet );
   auto vn = sc.lexeme();
   match( xIdent );
   match( xEq );
   auto ex = parseRelation();
   parseEols();
   return new Assign(vn, ex);
+}
+
+/**/
+Statement* Parser::parseLet()
+{
+  match( xLet );
+  return parseAssignment();
+}
+
+/**/
+Statement* Parser::parseSubCall()
+{
+  auto vn = sc.lexeme();
+  match( xIdent );
+  if( lookahead == xLPar ) {
+    match( xLPar );
+    match( xRPar );
+  }
+  parseEols();
+  return nullptr;
 }
 
 /**/
@@ -325,6 +345,10 @@ Statement* Parser::parseInput()
 {
   match( xInput );
   match( xIdent );
+  while( lookahead == xComma ) {
+    lookahead = sc.next();
+    match( xIdent );
+  }
   parseEols();
   return nullptr;
 }
@@ -334,6 +358,10 @@ Statement* Parser::parsePrint()
 {
   match( xPrint );
   parseRelation();
+  while( lookahead == xComma ) {
+    lookahead = sc.next();
+    parseRelation();
+  }
   parseEols();
   return nullptr;
 }
@@ -388,7 +416,18 @@ Expression* Parser::parseFactor()
   if( lookahead == xIdent ) {
     auto vn = sc.lexeme();
     match( xIdent );
-    return new Variable(vn);
+    if( lookahead != xLPar )
+      return new Variable(vn);
+    // ֆունկցիայի կանչ
+    std::vector<Expression*> ps;
+    match( xLPar );
+    ps.push_back( parseRelation() );
+    while( lookahead == xComma ) {
+      lookahead = sc.next();
+      ps.push_back( parseRelation() );
+    }
+    match( xRPar );
+    return new FuncCall( vn, ps );
   }
 
   if( lookahead == xInteger ) {

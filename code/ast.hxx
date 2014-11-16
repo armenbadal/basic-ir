@@ -9,6 +9,9 @@
 #include <utility>
 #include <vector>
 
+/**/
+using pairofstrings = std::pair<std::string,std::string>;
+using vectorofpairsofstrings = std::vector<pairofstrings>;
 
 /**/
 class Statement;
@@ -31,14 +34,14 @@ public:
 class Function {
 private:
   std::string name;
-  std::vector<std::pair<std::string,std::string>> args;
+  vectorofpairsofstrings args;
   std::string type;
   Statement* body;
-  llvm::Module* module;
 public:
+  llvm::Module* module;
   std::map<std::string,llvm::Value*> locals;
 public:
-  Function(const std::string&, const std::vector<std::pair<std::string,std::string>>&, const std::string&);
+  Function(const std::string&, const vectorofpairsofstrings&, const std::string&);
   void setModule(llvm::Module*);
   void setBody(Statement*);
   llvm::Function* code();
@@ -116,6 +119,18 @@ public:
   llvm::Value* code(llvm::IRBuilder<>&);
 };
 
+/**/
+class FuncCall : public Expression {
+private:
+  std::string name;
+  std::vector<Expression*> args;
+public:
+  FuncCall(const std::string& nm, const std::vector<Expression*>& ag)
+    : name{nm}, args{ag}
+  {}
+  void setEnv(Function*);
+  llvm::Value* code(llvm::IRBuilder<>&);
+};
 
 /* ---------------------------------------------------------------- */
 class Statement {

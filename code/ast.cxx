@@ -2,6 +2,8 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Function.h>
 
+#include <llvm/ADT/ArrayRef.h>
+
 #include "ast.hxx"
 
 /**/
@@ -37,14 +39,15 @@ void Module::addFunction(Function* su)
 /**/
 void Module::code(const std::string& on)
 {
+  // !!! temporary implementation !!!
   for( auto& e : subs ) {
     auto cc = e->code();
-    cc->dump();
+    cc->dump(); 
   }
 }
 
 /**/
-Function::Function(const std::string& n, const std::vector<std::pair<std::string,std::string>>& a, const std::string& t)
+Function::Function(const std::string& n, const vectorofpairsofstrings& a, const std::string& t)
   : name{n}, args{a}, type{t}, body{nullptr}, module{nullptr}
 {}
 
@@ -75,6 +78,7 @@ llvm::Function* Function::code()
     ++ai;
   }
   if( body == nullptr ) return func;
+
   auto block = llvm::BasicBlock::Create(llvm::getGlobalContext(), "start", func);
   llvm::IRBuilder<> builder(llvm::getGlobalContext());
   builder.SetInsertPoint(block);
@@ -142,6 +146,23 @@ llvm::Value* Binary::code(llvm::IRBuilder<>& bu)
 }
 
 /**/
+void FuncCall::setEnv(Function* e)
+{
+  Expression::setEnv( e );
+  for( auto& a : args ) a->setEnv( e );
+}
+
+/**/
+llvm::Value* FuncCall::code(llvm::IRBuilder<>& bu)
+{
+  auto func = env->module->getFunction(name); // check
+  std::vector<llvm::Value*> ags;
+  for( auto& a : args )
+    ags.push_back( a->code(bu) );
+  return bu.CreateCall( func, llvm::ArrayRef<llvm::Value*>(ags) );
+}
+
+/**/
 void Sequence::setEnv(Function* e) 
 {
   Statement::setEnv(e);
@@ -186,7 +207,8 @@ void Assign::setEnv(Function* e)
 void Assign::code(llvm::IRBuilder<>& bu)
 {
   auto d = env->locals[name];
-  auto s = bu.CreateLoad(expr->code(bu));
+  //auto s = bu.CreateLoad(expr->code(bu)); // ?
+  auto s = expr->code(bu); // corrections 
   bu.CreateStore(s, d);
 }
 

@@ -10,9 +10,6 @@
 #include "scanner.hxx"
 #include "ast.hxx"
 
-using pairofstrings = std::pair<std::string,std::string>;
-using vectorofpairsofstrings = std::vector<pairofstrings>;
-
 /**/
 class Parser {
 private:
@@ -29,6 +26,7 @@ public:
 private:
   static std::set<Token> FD;
   static std::set<Token> FS;
+  static std::set<Token> FF;
   bool inSet( const std::set<Token>& );
 
 private:
@@ -45,7 +43,9 @@ private:
   Statement* parseStatement();
   Statement* parseSequence();
   Statement* parseDim();
+  Statement* parseAssignment();
   Statement* parseLet();
+  Statement* parseSubCall();
   Statement* parseIf();
   Statement* parseFor();
   Statement* parseWhile();
