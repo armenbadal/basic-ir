@@ -282,26 +282,32 @@ Statement* Parser::parseSubCall()
 Statement* Parser::parseIf()
 {
   match( xIf );
-  parseRelation();
+  auto cond = parseRelation();
   match( xThen );
   parseEols();
-  parseSequence();
+  auto thenp = parseSequence();
+  auto branch = new Branch( cond, thenp, nullptr );
+  auto brit = branch;
   while( lookahead == xElseIf ) {
     match( xElseIf );
-    parseRelation();
+    cond = parseRelation();
     match( xThen );
     parseEols();
-    parseSequence();
+    thenp = parseSequence();
+    auto elsep = new Branch( cond, thenp, nullptr );
+    brit->setElse( elsep );
+    brit = elsep;
   }
   if( lookahead == xElse ) {
     match( xElse );
     parseEols();
-    parseSequence();
+    auto elsep = parseSequence();
+    brit->setElse( elsep );
   }
   match( xEnd );
   match( xIf );
   parseEols();
-  return nullptr;
+  return branch;
 }
 
 /**/

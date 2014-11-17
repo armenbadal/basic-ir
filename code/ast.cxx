@@ -235,11 +235,41 @@ void Assign::code(llvm::IRBuilder<>& bu)
 /**/
 void Branch::setEnv(Function* e)
 {
+  Statement::setEnv( e );
+  cond->setEnv( e );
+  thenp->setEnv( e );
+  if( elsep != nullptr ) elsep->setEnv( e );
 }
 
 /**/
 void Branch::code(llvm::IRBuilder<>& bu)
 {
+  auto& cx = llvm::getGlobalContext();
+  auto func = bu.GetInsertBlock()->getParent();
+
+  auto cv = cond->code(bu);
+  bu.CreateFCmpONE( cv, llvm::ConstantFP::get(cx, llvm::APFloat(0.0)) ); // change
+
+  //Function *TheFunction = Builder.GetInsertBlock()->getParent();
+
+  auto tb = llvm::BasicBlock::Create( cx );
+  auto eb = llvm::BasicBlock::Create( cx );
+  auto mb = llvm::BasicBlock::Create( cx );
+
+  bu.CreateCondBr( cv, tb, eb );
+  
+  //  bu.SetInsertPoint( tb );
+  thenp->code( bu );
+  bu.CreateBr( mb );
+  tb = bu.GetInsertBlock();
+
+  if( elsep != nullptr ) {
+    bu.SetInsertPoint( eb );
+    elsep->code( bu );
+    eb = bu.GetInsertBlock();
+  }
+  func->getBasicBlockList().push_back(tb);
+  func->getBasicBlockList().push_back(mb);
 }
 
 /**/
@@ -268,7 +298,7 @@ void Print::setEnv(Function* e)
 }
 
 /**/
-void code(llvm::IRBuilder<>& bu)
+void Print::code(llvm::IRBuilder<>& bu)
 {
 }
 

@@ -208,7 +208,8 @@ private:
   Statement* elsep;
 public:
   Branch(Expression* c, Statement* t, Statement* e)
-    : cond{c}. thenp{t}, elsep{e} {}
+    : cond{c}, thenp{t}, elsep{e} {}
+  void setElse(Statement* s) { elsep = s; }
   void setEnv(Function*);
   void code(llvm::IRBuilder<>&);
 };
@@ -226,7 +227,7 @@ public:
 };
 
 /**/
-class Input : public Sequence {
+class Input : public Statement {
 private:
   std::vector<std::string> vars;
 public:
@@ -236,7 +237,7 @@ public:
 };
 
 /**/
-class Print : public Sequence {
+class Print : public Statement {
 private:
   std::vector<Expression*> vals;
 public:
