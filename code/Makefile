@@ -28,7 +28,7 @@ basic.o: basic.cxx
 
 clean:
 	rm -rf *.o
-	rm basic
-	rm *~
+	rm -rf basic
+	rm -rf *~
 
 

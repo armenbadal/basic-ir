@@ -47,6 +47,18 @@ void Module::code(const std::string& on)
 }
 
 /**/
+std::string Module::toLisp()
+{
+  std::string result{"("};
+  for( auto& e : subs ) {
+    result += e->toLisp();
+    result += "\n";
+  }
+  result += ")";
+  return result;
+}
+
+/**/
 Function::Function(const std::string& n, const vectorofpairsofstrings& a, const std::string& t)
   : name{n}, args{a}, type{t}, body{nullptr}, module{nullptr}
 {}
@@ -91,6 +103,20 @@ llvm::Function* Function::code()
 
   body->code(builder);
   return func;
+}
+
+/**/
+std::string Function::toLisp()
+{
+  std::string result{"(defun "};
+  result += name;
+  result += "(";
+  for( auto& a : args )
+    result += "(" + a.first + " " + a.second + ")";
+  result += ") ; " + type + "\n";
+  result += body->toLisp();
+  result += ")";
+  return result;
 }
 
 /**/
@@ -198,6 +224,12 @@ void Sequence::code(llvm::IRBuilder<>& bu)
 }
 
 /**/
+std::string Sequence::toLisp() 
+{
+  return sto->toLisp() + "\n" + sti->toLisp(); 
+}
+
+/**/
 void Declare::code(llvm::IRBuilder<>& bu)
 {
   env->locals[name] = bu.CreateAlloca(asType(type), nullptr, name);
@@ -244,32 +276,54 @@ void Branch::setEnv(Function* e)
 /**/
 void Branch::code(llvm::IRBuilder<>& bu)
 {
+  // Այս ֆունկցիան արտագրել իտերատիվ եղանակով
   auto& cx = llvm::getGlobalContext();
   auto func = bu.GetInsertBlock()->getParent();
 
-  auto cv = cond->code(bu);
-  bu.CreateFCmpONE( cv, llvm::ConstantFP::get(cx, llvm::APFloat(0.0)) ); // change
+  auto cv = cond->code( bu );
+  auto bv = bu.CreateICmpEQ( cv, llvm::ConstantInt::get( cx, llvm::APInt(1, 1) ) );
 
-  //Function *TheFunction = Builder.GetInsertBlock()->getParent();
-
-  auto tb = llvm::BasicBlock::Create( cx );
-  auto eb = llvm::BasicBlock::Create( cx );
-  auto mb = llvm::BasicBlock::Create( cx );
-
-  bu.CreateCondBr( cv, tb, eb );
+  auto tb = llvm::BasicBlock::Create( cx, "A", func );
+  auto cb = llvm::BasicBlock::Create( cx, "B", func );
+  auto eb = cb;
+  if( elsep != nullptr )
+    eb = llvm::BasicBlock::Create( cx, "C", func );
   
-  //  bu.SetInsertPoint( tb );
+  bu.CreateCondBr( bv, tb, eb );
+  
+  bu.SetInsertPoint( tb );
   thenp->code( bu );
-  bu.CreateBr( mb );
+  bu.CreateBr( cb );
   tb = bu.GetInsertBlock();
+  func->getBasicBlockList().push_back(tb);
 
   if( elsep != nullptr ) {
     bu.SetInsertPoint( eb );
     elsep->code( bu );
+    bu.CreateBr( cb );
     eb = bu.GetInsertBlock();
+    func->getBasicBlockList().push_back(eb);
   }
-  func->getBasicBlockList().push_back(tb);
-  func->getBasicBlockList().push_back(mb);
+
+  bu.SetInsertPoint( cb );
+  func->getBasicBlockList().push_back(cb);
+}
+
+/**/
+std::string Branch::toLisp()
+{
+  std::string result{"(if "};
+  result += cond->toLisp();
+  result += " (progn ";
+  result += thenp->toLisp();
+  result += ")";
+  if( elsep != nullptr ) {
+    result += " (progn ";
+    result += elsep->toLisp();
+    result += ")";
+  }
+  result += ")";
+  return result;
 }
 
 /**/

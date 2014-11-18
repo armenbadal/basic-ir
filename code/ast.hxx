@@ -9,6 +9,13 @@
 #include <utility>
 #include <vector>
 
+/* -- Lisp -- Տեղափոխել այլ ֆայլ -- */
+class Lisp {
+public:
+  virtual std::string toLisp() = 0;
+};
+
+
 /**/
 using pairofstrings = std::pair<std::string,std::string>;
 using vectorofpairsofstrings = std::vector<pairofstrings>;
@@ -18,7 +25,7 @@ class Statement;
 class Function;
 
 /* ---------------------------------------------------------------- */
-class Module {
+class Module : public Lisp {
 private:
   std::string name;
   llvm::Module* module;
@@ -28,10 +35,11 @@ public:
   Module(const std::string&);
   void addFunction(Function*);
   void code(const std::string&);
+  std::string toLisp();
 };
 
 /* ---------------------------------------------------------------- */
-class Function {
+class Function : public Lisp {
 private:
   std::string name;
   vectorofpairsofstrings args;
@@ -45,16 +53,18 @@ public:
   void setModule(llvm::Module*);
   void setBody(Statement*);
   llvm::Function* code();
+  std::string toLisp();
 };
 
 /* ---------------------------------------------------------------- */
-class Expression {
+class Expression : public Lisp {
 protected:
   Function* env;
 public:
   virtual ~Expression() {}
   virtual void setEnv(Function* e) { env = e; }
   virtual llvm::Value* code(llvm::IRBuilder<>&) = 0;
+  std::string toLisp() { return ""; }
 };
 
 /**/
@@ -146,13 +156,14 @@ public:
 };
 
 /* ---------------------------------------------------------------- */
-class Statement {
+class Statement : public Lisp {
 protected:
   Function* env;
 public:
   virtual ~Statement() {}
   virtual void setEnv(Function* e) { env = e; }
   virtual void code(llvm::IRBuilder<>&) = 0;
+  std::string toLisp() { return ""; }
 };
 
 /**/
@@ -165,6 +176,7 @@ public:
     : sto{so}, sti{si} {}
   void setEnv(Function*); 
   void code(llvm::IRBuilder<>&);
+  std::string toLisp();
 };
 
 /**/
@@ -212,6 +224,7 @@ public:
   void setElse(Statement* s) { elsep = s; }
   void setEnv(Function*);
   void code(llvm::IRBuilder<>&);
+  std::string toLisp();
 };
 
 /**/
