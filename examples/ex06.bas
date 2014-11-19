@@ -2,14 +2,16 @@
 '
 '
 '
-Sub f(c As Boolean)
-  Dim x As Double
-  If c Then 
-    Let x = 3.14
-  ElseIf c Then 
-    Let x = 2.7
+Sub f(c As Boolean, d As Boolean, e As Boolean)
+  Dim x As Integer
+  If c Then
+    Let x = 444
+  ElseIf d Then 
+    Let x = 333
+  ElseIf e Then 
+    Let x = 222
   Else
-    Let x = 1.0
+    Let x = 111
   End If
 End Sub
 

@@ -11,8 +11,8 @@ namespace {
     "Ident", "Dim", "As", "Type", "End", "Declare", "Sub", 
     "Function", "Return", "Let", "If", "Then", "ElseIf",
     "Else", "For", "To", "Step", "While", "Input", "Print",
-    "(", ")", ",", "=", "<>", ">", ">=", "<", "<=",
-    "+", "-", "*", "/", "\\", "^", "EOF"
+    "(", ")", ",", "And", "Or", "Not", "=", "<>", ">", 
+    ">=", "<", "<=", "+", "-", "*", "/", "\\", "^", "EOF"
   };
 
   /**/
@@ -461,6 +461,11 @@ Expression* Parser::parseFactor()
   if( lookahead == xSub ) {
     match( xSub );
     return new Unary("-", parseFactor());
+  }
+
+  if( lookahead == xNot ) {
+    match( xNot );
+    return new Unary("Not", parseFactor());
   }
 
   if( lookahead == xLPar ) {

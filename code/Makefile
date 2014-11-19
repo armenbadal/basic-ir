@@ -7,14 +7,17 @@ LIBS=`llvm-config --libs --system-libs`
 
 TARGET=basic
 
-SOURCES=scanner.cxx ast.cxx parser.cxx basic.cxx
-OBJECTS=scanner.o ast.o parser.o basic.o
+SOURCES=scanner.cxx ast.cxx codeir.cxx parser.cxx basic.cxx
+OBJECTS=scanner.o ast.o codeir.o parser.o basic.o
 
 all: $(OBJECTS)
 	clang++ $(STD) $(DEB) -o $(TARGET) $(OBJECTS) $(LDFLAGS) $(LIBS)
 
 ast.o: ast.cxx ast.hxx
 	clang++ $(STD) $(DEB) -c $(CPPFLAGS) ast.cxx
+
+codeir.o: codeir.cxx ast.hxx
+	clang++ $(STD) $(DEB) -c $(CPPFLAGS) codeir.cxx
 
 scanner.o: scanner.cxx scanner.hxx tokens.hxx
 	clang++ $(STD) $(DEB) -c $(CPPFLAGS) scanner.cxx

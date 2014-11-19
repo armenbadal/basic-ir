@@ -9,10 +9,12 @@
 #include <utility>
 #include <vector>
 
-/* -- Lisp -- Տեղափոխել այլ ֆայլ -- */
-class Lisp {
+/* Կոդի գեներացիայի ինտերֆեյս */
+class CodeIR {
 public:
-  virtual std::string toLisp() = 0;
+  /* Արտահայտությունների համար վերադարձնում է llvm::Value*, 
+   իսկ հրամանների համար՝ nullptr։ */
+  virtual llvm::Value* code(llvm::IRBuilder<>&) = 0;
 };
 
 
@@ -25,7 +27,7 @@ class Statement;
 class Function;
 
 /* ---------------------------------------------------------------- */
-class Module : public Lisp {
+class Module {
 private:
   std::string name;
   llvm::Module* module;
@@ -35,36 +37,32 @@ public:
   Module(const std::string&);
   void addFunction(Function*);
   void code(const std::string&);
-  std::string toLisp();
 };
 
 /* ---------------------------------------------------------------- */
-class Function : public Lisp {
+class Function : public CodeIR {
 private:
   std::string name;
   vectorofpairsofstrings args;
   std::string type;
-  Statement* body;
+  Statement* body = nullptr;
 public:
-  llvm::Module* module;
+  llvm::Module* module = nullptr;
   std::map<std::string,llvm::Value*> locals;
 public:
   Function(const std::string&, const vectorofpairsofstrings&, const std::string&);
   void setModule(llvm::Module*);
   void setBody(Statement*);
-  llvm::Function* code();
-  std::string toLisp();
+  llvm::Value* code(llvm::IRBuilder<>&);
 };
 
 /* ---------------------------------------------------------------- */
-class Expression : public Lisp {
+class Expression : public CodeIR {
 protected:
   Function* env;
 public:
   virtual ~Expression() {}
   virtual void setEnv(Function* e) { env = e; }
-  virtual llvm::Value* code(llvm::IRBuilder<>&) = 0;
-  std::string toLisp() { return ""; }
 };
 
 /**/
@@ -156,14 +154,12 @@ public:
 };
 
 /* ---------------------------------------------------------------- */
-class Statement : public Lisp {
+class Statement : public CodeIR {
 protected:
   Function* env;
 public:
   virtual ~Statement() {}
   virtual void setEnv(Function* e) { env = e; }
-  virtual void code(llvm::IRBuilder<>&) = 0;
-  std::string toLisp() { return ""; }
 };
 
 /**/
@@ -175,8 +171,7 @@ public:
   Sequence(Statement* so, Statement* si) 
     : sto{so}, sti{si} {}
   void setEnv(Function*); 
-  void code(llvm::IRBuilder<>&);
-  std::string toLisp();
+  llvm::Value* code(llvm::IRBuilder<>&);
 };
 
 /**/
@@ -187,7 +182,7 @@ private:
 public:
   Declare(const std::string& n, const std::string& t)
     : name{n}, type{t} {}
-  void code(llvm::IRBuilder<>&);
+  llvm::Value* code(llvm::IRBuilder<>&);
 };
 
 /**/
@@ -197,7 +192,7 @@ private:
 public:
   Result(Expression* e) : exp{e} {}
   void setEnv(Function*);
-    void code(llvm::IRBuilder<>&);
+  llvm::Value* code(llvm::IRBuilder<>&);
 };
 
 /**/
@@ -209,7 +204,7 @@ public:
   Assign(const std::string& n, Expression* e)
     : name{n}, expr{e} {}
   void setEnv(Function*);
-  void code(llvm::IRBuilder<>&);
+  llvm::Value* code(llvm::IRBuilder<>&);
 };
 
 /**/
@@ -223,8 +218,22 @@ public:
     : cond{c}, thenp{t}, elsep{e} {}
   void setElse(Statement* s) { elsep = s; }
   void setEnv(Function*);
-  void code(llvm::IRBuilder<>&);
-  std::string toLisp();
+  llvm::Value* code(llvm::IRBuilder<>&);
+};
+
+/**/
+class ForLoop : public Statement {
+private:
+  std::string param;
+  Expression* start;
+  Expression* stop;
+  Expression* step;
+  Statement* body;
+public:
+  ForLoop(const std::string& pr, Expression* sa, Expression* so, Expression* se, Statement* bo)
+    : param{pr}, start{sa}, stop{so}, step{se}, body{bo} {}
+  void setEnv(Function*);
+  llvm::Value* code(llvm::IRBuilder<>&);
 };
 
 /**/
@@ -236,7 +245,7 @@ public:
   WhileLoop(Expression* co, Statement* bo)
     : cond{co}, body{bo} {}
   void setEnv(Function*);
-  void code(llvm::IRBuilder<>&);
+  llvm::Value* code(llvm::IRBuilder<>&);
 };
 
 /**/
@@ -246,7 +255,7 @@ private:
 public:
   Input(const std::vector<std::string>& vs)
     : vars{vs} {}
-  void code(llvm::IRBuilder<>&);
+  llvm::Value* code(llvm::IRBuilder<>&);
 };
 
 /**/
@@ -257,7 +266,7 @@ public:
   Print(const std::vector<Expression*>& vl)
     : vals{vl} {}
   void setEnv(Function*);
-  void code(llvm::IRBuilder<>&);
+  llvm::Value* code(llvm::IRBuilder<>&);
 };
 
 #endif

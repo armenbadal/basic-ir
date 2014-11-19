@@ -27,7 +27,10 @@ std::map<std::string,Token> Scanner::keywords{
   {"Step", xStep},
   {"While", xWhile},
   {"Input", xInput},
-  {"Print", xPrint}
+  {"Print", xPrint},
+  {"And", xAnd},
+  {"Or", xOr},
+  {"Not", xNot}
 };
 
 /**/
