@@ -16,7 +16,7 @@ void Module::addFunction(Function* su)
 }
 
 /**/
-Function::Function(const std::string& n, const vectorofpairsofstrings& a, const std::string& t)
+Function::Function(const std::string& n, const vectorofsymbols& a, Type* t)
   : name{n}, args{a}, type{t}
 {}
 

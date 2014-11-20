@@ -9,6 +9,9 @@
 #include <utility>
 #include <vector>
 
+#include "symtab.hxx"
+
+
 /* Կոդի գեներացիայի ինտերֆեյս */
 class CodeIR {
 public:
@@ -19,8 +22,7 @@ public:
 
 
 /**/
-using pairofstrings = std::pair<std::string,std::string>;
-using vectorofpairsofstrings = std::vector<pairofstrings>;
+using vectorofsymbols = std::vector<Symbol*>;
 
 /**/
 class Statement;
@@ -43,14 +45,14 @@ public:
 class Function : public CodeIR {
 private:
   std::string name;
-  vectorofpairsofstrings args;
-  std::string type;
+  vectorofsymbols args;
+  Type* type;
   Statement* body = nullptr;
 public:
   llvm::Module* module = nullptr;
   std::map<std::string,llvm::Value*> locals;
 public:
-  Function(const std::string&, const vectorofpairsofstrings&, const std::string&);
+  Function(const std::string&, const vectorofsymbols&, Type*);
   void setModule(llvm::Module*);
   void setBody(Statement*);
   llvm::Value* code(llvm::IRBuilder<>&);
@@ -59,6 +61,7 @@ public:
 /* ---------------------------------------------------------------- */
 class Expression : public CodeIR {
 protected:
+  Type* etype;
   Function* env;
 public:
   virtual ~Expression() {}

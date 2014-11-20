@@ -184,6 +184,12 @@ Function* Parser::parseSubrHeader()
     match( xRPar );
   }
   parseEols();
+  
+  // record for symbol table
+  std::vector<Type*> ay;
+  for( auto& a : ag ) ay.push_back(new Scalar(a.second));
+  symtab->insert( new Symbol(nm, new FuncType( new Scalar("Void"), ay ) ) );
+
   return new Function(nm, ag, "Void");
 }
 
@@ -191,11 +197,13 @@ Function* Parser::parseSubrHeader()
 Function* Parser::parseSubroutine()
 {
   auto pr = parseSubrHeader();
+  symtab->openScope();
   auto bo = parseSequence();
   match( xEnd );
   match( xSubroutine );
   parseEols();
   pr->setBody( bo );
+  symtab->closeScope();
   return pr;
 }
 

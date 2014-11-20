@@ -6,9 +6,11 @@
 #include <utility>
 #include <vector>
 
-#include "tokens.hxx"
-#include "scanner.hxx"
 #include "ast.hxx"
+#include "scanner.hxx"
+#include "symtab.hxx"
+#include "tokens.hxx"
+
 
 /**/
 class Parser {
@@ -16,11 +18,18 @@ private:
   std::string file;
   Scanner sc;
   Token lookahead;
+  SymbolTable*  symtab;
 
 public:
   Parser(const char* nm) 
     : file{std::string{nm}}, sc{file}
-  {}
+  {
+    symtab = new SymbolTable();
+  }
+  ~Parser()
+  {
+    delete symtab;
+  }
   Module* parse();
 
 private:
