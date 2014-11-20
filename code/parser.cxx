@@ -65,6 +65,8 @@ Module* Parser::parse()
     lookahead = sc.next();
   while( lookahead == xEol );
 
+  symtab->openScope(); // ?
+
   while( inSet(FD) ) {
     Function* sub{nullptr};
     if( lookahead == xDeclare )
@@ -122,7 +124,7 @@ Statement* Parser::parseSequence()
 }
 
 /**/
-pairofstrings Parser::parseNameDecl()
+Symbol Parser::parseNameDecl()
 {
   auto a0 = sc.lexeme();
   match( xIdent );
@@ -133,15 +135,19 @@ pairofstrings Parser::parseNameDecl()
 }
 
 /**/
-void Parser::parseDeclList(vectorofpairsofstrings& ds)
+std::string Parser::parseDeclList(std::vector<Symbol>& ds)
 {
+  std::stringstream ss;
   auto nv = parseNameDecl();
   ds.push_back( nv );
+  ss << nv.second;
   while( lookahead == xComma ) {
     match( xComma );
     nv = parseNameDecl();
     ds.push_back( nv );
+    ss << " x " << nv.second;
   }
+  return ss.str();
 }
 
 /**/
@@ -176,19 +182,17 @@ Function* Parser::parseSubrHeader()
   match( xSubroutine );
   std::string nm = sc.lexeme();
   match( xIdent );
-  vectorofpairsofstrings ag;
+  std::string sig{"()"};
+  std::vector<Symbol> ag;
   if( lookahead == xLPar ) {
     match( xLPar );
     if( lookahead == xIdent )
-      parseDeclList( ag );
+      sig = parseDeclList( ag );
     match( xRPar );
   }
   parseEols();
   
-  // record for symbol table
-  std::vector<Type*> ay;
-  for( auto& a : ag ) ay.push_back(new Scalar(a.second));
-  symtab->insert( new Symbol(nm, new FuncType( new Scalar("Void"), ay ) ) );
+  symtab->insert( Symbol(nm, sig + " -> Void") );
 
   return new Function(nm, ag, "Void");
 }
@@ -214,14 +218,18 @@ Function* Parser::parseFuncHeader()
   std::string nm = sc.lexeme();
   match( xIdent );
   match( xLPar );
-  vectorofpairsofstrings ag;
+  std::string sig{"()"};
+  std::vector<Symbol> ag;
   if( lookahead == xIdent )
-    parseDeclList( ag );
+    sig = parseDeclList( ag );
   match( xRPar );
   match( xAs );
   std::string ty = sc.lexeme();
   match( xIdent );
   parseEols();
+
+  symtab->insert( Symbol(nm, sig + " -> " + ty) );
+
   return new Function(nm, ag, ty);
 }
 
@@ -229,11 +237,13 @@ Function* Parser::parseFuncHeader()
 Function* Parser::parseFunction()
 {
   auto pr = parseFuncHeader();
+  symtab->openScope();
   auto bo = parseSequence();
   match( xEnd );
   match( xFunction );
   parseEols();
   pr->setBody( bo );
+  symtab->closeScope();
   return pr;
 }
 
@@ -252,6 +262,7 @@ Statement* Parser::parseDim()
   match( xDim );
   auto nv = parseNameDecl();
   parseEols();
+  symtab->insert(nv);
   return new Declare(nv.first, nv.second);
 }
 

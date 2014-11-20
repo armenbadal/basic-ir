@@ -11,6 +11,9 @@
 
 #include "symtab.hxx"
 
+/**/
+using nametype = std::pair<std::string,std::string>;
+using vectornametype = std::vector<nametype>;
 
 /* Կոդի գեներացիայի ինտերֆեյս */
 class CodeIR {
@@ -19,10 +22,6 @@ public:
    իսկ հրամանների համար՝ nullptr։ */
   virtual llvm::Value* code(llvm::IRBuilder<>&) = 0;
 };
-
-
-/**/
-using vectorofsymbols = std::vector<Symbol*>;
 
 /**/
 class Statement;
@@ -45,14 +44,14 @@ public:
 class Function : public CodeIR {
 private:
   std::string name;
-  vectorofsymbols args;
-  Type* type;
+  vectornametype args;
+  std::string type;
   Statement* body = nullptr;
 public:
   llvm::Module* module = nullptr;
   std::map<std::string,llvm::Value*> locals;
 public:
-  Function(const std::string&, const vectorofsymbols&, Type*);
+  Function(const std::string&, const vectornametype&, const std::string&);
   void setModule(llvm::Module*);
   void setBody(Statement*);
   llvm::Value* code(llvm::IRBuilder<>&);
@@ -61,7 +60,6 @@ public:
 /* ---------------------------------------------------------------- */
 class Expression : public CodeIR {
 protected:
-  Type* etype;
   Function* env;
 public:
   virtual ~Expression() {}

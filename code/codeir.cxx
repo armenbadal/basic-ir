@@ -26,10 +26,8 @@ namespace {
 void Module::code(const std::string& on)
 {
   llvm::IRBuilder<> builder(llvm::getGlobalContext());
-  for( auto& e : subs ) {
-    e->setModule(this->module);
-    auto cc = e->code(builder);
-  }
+  for( auto& e : subs )
+    e->code(builder);
   /* DEBUG */ module->dump();
 }
 

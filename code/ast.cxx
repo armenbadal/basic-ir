@@ -8,7 +8,7 @@ Module::Module(const std::string& nm)
   module = new llvm::Module(name, llvm::getGlobalContext());
 }
 
-/**/
+/* ?? */
 void Module::addFunction(Function* su)
 {
   su->setModule(module);
@@ -16,7 +16,7 @@ void Module::addFunction(Function* su)
 }
 
 /**/
-Function::Function(const std::string& n, const vectorofsymbols& a, Type* t)
+Function::Function(const std::string& n, const vectornametype& a, const std::string& t)
   : name{n}, args{a}, type{t}
 {}
 

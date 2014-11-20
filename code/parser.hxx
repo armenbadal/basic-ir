@@ -41,8 +41,8 @@ private:
 private:
   void match( Token );
   void parseEols();
-  pairofstrings parseNameDecl();
-  void parseDeclList(vectorofpairsofstrings&);
+  Symbol parseNameDecl();
+  std::string parseDeclList(std::vector<Symbol>&);
   void parseType();
   Function* parseDeclare();
   Function* parseSubrHeader();
