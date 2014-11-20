@@ -26,11 +26,11 @@ namespace {
 void Module::code(const std::string& on)
 {
   llvm::IRBuilder<> builder(llvm::getGlobalContext());
-  // !!! temporary implementation !!!
   for( auto& e : subs ) {
+    e->setModule(this->module);
     auto cc = e->code(builder);
-    cc->dump(); 
   }
+  /* DEBUG */ module->dump();
 }
 
 /**/

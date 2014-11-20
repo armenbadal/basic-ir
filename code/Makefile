@@ -3,7 +3,7 @@ STD=-std=c++11
 DEB=-gdwarf-2
 CPPFLAGS=`llvm-config --cppflags`
 LDFLAGS=`llvm-config --ldflags`
-LIBS=`llvm-config --libs --system-libs`
+LIBS=`llvm-config --libs core --system-libs`
 
 TARGET=basic
 
