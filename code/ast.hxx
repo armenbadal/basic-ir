@@ -60,7 +60,9 @@ public:
 /* ---------------------------------------------------------------- */
 class Expression : public CodeIR {
 protected:
-  Function* env;
+  Function* env{nullptr};
+public:
+  std::string type;
 public:
   virtual ~Expression() {}
   virtual void setEnv(Function* e) { env = e; }
@@ -71,7 +73,8 @@ class Variable : public Expression {
 private:
   std::string name;
 public:
-  Variable(const std::string& n) : name{n} {}
+  Variable(const std::string& n, const std::string& t)
+    : name{n} { type = t; }
   llvm::Value* code(llvm::IRBuilder<>&);
 };
 
@@ -80,7 +83,7 @@ class Boolean : public Expression {
 private:
   bool value;
 public:
-  Boolean(bool v) : value{v} {}
+  Boolean(bool v) : value{v} { type = "Boolean"; }
   llvm::Value* code(llvm::IRBuilder<>&);
 };
 
@@ -89,7 +92,7 @@ class Integer : public Expression {
 private:
   int value;
 public:
-  Integer(int v) : value{v} {}
+  Integer(int v) : value{v} { type = "Integer"; }
   llvm::Value* code(llvm::IRBuilder<>&);
 };
 
@@ -99,7 +102,7 @@ class Double : public Expression {
 private:
   double value;
 public:
-  Double(double v) : value{v} {}
+  Double(double v) : value{v} { type = "Double"; }
   llvm::Value* code(llvm::IRBuilder<>&);
 };
 

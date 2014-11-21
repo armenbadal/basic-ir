@@ -38,7 +38,7 @@ Symbol SymbolTable::search(const std::string& nm)
     auto it = std::find_if( sc.begin(), sc.end(), pr );
     if( it != sc.end() ) return *it;
   }
-  return Symbol("","");
+  return Symbol{"",""};
 }
 
 /* --- DEBUG --- */

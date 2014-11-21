@@ -251,7 +251,7 @@ Function* Parser::parseFunction()
 Statement* Parser::parseReturn()
 {
   match( xReturn );
-  auto rv = parseRelation();
+  auto rv = parseDisjunction();
   parseEols();
   return new Result(rv);
 }
@@ -272,7 +272,7 @@ Statement* Parser::parseAssignment()
   auto vn = sc.lexeme();
   match( xIdent );
   match( xEq );
-  auto ex = parseRelation();
+  auto ex = parseDisjunction();
   parseEols();
   return new Assign(vn, ex);
 }
@@ -301,7 +301,7 @@ Statement* Parser::parseSubCall()
 Statement* Parser::parseIf()
 {
   match( xIf );
-  auto cond = parseRelation();
+  auto cond = parseDisjunction();
   match( xThen );
   parseEols();
   auto thenp = parseSequence();
@@ -309,7 +309,7 @@ Statement* Parser::parseIf()
   auto brit = branch;
   while( lookahead == xElseIf ) {
     match( xElseIf );
-    cond = parseRelation();
+    cond = parseDisjunction();
     match( xThen );
     parseEols();
     thenp = parseSequence();
@@ -336,13 +336,13 @@ Statement* Parser::parseFor()
   auto cn = sc.lexeme();
   match( xIdent );
   match( xEq );
-  auto st = parseExpression();
+  auto st = parseAddition(); // !
   match( xTo );
-  auto ed = parseExpression();
+  auto ed = parseAddition(); // !
   Expression* sp{nullptr};
   if( lookahead == xStep ) {
     match( xStep );
-    sp = parseExpression();
+    sp = parseAddition(); // !
   }
   parseEols();
   auto body = parseSequence();
@@ -356,7 +356,7 @@ Statement* Parser::parseFor()
 Statement* Parser::parseWhile()
 {
   match( xWhile );
-  auto cond = parseRelation();
+  auto cond = parseDisjunction();
   parseEols();
   auto body = parseSequence();
   match( xEnd );
@@ -382,39 +382,72 @@ Statement* Parser::parseInput()
 Statement* Parser::parsePrint()
 {
   match( xPrint );
-  parseRelation();
+  parseDisjunction();
   while( lookahead == xComma ) {
     lookahead = sc.next();
-    parseRelation();
+    parseDisjunction();
   }
   parseEols();
   return nullptr;
 }
 
 /**/
+Expression* Parser::parseDisjunction()
+{
+  auto res = parseConjunction();
+  while( lookahead == xOr ) {
+    lookahead = sc.next();
+    res = new Binary("Or", res, parseConjunction());
+  }
+  return res;
+}
+
+/**/
+Expression* Parser::parseConjunction()
+{
+  auto res = parseEquality();
+  while( lookahead == xAnd ) {
+    lookahead = sc.next();
+    res = new Binary("And", res, parseEquality());
+  }
+  return res;
+}
+
+/**/
+Expression* Parser::parseEquality()
+{
+  auto res = parseRelation();
+  if( lookahead == xEq || lookahead == xNe ) {
+    lookahead = sc.next();
+    res = new Binary("?", res, parseRelation());
+  }
+  return res;
+}
+
+/**/
 Expression* Parser::parseRelation()
 {
-  auto res = parseExpression();
-  if( lookahead >= xEq && lookahead <= xLe ) {
+  auto res = parseAddition();
+  if( lookahead >= xGt && lookahead <= xLe ) {
     lookahead = sc.next();
-    res = new Binary("?", res, parseExpression());
+    res = new Binary("?", res, parseAddition());
   }
   return res;
 }
 
 /**/
-Expression* Parser::parseExpression()
+Expression* Parser::parseAddition()
 {
-  auto res = parseTerm();
+  auto res = parseMultiplication();
   while( lookahead == xAdd || lookahead == xSub ) {
     lookahead = sc.next();
-    res = new Binary("?", res, parseTerm());
+    res = new Binary("?", res, parseMultiplication());
   }
   return res;
 }
 
 /**/
-Expression* Parser::parseTerm()
+Expression* Parser::parseMultiplication()
 {
   auto res = parsePower();
   while( lookahead == xMul || lookahead == xDiv || lookahead == xMod ) {
@@ -430,7 +463,7 @@ Expression* Parser::parsePower()
   auto res = parseFactor();
   if( lookahead == xPow ) {
     lookahead = sc.next();
-    res = new Binary("^", res, parsePower());
+    res = new Binary("Pow", res, parsePower());
   }
   return res;
 }
@@ -438,22 +471,8 @@ Expression* Parser::parsePower()
 /**/
 Expression* Parser::parseFactor()
 {
-  if( lookahead == xIdent ) {
-    auto vn = sc.lexeme();
-    match( xIdent );
-    if( lookahead != xLPar )
-      return new Variable(vn);
-    // ֆունկցիայի կանչ
-    std::vector<Expression*> ps;
-    match( xLPar );
-    ps.push_back( parseRelation() );
-    while( lookahead == xComma ) {
-      lookahead = sc.next();
-      ps.push_back( parseRelation() );
-    }
-    match( xRPar );
-    return new FuncCall( vn, ps );
-  }
+  if( lookahead == xIdent )
+    return parseVariableOrFuncCall();
 
   if( lookahead == xInteger ) {
     auto nm = asNumber<int>(sc.lexeme());
@@ -477,14 +496,33 @@ Expression* Parser::parseFactor()
     return new Boolean(false);
   }
 
+  // թվային արժեքի բացասում
   if( lookahead == xSub ) {
     match( xSub );
-    return new Unary("-", parseFactor());
+    auto expr = parseFactor();
+    auto y = expr->type;
+    if( y != "Double" && y != "Integer" ) {
+      std::cerr << "Սխալ։ Անհամապատասխան տիպեր։" << std::endl;
+      return nullptr;
+    }
+    std::string op{"Neg"};
+    if( y == "Double" ) op = "FNeg";
+    expr = new Unary{op, expr};
+    expr->type = y;
+    return expr;
   }
 
+  // բուլյան արտահայտության ժխտում
   if( lookahead == xNot ) {
     match( xNot );
-    return new Unary("Not", parseFactor());
+    auto expr = parseFactor();
+    if( expr->type != "Boolean" ) {
+      std::cerr << "Սխալ։ Անհամապատասխան տիպեր։" << std::endl;
+      return nullptr;
+    }
+    expr = new Unary{"Not", expr};
+    expr->type = "Boolean";
+    return expr;
   }
 
   if( lookahead == xLPar ) {
@@ -494,7 +532,42 @@ Expression* Parser::parseFactor()
     return rs;
   }
   
-  std::cerr << "Syntax Error: Unexpected factor" << std::endl;
+  std::cerr << "Syntax Error: Unexpected factor." << std::endl;
   return nullptr;
+}
+
+/**/
+Expression* Parser::parseVariableOrFuncCall()
+{
+  auto vn = sc.lexeme();
+  match( xIdent );
+  auto nt = symtab->search(vn);
+  if( "" == nt.first ) {
+    std::cerr << "Սխալ։ Չհայտարարված անուն։" << std::endl;
+    return nullptr;
+  }
+
+  // փոփոխականի օգտագործում
+  if( lookahead != xLPar )  
+    return new Variable{vn, nt.second};
+///* DEBUG */ std::cout << "HERE" << std::endl;
+  // ֆունկցիայի կանչ
+  std::stringstream ss;
+  std::vector<Expression*> ps;
+  match( xLPar );
+  auto ex = parseRelation();
+  ss << ex->type;
+  ps.push_back( ex );
+  while( lookahead == xComma ) {
+    lookahead = sc.next();
+    ex = parseRelation();
+    ss << " x " << ex->type;
+    ps.push_back( ex );
+  }
+  match( xRPar );
+  // TODO ստուգել արգումենտների և պարամետրերի համապատասխանությունը
+///* DEBUG */ std::cout << nt.first << ":" << nt.second << std::endl;
+///* DEBUG */ std::cout << ss.str() << std::endl;
+  return new FuncCall( vn, ps );
 }
 

@@ -61,11 +61,15 @@ private:
   Statement* parseInput();
   Statement* parsePrint();
   Statement* parseReturn();
+  Expression* parseDisjunction();
+  Expression* parseConjunction();
+  Expression* parseEquality();
   Expression* parseRelation();
-  Expression* parseExpression();
-  Expression* parseTerm();
+  Expression* parseAddition();
+  Expression* parseMultiplication();
   Expression* parsePower();
   Expression* parseFactor();
+  Expression* parseVariableOrFuncCall();
 };
 
 #endif
