@@ -1,6 +1,14 @@
 
 #include "ast.hxx"
 
+namespace {
+  /**/
+  bool isNumeric(const std::string& id)
+  {
+    return id == "Integer" || id == "Double";
+  }
+}
+
 /**/
 Module::Module(const std::string& nm)
   : name{nm}
@@ -34,6 +42,16 @@ void Function::setBody(Statement* bo)
 }
 
 /**/
+Unary::Unary(const std::string& op, Expression* ex)
+  : oper{op}, expr{ex}
+{
+  if( oper == "Neg" ) 
+    type = expr->type;
+  else if( oper == "Not" )
+    type = "Boolean";
+}
+
+/**/
 void Unary::setEnv(Function* e)
 {
   Expression::setEnv(e);
@@ -45,6 +63,31 @@ void TypeCast::setEnv(Function* e)
 {
   Expression::setEnv( e );
   expr->setEnv(e);
+}
+
+/**/
+std::set<std::string> Binary::Numerics{"Add", "Sub", "Mul", "Div", "Mod", "Pow"};
+std::set<std::string> Binary::Logicals{"And", "Or", "Eq", "Ne", "Gt", "Ge", "Lt", "Le"};
+
+/**/
+Binary::Binary(const std::string& op, Expression* exo, Expression* exi)
+  : oper{op}, expro{exo}, expri{exi} 
+{
+  // տիպերի համաձայնեցում և ձևափոխում
+  if( isNumeric(expro->type) && isNumeric(expri->type) ) {
+    if( expro->type == "Integer" && expri->type == "Double" )
+      expro = new TypeCast{expro, "Integer", "Double"};
+    else if( expro->type == "Double" && expri->type == "Integer" )
+      expri = new TypeCast{expri, "Integer", "Double"};
+  }
+  // ??
+  if( Numerics.end() != Numerics.find(oper) ) 
+    if( expro->type == "Integer" && expri->type == "Integer" )
+      type = "Integer";
+    else
+      type = "Double";
+  else if( Logicals.end() !=  Logicals.find(oper) )
+    type = "Boolean";
 }
 
 /**/

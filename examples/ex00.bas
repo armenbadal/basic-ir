@@ -2,24 +2,11 @@
 '
 ' first
 '
-Sub Fu(a As Integer)
-End Sub
-
-'
-'
-'
-Sub Ge(a As Integer, b As Double, c As Boolean)
-End Sub
-
-'
-' second
-'
-Sub Ge
-End Sub 
-
-'
-' first
-'
-Sub Main
-End Sub
+Function Main() As Integer
+  Dim a As Integer
+  Dim b As Integer
+  Let a = 7
+  Let b = a
+  Return 0
+End Function
 

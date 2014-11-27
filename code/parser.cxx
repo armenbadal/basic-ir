@@ -1,6 +1,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 
 #include "parser.hxx"
 
@@ -14,16 +15,6 @@ namespace {
     "(", ")", ",", "And", "Or", "Not", "=", "<>", ">", 
     ">=", "<", "<=", "+", "-", "*", "/", "\\", "^", "EOF"
   };
-
-  /**/
-  template<typename T>
-  T asNumber(const std::string& v)
-  {
-    std::stringstream ss(v);
-    T num{0};
-    ss >> num;
-    return num;
-  }
 }
 
 /**/
@@ -67,16 +58,22 @@ Module* Parser::parse()
 
   symtab->openScope(); // ?
 
-  while( inSet(FD) ) {
-    Function* sub{nullptr};
-    if( lookahead == xDeclare )
-      sub = parseDeclare();
-    else if( lookahead == xFunction )
-      sub = parseFunction();
-    else if( lookahead == xSubroutine )
-      sub = parseSubroutine();
-    mod->addFunction(sub);
+  try {
+    while( inSet(FD) ) {
+      Function* sub{nullptr};
+      if( lookahead == xDeclare )
+	sub = parseDeclare();
+      else if( lookahead == xFunction )
+	sub = parseFunction();
+      else if( lookahead == xSubroutine )
+	sub = parseSubroutine();
+      mod->addFunction(sub);
+    }
   }
+  catch( std::exception* e ) {
+    std::cerr << "ՍԽԱԼ [" << sc.line() << "]: " << e->what() << std::endl;
+  }
+
   /* DEBUG */ std::cout << "PARSED" << std::endl;
   return mod;
 }
@@ -192,7 +189,7 @@ Function* Parser::parseSubrHeader()
   }
   parseEols();
   
-  symtab->insert( Symbol(nm, sig + " -> Void") );
+  symtab->insert( Symbol{nm, sig + " -> Void"} );
 
   return new Function(nm, ag, "Void");
 }
@@ -202,6 +199,8 @@ Function* Parser::parseSubroutine()
 {
   auto pr = parseSubrHeader();
   symtab->openScope();
+  for( auto& a : pr->args )
+    symtab->insert( Symbol{a.first, a.second} );
   auto bo = parseSequence();
   match( xEnd );
   match( xSubroutine );
@@ -228,7 +227,7 @@ Function* Parser::parseFuncHeader()
   match( xIdent );
   parseEols();
 
-  symtab->insert( Symbol(nm, sig + " -> " + ty) );
+  symtab->insert( Symbol{nm, sig + " -> " + ty} );
 
   return new Function(nm, ag, ty);
 }
@@ -238,6 +237,8 @@ Function* Parser::parseFunction()
 {
   auto pr = parseFuncHeader();
   symtab->openScope();
+  for( auto& a : pr->args )
+    symtab->insert( Symbol{a.first, a.second} );
   auto bo = parseSequence();
   match( xEnd );
   match( xFunction );
@@ -462,8 +463,13 @@ Expression* Parser::parsePower()
 {
   auto res = parseFactor();
   if( lookahead == xPow ) {
+    if( res->type != "Integer" || res->type != "Double" ) 
+      throw new std::logic_error{"Աստիճան կարող է բարձրացվել միայն թիվը։"};
     lookahead = sc.next();
-    res = new Binary("Pow", res, parsePower());
+    auto r = parsePower();
+    if( res->type != "Integer" || res->type != "Double" ) 
+      throw new std::logic_error{"Աստիճանը կարող է լինել միայն թիվ։"};
+    res = new Binary("Pow", res, r);
   }
   return res;
 }
@@ -475,13 +481,13 @@ Expression* Parser::parseFactor()
     return parseVariableOrFuncCall();
 
   if( lookahead == xInteger ) {
-    auto nm = asNumber<int>(sc.lexeme());
+    auto nm = std::stoi(sc.lexeme());
     match( xInteger );
     return new Integer(nm);
   }
 
   if( lookahead == xDouble ) {
-    auto nm = asNumber<double>(sc.lexeme());
+    auto nm = std::stod(sc.lexeme());
     match( xDouble );
     return new Double(nm);
   }
@@ -500,29 +506,18 @@ Expression* Parser::parseFactor()
   if( lookahead == xSub ) {
     match( xSub );
     auto expr = parseFactor();
-    auto y = expr->type;
-    if( y != "Double" && y != "Integer" ) {
-      std::cerr << "Սխալ։ Անհամապատասխան տիպեր։" << std::endl;
-      return nullptr;
-    }
-    std::string op{"Neg"};
-    if( y == "Double" ) op = "FNeg";
-    expr = new Unary{op, expr};
-    expr->type = y;
-    return expr;
+    if( expr->type != "Double" && expr->type != "Integer" ) 
+      throw new std::logic_error{"Անհամապատասխան տիպեր։"};
+    return new Unary{"Neg", expr};
   }
 
   // բուլյան արտահայտության ժխտում
   if( lookahead == xNot ) {
     match( xNot );
     auto expr = parseFactor();
-    if( expr->type != "Boolean" ) {
-      std::cerr << "Սխալ։ Անհամապատասխան տիպեր։" << std::endl;
-      return nullptr;
-    }
-    expr = new Unary{"Not", expr};
-    expr->type = "Boolean";
-    return expr;
+    if( expr->type != "Boolean" )
+      throw new std::logic_error{"Անհամապատասխան տիպեր։"};
+    return new Unary{"Not", expr};
   }
 
   if( lookahead == xLPar ) {
@@ -543,7 +538,7 @@ Expression* Parser::parseVariableOrFuncCall()
   match( xIdent );
   auto nt = symtab->search(vn);
   if( "" == nt.first ) {
-    std::cerr << "Սխալ։ Չհայտարարված անուն։" << std::endl;
+    throw new std::logic_error{"Չհայտարարված անուն '" + vn +"'։"};
     return nullptr;
   }
 

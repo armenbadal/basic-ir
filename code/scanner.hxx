@@ -22,7 +22,7 @@ private:
 public:
   Scanner( const std::string& );
   std::string lexeme() const;
-  int line() { return linenum; }
+  inline int line() const { return linenum; }
   Token next();
 
 private:

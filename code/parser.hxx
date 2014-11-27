@@ -43,12 +43,14 @@ private:
   void parseEols();
   Symbol parseNameDecl();
   std::string parseDeclList(std::vector<Symbol>&);
-  void parseType();
+  void parseType(); // TODO
+
   Function* parseDeclare();
   Function* parseSubrHeader();
   Function* parseSubroutine();
   Function* parseFuncHeader();
   Function* parseFunction();
+
   Statement* parseStatement();
   Statement* parseSequence();
   Statement* parseDim();
@@ -61,6 +63,7 @@ private:
   Statement* parseInput();
   Statement* parsePrint();
   Statement* parseReturn();
+
   Expression* parseDisjunction();
   Expression* parseConjunction();
   Expression* parseEquality();

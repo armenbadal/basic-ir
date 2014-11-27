@@ -5,6 +5,8 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Module.h>
 
+#include <ostream>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -23,6 +25,13 @@ public:
   virtual llvm::Value* code(llvm::IRBuilder<>&) = 0;
 };
 
+/* Աբստրակտ քերականական ծառը Lisp կառուցվածքների
+   տեսքով արտածող ինտերֆեյս։ */
+class LispAst {
+public:
+  virtual void lisp(std::ostream&) = 0;
+};
+
 /**/
 class Statement;
 class Function;
@@ -38,11 +47,12 @@ public:
   Module(const std::string&);
   void addFunction(Function*);
   void code(const std::string&);
+  void lisp(std::ostream&);
 };
 
 /* ---------------------------------------------------------------- */
-class Function : public CodeIR {
-private:
+class Function : public CodeIR, public LispAst {
+public:
   std::string name;
   vectornametype args;
   std::string type;
@@ -55,10 +65,11 @@ public:
   void setModule(llvm::Module*);
   void setBody(Statement*);
   llvm::Value* code(llvm::IRBuilder<>&);
+  void lisp(std::ostream&);
 };
 
 /* ---------------------------------------------------------------- */
-class Expression : public CodeIR {
+class Expression : public CodeIR, public LispAst {
 protected:
   Function* env{nullptr};
 public:
@@ -76,6 +87,7 @@ public:
   Variable(const std::string& n, const std::string& t)
     : name{n} { type = t; }
   llvm::Value* code(llvm::IRBuilder<>&);
+  void lisp(std::ostream&);
 };
 
 /**/
@@ -85,6 +97,7 @@ private:
 public:
   Boolean(bool v) : value{v} { type = "Boolean"; }
   llvm::Value* code(llvm::IRBuilder<>&);
+  void lisp(std::ostream&);
 };
 
 /**/
@@ -94,6 +107,7 @@ private:
 public:
   Integer(int v) : value{v} { type = "Integer"; }
   llvm::Value* code(llvm::IRBuilder<>&);
+  void lisp(std::ostream&);
 };
 
 
@@ -104,6 +118,7 @@ private:
 public:
   Double(double v) : value{v} { type = "Double"; }
   llvm::Value* code(llvm::IRBuilder<>&);
+  void lisp(std::ostream&);
 };
 
 /**/
@@ -112,10 +127,10 @@ private:
   std::string oper;
   Expression* expr;
 public:
-  Unary(const std::string& op, Expression* ex)
-    : oper{op}, expr{ex} {}
+  Unary(const std::string&, Expression*);
   void setEnv(Function*);
   llvm::Value* code(llvm::IRBuilder<>&);
+  void lisp(std::ostream&);
 };
 
 /**/
@@ -126,22 +141,26 @@ private:
   std::string to;
 public:
   TypeCast(Expression* e, const std::string& f, const std::string& t)
-    : expr{e}, from{f}, to{t} {}
+    : expr{e}, from{f}, to{t} { type = to; }
   void setEnv(Function*);
   llvm::Value* code(llvm::IRBuilder<>&);
+  void lisp(std::ostream&);
 };
 
 /**/
 class Binary : public Expression {
 private:
+  static std::set<std::string> Numerics;
+  static std::set<std::string> Logicals;
+private:
   std::string oper;
   Expression* expro;
   Expression* expri;
 public:
-  Binary(const std::string& op, Expression* exo, Expression* exi)
-    : oper{op}, expro{exo}, expri{exi} {}
+  Binary(const std::string&, Expression*, Expression*);
   void setEnv(Function*);
   llvm::Value* code(llvm::IRBuilder<>&);
+  void lisp(std::ostream&);
 };
 
 /**/
@@ -155,10 +174,11 @@ public:
   {}
   void setEnv(Function*);
   llvm::Value* code(llvm::IRBuilder<>&);
+  void lisp(std::ostream&);
 };
 
 /* ---------------------------------------------------------------- */
-class Statement : public CodeIR {
+class Statement : public CodeIR, public LispAst {
 protected:
   Function* env;
 public:
@@ -176,6 +196,7 @@ public:
     : sto{so}, sti{si} {}
   void setEnv(Function*); 
   llvm::Value* code(llvm::IRBuilder<>&);
+  void lisp(std::ostream&);
 };
 
 /**/
@@ -187,6 +208,7 @@ public:
   Declare(const std::string& n, const std::string& t)
     : name{n}, type{t} {}
   llvm::Value* code(llvm::IRBuilder<>&);
+  void lisp(std::ostream&);
 };
 
 /**/
@@ -197,6 +219,7 @@ public:
   Result(Expression* e) : exp{e} {}
   void setEnv(Function*);
   llvm::Value* code(llvm::IRBuilder<>&);
+  void lisp(std::ostream&);
 };
 
 /**/
@@ -209,6 +232,7 @@ public:
     : name{n}, expr{e} {}
   void setEnv(Function*);
   llvm::Value* code(llvm::IRBuilder<>&);
+  void lisp(std::ostream&);
 };
 
 /**/
@@ -223,6 +247,7 @@ public:
   void setElse(Statement* s) { elsep = s; }
   void setEnv(Function*);
   llvm::Value* code(llvm::IRBuilder<>&);
+  void lisp(std::ostream&);
 };
 
 /**/
@@ -238,6 +263,7 @@ public:
     : param{pr}, start{sa}, stop{so}, step{se}, body{bo} {}
   void setEnv(Function*);
   llvm::Value* code(llvm::IRBuilder<>&);
+  void lisp(std::ostream&);
 };
 
 /**/
@@ -250,6 +276,7 @@ public:
     : cond{co}, body{bo} {}
   void setEnv(Function*);
   llvm::Value* code(llvm::IRBuilder<>&);
+  void lisp(std::ostream&);
 };
 
 /**/
@@ -260,6 +287,7 @@ public:
   Input(const std::vector<std::string>& vs)
     : vars{vs} {}
   llvm::Value* code(llvm::IRBuilder<>&);
+  void lisp(std::ostream&);
 };
 
 /**/
@@ -271,6 +299,7 @@ public:
     : vals{vl} {}
   void setEnv(Function*);
   llvm::Value* code(llvm::IRBuilder<>&);
+  void lisp(std::ostream&);
 };
 
 #endif

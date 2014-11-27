@@ -90,9 +90,13 @@ llvm::Value* Unary::code(llvm::IRBuilder<>& bu)
 {
   auto exc = expr->code( bu );
   if( oper == "Not" )
-    return bu.CreateNot(exc);
-  if( oper == "-" )
-    return bu.CreateNeg(exc);
+    exc = bu.CreateNot(exc);
+  else if( oper == "Neg" ) {
+    if( type == "Integer" ) 
+      exc = bu.CreateNeg(exc);
+    else if( type == "Double" ) 
+      exc = bu.CreateFNeg(exc);
+  }
   return exc;
 }
 
@@ -111,7 +115,13 @@ llvm::Value* TypeCast::code(llvm::IRBuilder<>& bu)
 /**/
 llvm::Value* Binary::code(llvm::IRBuilder<>& bu)
 {
-  return nullptr; // TODO
+  auto exo = expro->code( bu ); // ձախ
+  auto exi = expri->code( bu ); // աջ
+
+  if( oper == "And" ) return bu.CreateAnd(exo, exi);
+  if( oper == "Or" ) return bu.CreateOr(exo, exi);
+
+  return nullptr;
 }
 
 /**/
@@ -149,10 +159,10 @@ llvm::Value* Result::code(llvm::IRBuilder<>& bu)
 llvm::Value* Assign::code(llvm::IRBuilder<>& bu)
 {
   auto d = env->locals[name];
-  //auto s = bu.CreateLoad(expr->code(bu)); // ?
-  auto s = expr->code(bu); // corrections 
+  auto s = expr->code(bu);
+  if( s->getType()->isPointerTy() )
+    s = bu.CreateLoad(s);
   bu.CreateStore(s, d);
-
   return nullptr;
 }
 
