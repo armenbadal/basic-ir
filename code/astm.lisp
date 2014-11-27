@@ -9,7 +9,7 @@
 (defstruct ast-constant value type)
 (defstruct ast-unary oper expr)
 (defstruct ast-type-cast expr from to)
-(defstruct ast-binary oper expro expri)
+(defstruct ast-binary oper type expro expri)
 (defstruct ast-func-call name args)
 (defstruct ast-sequence sto sti)
 (defstruct ast-declare name type)

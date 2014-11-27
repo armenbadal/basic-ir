@@ -15,6 +15,11 @@ namespace {
     "(", ")", ",", "And", "Or", "Not", "=", "<>", ">", 
     ">=", "<", "<=", "+", "-", "*", "/", "\\", "^", "EOF"
   };
+  /**/
+  bool isNumeric(const std::string& id)
+  {
+    return id == "Integer" || id == "Double";
+  }
 }
 
 /**/
@@ -397,8 +402,13 @@ Expression* Parser::parseDisjunction()
 {
   auto res = parseConjunction();
   while( lookahead == xOr ) {
+    if( res->type != "Boolean" )
+      throw new std::logic_error{"'Or' գործողությունը սպասում է բուլյան արգումենտ։"};
     lookahead = sc.next();
-    res = new Binary("Or", res, parseConjunction());
+    auto r = parseConjunction();
+    if( r->type != "Boolean" )
+      throw new std::logic_error{"'Or' գործողությունը սպասում է բուլյան արգումենտ։"};
+    res = new Binary{"Or", res, r};
   }
   return res;
 }
@@ -408,8 +418,13 @@ Expression* Parser::parseConjunction()
 {
   auto res = parseEquality();
   while( lookahead == xAnd ) {
+    if( res->type != "Boolean" )
+      throw new std::logic_error{"'And' գործողությունը սպասում է բուլյան արգումենտ։"};
     lookahead = sc.next();
-    res = new Binary("And", res, parseEquality());
+    auto r = parseEquality();
+    if( r->type != "Boolean" )
+      throw new std::logic_error{"'And' գործողությունը սպասում է բուլյան արգումենտ։"};
+    res = new Binary{"And", res, r};
   }
   return res;
 }
@@ -419,8 +434,9 @@ Expression* Parser::parseEquality()
 {
   auto res = parseRelation();
   if( lookahead == xEq || lookahead == xNe ) {
+    auto oper = TN[lookahead];
     lookahead = sc.next();
-    res = new Binary("?", res, parseRelation());
+    res = new Binary{oper, res, parseRelation()};
   }
   return res;
 }
@@ -430,8 +446,14 @@ Expression* Parser::parseRelation()
 {
   auto res = parseAddition();
   if( lookahead >= xGt && lookahead <= xLe ) {
+    auto oper = TN[lookahead];
+    if( res->type == "Boolean" )
+      throw new std::logic_error{"'"+oper+"' գործողության արգումենտը չի կարող լինել բուլյան։"};
     lookahead = sc.next();
-    res = new Binary("?", res, parseAddition());
+    auto r = parseAddition();
+    if( res->type == "Boolean" )
+      throw new std::logic_error{"'"+oper+"' գործողության արգումենտը չի կարող լինել բուլյան։"};
+    res = new Binary{oper, res, r};
   }
   return res;
 }
@@ -441,8 +463,9 @@ Expression* Parser::parseAddition()
 {
   auto res = parseMultiplication();
   while( lookahead == xAdd || lookahead == xSub ) {
+    auto oper = TN[lookahead];
     lookahead = sc.next();
-    res = new Binary("?", res, parseMultiplication());
+    res = new Binary{oper, res, parseMultiplication()};
   }
   return res;
 }
@@ -452,8 +475,9 @@ Expression* Parser::parseMultiplication()
 {
   auto res = parsePower();
   while( lookahead == xMul || lookahead == xDiv || lookahead == xMod ) {
+    auto oper = TN[lookahead];
     lookahead = sc.next();
-    res = new Binary("?", res, parsePower());
+    res = new Binary{oper, res, parsePower()};
   }
   return res;
 }
@@ -469,7 +493,7 @@ Expression* Parser::parsePower()
     auto r = parsePower();
     if( res->type != "Integer" || res->type != "Double" ) 
       throw new std::logic_error{"Աստիճանը կարող է լինել միայն թիվ։"};
-    res = new Binary("Pow", res, r);
+    res = new Binary{"Pow", res, r};
   }
   return res;
 }

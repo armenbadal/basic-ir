@@ -9,9 +9,7 @@ void Module::lisp(std::ostream& ooo)
   ooo << "#S(ast-module";
   ooo << " :name \"" << name << "\"";
   ooo << " :subs '(";
-  for( auto f : subs ) {
-    f->lisp(ooo);
-  }
+  for( auto f : subs ) f->lisp(ooo); 
   ooo << "))" << std::endl;
 }
 
@@ -82,8 +80,9 @@ void TypeCast::lisp(std::ostream& ooo)
 void Binary::lisp(std::ostream& ooo)
 {
   ooo << "#S(ast-binary";
-  ooo << " :oper " << oper;
-  ooo << " :expro ";
+  ooo << " :oper \"" << oper;
+  ooo << "\" :type \"" << type;
+  ooo << "\" :expro ";
   expro->lisp(ooo);
   ooo << " :expri ";
   expri->lisp(ooo);

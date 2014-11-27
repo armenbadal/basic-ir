@@ -25,7 +25,7 @@ namespace {
 /**/
 void Module::code(const std::string& on)
 {
-  llvm::IRBuilder<> builder(llvm::getGlobalContext());
+  llvm::IRBuilder<> builder{llvm::getGlobalContext()};
   for( auto& e : subs )
     e->code(builder);
   /* DEBUG */ module->dump();
@@ -62,7 +62,7 @@ llvm::Value* Function::code(llvm::IRBuilder<>& bu)
 /**/
 llvm::Value* Variable::code(llvm::IRBuilder<>& bu)
 {
-  return env->locals[name];
+  return bu.CreateLoad(env->locals[name]);
 }
 
 /**/
@@ -121,6 +121,7 @@ llvm::Value* Binary::code(llvm::IRBuilder<>& bu)
   if( oper == "And" ) return bu.CreateAnd(exo, exi);
   if( oper == "Or" ) return bu.CreateOr(exo, exi);
 
+  if( oper == "+" ) return bu.CreateNSWAdd(exo, exi);
   return nullptr;
 }
 
