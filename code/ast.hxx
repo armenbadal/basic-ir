@@ -47,7 +47,7 @@ public:
   Module(const std::string&);
   void addFunction(Function*);
   void code(const std::string&);
-  void lisp(std::ostream&);
+  void lisp(const std::string&);
 };
 
 /* ---------------------------------------------------------------- */

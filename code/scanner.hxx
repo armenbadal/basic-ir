@@ -20,13 +20,13 @@ private:
   static std::map<std::string,Token> keywords;
 
 public:
-  Scanner( const std::string& );
+  Scanner(const std::string&);
   std::string lexeme() const;
   inline int line() const { return linenum; }
   Token next();
 
 private:
-  std::string sequence( std::function<bool(char)> );
+  std::string sequence(std::function<bool(char)>);
 };
 
 #endif

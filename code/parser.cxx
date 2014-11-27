@@ -77,6 +77,7 @@ Module* Parser::parse()
   }
   catch( std::exception* e ) {
     std::cerr << "ՍԽԱԼ [" << sc.line() << "]: " << e->what() << std::endl;
+    delete e;
   }
 
   /* DEBUG */ std::cout << "PARSED" << std::endl;
@@ -277,6 +278,9 @@ Statement* Parser::parseAssignment()
 {
   auto vn = sc.lexeme();
   match( xIdent );
+  auto nt = symtab->search(vn);
+  if( "" == nt.first )
+    throw new std::logic_error{"Չհայտարարված անուն '" + vn +"'։"};
   match( xEq );
   auto ex = parseDisjunction();
   parseEols();
@@ -561,10 +565,8 @@ Expression* Parser::parseVariableOrFuncCall()
   auto vn = sc.lexeme();
   match( xIdent );
   auto nt = symtab->search(vn);
-  if( "" == nt.first ) {
+  if( "" == nt.first )
     throw new std::logic_error{"Չհայտարարված անուն '" + vn +"'։"};
-    return nullptr;
-  }
 
   // փոփոխականի օգտագործում
   if( lookahead != xLPar )  

@@ -1,16 +1,19 @@
 
-#include <sstream>
+#include <fstream>
 
 #include "ast.hxx"
 
 /**/
-void Module::lisp(std::ostream& ooo)
+void Module::lisp(const std::string& eman)
 {
+  std::ofstream ooo{eman};
+  ooo << "(defconstant +abstract-syntax-tree+ ";
   ooo << "#S(ast-module";
   ooo << " :name \"" << name << "\"";
   ooo << " :subs '(";
   for( auto f : subs ) f->lisp(ooo); 
-  ooo << "))" << std::endl;
+  ooo << ")))" << std::endl;
+  ooo.close();
 }
 
 /**/

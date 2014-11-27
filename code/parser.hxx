@@ -21,8 +21,8 @@ private:
   SymbolTable*  symtab;
 
 public:
-  Parser(const char* nm) 
-    : file{std::string{nm}}, sc{file}
+  Parser(const std::string& nm) 
+    : file{nm}, sc{file}
   {
     symtab = new SymbolTable();
   }

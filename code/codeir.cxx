@@ -1,8 +1,14 @@
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Function.h>
+#include <llvm/IR/PassManager.h>
+#include <llvm/IR/IRPrintingPasses.h>
 
 #include <llvm/ADT/ArrayRef.h>
+
+#include <llvm/Support/raw_os_ostream.h>
+
+#include <fstream>
 
 #include "ast.hxx"
 
@@ -23,12 +29,20 @@ namespace {
 }
 
 /**/
-void Module::code(const std::string& on)
+void Module::code(const std::string& eman)
 {
   llvm::IRBuilder<> builder{llvm::getGlobalContext()};
-  for( auto& e : subs )
-    e->code(builder);
+  for( auto& e : subs ) e->code(builder);
+
   /* DEBUG */ module->dump();
+
+  std::ofstream sout{eman};
+  llvm::raw_os_ostream roo{sout};
+  llvm::PrintModulePass pmp{roo};
+  llvm::ModulePassManager pm;
+  pm.addPass(pmp);
+  pm.run(module);
+  sout.close();
 }
 
 /**/
@@ -56,6 +70,7 @@ llvm::Value* Function::code(llvm::IRBuilder<>& bu)
   }
 
   body->code(bu);
+  if( type == "Void" ) bu.CreateRetVoid();
   return func;
 }
 
@@ -118,10 +133,66 @@ llvm::Value* Binary::code(llvm::IRBuilder<>& bu)
   auto exo = expro->code( bu ); // ձախ
   auto exi = expri->code( bu ); // աջ
 
-  if( oper == "And" ) return bu.CreateAnd(exo, exi);
-  if( oper == "Or" ) return bu.CreateOr(exo, exi);
+  // գործողության երկու կողմերում իրական արժեք վերադարձնող արտահայտությունենր են
+  if( expro->type == "Double" && expri->type == "Double" ) {
+    if( oper == "=" ) 
+      return bu.CreateFCmpOEQ(exo, exi); 
+    if( oper == "<>" )
+      return bu.CreateFCmpONE(exo, exi);
+    if( oper == ">" )
+      return bu.CreateFCmpOGT(exo, exi);
+    if( oper == ">=" )
+      return bu.CreateFCmpOGE(exo, exi);
+    if( oper == "<" )
+      return bu.CreateFCmpOLT(exo, exi);
+    if( oper == "<=" )
+      return bu.CreateFCmpOLE(exo, exi);
+    if( oper == "+" )
+      return bu.CreateFAdd(exo, exi);
+    if( oper == "-" )
+      return bu.CreateFSub(exo, exi);
+    if( oper == "*" )
+      return bu.CreateFMul(exo, exi);
+    if( oper == "/" )
+      return bu.CreateFDiv(exo, exi);
+    if( oper == "\\" )
+      return bu.CreateFRem(exo, exi);
+  }
+  else if( expro->type == "Integer" && expri->type == "Integer" ) {
+    if( oper == "=" ) 
+      return bu.CreateICmpEQ(exo, exi); 
+    if( oper == "<>" )
+      return bu.CreateICmpNE(exo, exi);
+    if( oper == ">" )
+      return bu.CreateICmpSGT(exo, exi);
+    if( oper == ">=" )
+      return bu.CreateICmpSGE(exo, exi);
+    if( oper == "<" )
+      return bu.CreateICmpSLT(exo, exi);
+    if( oper == "<=" )
+      return bu.CreateICmpSLE(exo, exi);
+    if( oper == "+" )
+      return bu.CreateNSWAdd(exo, exi);
+    if( oper == "-" )
+      return bu.CreateNSWSub(exo, exi);
+    if( oper == "*" )
+      return bu.CreateNSWMul(exo, exi);
+    if( oper == "/" )
+      return bu.CreateSDiv(exo, exi);
+    if( oper == "\\" )
+      return bu.CreateSRem(exo, exi);
+  }
+  else if( expro->type == "Boolean" && expri->type == "Boolean" ) {
+    if( oper == "And" ) 
+      return bu.CreateAnd(exo, exi);
+    if( oper == "Or" ) 
+      return bu.CreateOr(exo, exi);
+    if( oper == "=" ) 
+      return bu.CreateICmpEQ(exo, exi); 
+    if( oper == "<>" )
+      return bu.CreateICmpNE(exo, exi);
+  }
 
-  if( oper == "+" ) return bu.CreateNSWAdd(exo, exi);
   return nullptr;
 }
 
