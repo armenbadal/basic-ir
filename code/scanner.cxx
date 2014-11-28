@@ -35,10 +35,10 @@ std::map<std::string,Token> Scanner::keywords{
 
 /**/
 Scanner::Scanner( const std::string& name )
-  : source{name.c_str()}, linenum{-1}, text{""}
+  : source{name.c_str()}
 {
   source.unsetf( std::ios::skipws );
-  c = source.get();
+  source >> c;
 }
 
 /**/
@@ -48,6 +48,8 @@ std::string Scanner::lexeme() const
 /**/
 Token Scanner::next()
 {
+  text = "";
+
   // whitespaces
   while( c == ' ' || c == '\t' ) source >> c;
 
@@ -56,9 +58,8 @@ Token Scanner::next()
 
   // comments
   if( c == '\'' ) {
-    do source >> c; while( c != '\n' );
-    ++linenum;
-    return xEol;
+    while( c != '\n' ) source >> c;
+    return next();
   }
 
   // newline

@@ -15,8 +15,8 @@ private:
   std::ifstream source;
   char c;
 
-  int linenum;
-  std::string text;
+  int linenum{1};
+  std::string text{""};
   static std::map<std::string,Token> keywords;
 
 public:
