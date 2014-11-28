@@ -1,4 +1,5 @@
 
+#include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/PassManager.h>
@@ -34,6 +35,8 @@ void Module::code(const std::string& eman)
   llvm::IRBuilder<> builder{llvm::getGlobalContext()};
   for( auto& e : subs ) e->code(builder);
 
+  /* EXPERIMENT */ llvm::GlobalVariable vr{*module, llvm::Type::getDoubleTy(llvm::getGlobalContext()), true, llvm::GlobalVariable::PrivateLinkage, nullptr, "gv0"};
+  vr.dump();
   /* DEBUG */ module->dump();
 
   std::ofstream sout{eman};
@@ -316,6 +319,17 @@ llvm::Value* Input::code(llvm::IRBuilder<>& bu)
 /**/
 llvm::Value* Print::code(llvm::IRBuilder<>& bu)
 {
+  llvm::Function* pr{nullptr};
+  for( auto e : vals ) {
+    auto ec = e->code(bu);
+    if( e->type == "Integer" )
+      pr = env->module->getFunction("__printInteger__");
+    else if( e->type == "Double" )
+      pr = env->module->getFunction("__printDouble__");
+    else if( e->type == "Boolean" )
+      pr = env->module->getFunction("__printBoolean__");      
+    bu.CreateCall(pr, ec);
+  }
   return nullptr;
 }
 
