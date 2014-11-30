@@ -28,7 +28,7 @@ void Parser::match( Token exp )
   if( lookahead == exp )
     lookahead = sc.next();
   else
-    throw new std::logic_error{"ՍԽԱԼ։ Սպասվում է `" + TN[exp] + 
+    throw new std::logic_error{"ՍԽԱԼ։ Սպասվում էր `" + TN[exp] + 
 	"', բայց եղել է `" + TN[lookahead] + "'։"};
 }
 
@@ -133,7 +133,7 @@ Symbol Parser::parseNameDecl()
   match( xAs );
   auto a1 = sc.lexeme();
   match( xIdent );
-  return std::make_pair( a0, a1 );
+  return std::make_pair(a0, a1);
 }
 
 /**/
@@ -208,6 +208,8 @@ Function* Parser::parseSubrHeader()
   if( lookahead == xIdent )
     sig = parseDeclList( ag );
   parseEols();
+  if( nm == "Main" && ag.size() != 0 )
+    throw new std::logic_error{"'Main' պրոցեդուրան արգումենտներ չունի։"};
   symtab->insert( Symbol{nm, sig + " -> Void"} );
   return new Function{nm, ag, "Void"};
 }
@@ -234,6 +236,8 @@ Function* Parser::parseFuncHeader()
   match( xFunction );
   std::string nm = sc.lexeme();
   match( xIdent );
+  if( nm == "Main" )
+    throw new std::logic_error{"'Main'-ը պետք է լինի պրոցեդուրա։"};
   match( xLPar );
   std::string sig{"()"};
   std::vector<Symbol> ag;
