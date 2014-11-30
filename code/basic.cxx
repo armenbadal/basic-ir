@@ -36,10 +36,10 @@ int main( int argc, char* argv[] )
   lispout += ".lisp";
 
   Parser sc{basinp};
-  auto m = sc.parse();
-  m->lisp(lispout);
-  m->code(irout);
+  auto moduleAst = sc.parse();
+  moduleAst->lisp(lispout);
+  moduleAst->code(irout);
 
-  // TODO cleanup
+  delete moduleAst;
 }
 

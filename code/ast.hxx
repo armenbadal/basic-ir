@@ -45,6 +45,7 @@ private:
 
 public:
   Module(const std::string&);
+  ~Module();
   void addFunction(Function*);
   void code(const std::string&);
   void lisp(const std::string&);
@@ -62,6 +63,7 @@ public:
   std::map<std::string,llvm::Value*> locals;
 public:
   Function(const std::string&, const vectornametype&, const std::string&);
+  ~Function();
   void setModule(llvm::Module*);
   void setBody(Statement*);
   llvm::Value* code(llvm::IRBuilder<>&);
@@ -128,6 +130,7 @@ private:
   Expression* expr;
 public:
   Unary(const std::string&, Expression*);
+  ~Unary() { delete expr; }
   void setEnv(Function*);
   llvm::Value* code(llvm::IRBuilder<>&);
   void lisp(std::ostream&);
@@ -142,6 +145,7 @@ private:
 public:
   TypeCast(Expression* e, const std::string& f, const std::string& t)
     : expr{e}, from{f}, to{t} { type = to; }
+  ~TypeCast() { delete expr; }
   void setEnv(Function*);
   llvm::Value* code(llvm::IRBuilder<>&);
   void lisp(std::ostream&);
@@ -158,6 +162,7 @@ private:
   Expression* expri;
 public:
   Binary(const std::string&, Expression*, Expression*);
+  ~Binary();
   void setEnv(Function*);
   llvm::Value* code(llvm::IRBuilder<>&);
   void lisp(std::ostream&);
@@ -172,6 +177,7 @@ public:
   FuncCall(const std::string& nm, const std::vector<Expression*>& ag)
     : name{nm}, args{ag}
   {}
+  ~FuncCall();
   void setEnv(Function*);
   llvm::Value* code(llvm::IRBuilder<>&);
   void lisp(std::ostream&);
@@ -194,6 +200,7 @@ private:
 public:
   Sequence(Statement* so, Statement* si) 
     : sto{so}, sti{si} {}
+  ~Sequence();
   void setEnv(Function*); 
   llvm::Value* code(llvm::IRBuilder<>&);
   void lisp(std::ostream&);
@@ -212,11 +219,26 @@ public:
 };
 
 /**/
+class SubCall : public Statement {
+private:
+  FuncCall* subr;
+public:
+  SubCall(const std::string& nm, const std::vector<Expression*>& ag)
+    : subr{new FuncCall{nm, ag}}
+  {}
+  ~SubCall();
+  void setEnv(Function*);
+  llvm::Value* code(llvm::IRBuilder<>&);
+  void lisp(std::ostream&);
+};
+
+/**/
 class Result : public Statement {
 private:
   Expression* exp;
 public:
   Result(Expression* e) : exp{e} {}
+  ~Result();
   void setEnv(Function*);
   llvm::Value* code(llvm::IRBuilder<>&);
   void lisp(std::ostream&);
@@ -230,6 +252,7 @@ private:
 public:
   Assign(const std::string& n, Expression* e)
     : name{n}, expr{e} {}
+  ~Assign();
   void setEnv(Function*);
   llvm::Value* code(llvm::IRBuilder<>&);
   void lisp(std::ostream&);
@@ -244,6 +267,7 @@ private:
 public:
   Branch(Expression* c, Statement* t, Statement* e)
     : cond{c}, thenp{t}, elsep{e} {}
+  ~Branch();
   void setElse(Statement* s) { elsep = s; }
   void setEnv(Function*);
   llvm::Value* code(llvm::IRBuilder<>&);
@@ -261,6 +285,7 @@ private:
 public:
   ForLoop(const std::string& pr, Expression* sa, Expression* so, Expression* se, Statement* bo)
     : param{pr}, start{sa}, stop{so}, step{se}, body{bo} {}
+  ~ForLoop();
   void setEnv(Function*);
   llvm::Value* code(llvm::IRBuilder<>&);
   void lisp(std::ostream&);
@@ -274,6 +299,7 @@ private:
 public:
   WhileLoop(Expression* co, Statement* bo)
     : cond{co}, body{bo} {}
+  ~WhileLoop();
   void setEnv(Function*);
   llvm::Value* code(llvm::IRBuilder<>&);
   void lisp(std::ostream&);
@@ -297,6 +323,7 @@ private:
 public:
   Print(const std::vector<Expression*>& vl)
     : vals{vl} {}
+  ~Print();
   void setEnv(Function*);
   llvm::Value* code(llvm::IRBuilder<>&);
   void lisp(std::ostream&);

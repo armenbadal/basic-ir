@@ -1,26 +1,24 @@
 
 extern int scanf(const char*, ...);
+extern int printf(const char*, ...);
 extern int strcmp(const char*, const char*);
 
-static const char* INTF = "%d";
-static const char* DBLF = "%lf";
-
-int inputInteger()
+int __inputInteger__()
 {
   int value = 0;
-  scanf(INTF, &value);
+  scanf("%d", &value);
   return value;
 }
 
-double inputDouble()
+double __inputDouble__()
 {
   double value = 0.0;
-  scanf(DBLF, &value);
+  scanf("%lf", &value);
   return value;
 }
 
 
-_Bool inputBoolean()
+_Bool __inputBoolean__()
 {
   char value[8] = { 0 };
   scanf("%s", &value);
@@ -33,12 +31,12 @@ _Bool inputBoolean()
 
 void __printInteger__(int value)
 {
-  printf(INTF, value);
+  printf("%d", value);
 }
 
 void __printDouble__(double value)
 {
-  printf(DBLF, value);
+  printf("%lf", value);
 }
 
 void __printBoolean__(_Bool value)

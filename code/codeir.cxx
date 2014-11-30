@@ -35,8 +35,6 @@ void Module::code(const std::string& eman)
   llvm::IRBuilder<> builder{llvm::getGlobalContext()};
   for( auto& e : subs ) e->code(builder);
 
-  /* EXPERIMENT */ llvm::GlobalVariable vr{*module, llvm::Type::getDoubleTy(llvm::getGlobalContext()), true, llvm::GlobalVariable::PrivateLinkage, nullptr, "gv0"};
-  vr.dump();
   /* DEBUG */ module->dump();
 
   std::ofstream sout{eman};
@@ -221,6 +219,13 @@ llvm::Value* Sequence::code(llvm::IRBuilder<>& bu)
 llvm::Value* Declare::code(llvm::IRBuilder<>& bu)
 {
   env->locals[name] = bu.CreateAlloca(asType(type), nullptr, name);
+  return nullptr;
+}
+
+/**/
+llvm::Value* SubCall::code(llvm::IRBuilder<>& bu)
+{
+  subr->code(bu);
   return nullptr;
 }
 

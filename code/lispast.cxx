@@ -26,7 +26,7 @@ void Function::lisp(std::ostream& ooo)
     ooo << "(\"" << a.first << "\" . \"" << a.second << "\")";
   ooo << ") :type \"" << type << "\" ";
   ooo << ":body ";
-  body->lisp(ooo);
+  if( body != nullptr ) body->lisp(ooo); else ooo << "nil";
   ooo << ")";
 }
 
@@ -123,6 +123,12 @@ void Declare::lisp(std::ostream& ooo)
   ooo << " :name \"" << name;
   ooo << "\" :type \"" << type;
   ooo << "\")";
+}
+
+/**/
+void SubCall::lisp(std::ostream& ooo)
+{
+  subr->lisp(ooo);
 }
 
 /**/

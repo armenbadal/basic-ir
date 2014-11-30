@@ -8,6 +8,7 @@
 
 
 std::map<std::string,Token> Scanner::keywords{
+  {"Declare", xDeclare},
   {"Dim",xDim},
   {"As", xAs},
   {"Type", xType},
@@ -17,7 +18,6 @@ std::map<std::string,Token> Scanner::keywords{
   {"Sub", xSubroutine},
   {"Function", xFunction},
   {"Return", xReturn},
-  {"Let", xLet},
   {"If", xIf},
   {"Then", xThen},
   {"ElseIf", xElseIf},

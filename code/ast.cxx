@@ -6,6 +6,20 @@ Module::Module(const std::string& nm)
   : name{nm}
 {
   module = new llvm::Module(name, llvm::getGlobalContext());
+
+  // գրադարանային ֆունկցիաներ
+  // արտածում
+  auto e0 = new Function{"__printInteger__", vectornametype{{"v","Integer"}}, "Void"};
+  auto e1 = new Function{"__printDouble__", vectornametype{{"v","Double"}}, "Void"};
+  auto e2 = new Function{"__printBoolean__", vectornametype{{"v","Boolean"}}, "Void"};
+  addFunction(e0); addFunction(e1); addFunction(e2);
+}
+
+/**/
+Module::~Module()
+{
+  for( auto em : subs ) delete em;
+  delete module;
 }
 
 /* ?? */
@@ -19,6 +33,12 @@ void Module::addFunction(Function* su)
 Function::Function(const std::string& n, const vectornametype& a, const std::string& t)
   : name{n}, args{a}, type{t}
 {}
+
+/**/
+Function::~Function()
+{
+  delete body;
+}
 
 /**/
 void Function::setModule(llvm::Module* mo)
@@ -38,7 +58,7 @@ Unary::Unary(const std::string& op, Expression* ex)
   : oper{op}, expr{ex}
 {
   if( oper == "Neg" ) 
-    type = expr->type;
+     type = expr->type;
   else if( oper == "Not" )
     type = "Boolean";
 }
@@ -82,6 +102,13 @@ Binary::Binary(const std::string& op, Expression* exo, Expression* exi)
 }
 
 /**/
+Binary::~Binary()
+{
+  delete expro;
+  delete expri;
+}
+
+/**/
 void Binary::setEnv(Function* e)
 {
   Expression::setEnv(e);
@@ -90,10 +117,23 @@ void Binary::setEnv(Function* e)
 }
 
 /**/
+FuncCall::~FuncCall()
+{
+  for( auto e : args ) delete e; 
+}
+
+/**/
 void FuncCall::setEnv(Function* e)
 {
   Expression::setEnv( e );
   for( auto& a : args ) a->setEnv( e );
+}
+
+/**/
+Sequence::~Sequence() 
+{
+  delete sto;
+  delete sti;
 }
 
 /**/
@@ -105,10 +145,35 @@ void Sequence::setEnv(Function* e)
 }
 
 /**/
+SubCall::~SubCall()
+{
+  delete subr;
+}
+
+/**/
+void SubCall::setEnv(Function* e)
+{
+  Statement::setEnv(e);
+  subr->setEnv(e);
+}
+
+/**/
+Result::~Result()
+{
+  delete exp;
+}
+
+/**/
 void Result::setEnv(Function* e)
 {
   Statement::setEnv(e);
   exp->setEnv(e);
+}
+
+/**/
+Assign::~Assign()
+{
+  delete expr;
 }
 
 /**/
@@ -119,12 +184,29 @@ void Assign::setEnv(Function* e)
 }
 
 /**/
+Branch::~Branch()
+{
+  delete cond;
+  delete thenp;
+  delete elsep;
+}
+
+/**/
 void Branch::setEnv(Function* e)
 {
   Statement::setEnv( e );
   cond->setEnv( e );
   thenp->setEnv( e );
   if( elsep != nullptr ) elsep->setEnv( e );
+}
+
+/**/
+ForLoop::~ForLoop() 
+{
+  delete start;
+  delete stop;
+  delete step;
+  delete body;
 }
 
 /**/
@@ -138,11 +220,24 @@ void ForLoop::setEnv(Function* e)
 }
 
 /**/
+WhileLoop::~WhileLoop()
+{
+  delete cond;
+  delete body;
+}
+
+/**/
 void WhileLoop::setEnv(Function* e)
 {
   Statement::setEnv(e);
   cond->setEnv(e);
   body->setEnv(e);
+}
+
+/**/
+Print::~Print()
+{
+  for( auto v : vals ) delete v; 
 }
 
 /**/

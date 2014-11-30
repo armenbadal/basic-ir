@@ -3,7 +3,6 @@
 name name0 name1xy
 Dim As Type End
 Declare Sub Function Return
-Let
 If Then ElseIf Else
 For To Step
 While

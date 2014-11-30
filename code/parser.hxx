@@ -42,8 +42,9 @@ private:
   void match( Token );
   void parseEols();
   Symbol parseNameDecl();
-  std::string parseDeclList(std::vector<Symbol>&);
   void parseType(); // TODO
+  std::string parseDeclList(std::vector<Symbol>&);
+  std::string parseArguments(std::vector<Expression*>&);
 
   Function* parseDeclare();
   Function* parseSubrHeader();
@@ -53,10 +54,8 @@ private:
 
   Statement* parseStatement();
   Statement* parseSequence();
+  Statement* parseSubCallOrAssign();
   Statement* parseDim();
-  Statement* parseAssignment();
-  Statement* parseLet();
-  Statement* parseSubCall();
   Statement* parseIf();
   Statement* parseFor();
   Statement* parseWhile();

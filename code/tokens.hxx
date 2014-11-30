@@ -19,7 +19,6 @@ enum Token {
   xSubroutine,
   xFunction,
   xReturn,
-  xLet,
   xIf,
   xThen,
   xElseIf,
