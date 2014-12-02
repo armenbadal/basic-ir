@@ -66,8 +66,8 @@ public:
   ~Function();
   void setModule(llvm::Module*);
   void setBody(Statement*);
-  llvm::Value* code(llvm::IRBuilder<>&);
-  void lisp(std::ostream&);
+  llvm::Value* code(llvm::IRBuilder<>&) override;
+  void lisp(std::ostream&) override;
 };
 
 /* ---------------------------------------------------------------- */
@@ -88,8 +88,8 @@ private:
 public:
   Variable(const std::string& n, const std::string& t)
     : name{n} { type = t; }
-  llvm::Value* code(llvm::IRBuilder<>&);
-  void lisp(std::ostream&);
+  llvm::Value* code(llvm::IRBuilder<>&) override;
+  void lisp(std::ostream&) override;
 };
 
 /**/
@@ -98,8 +98,8 @@ private:
   bool value;
 public:
   Boolean(bool v) : value{v} { type = "Boolean"; }
-  llvm::Value* code(llvm::IRBuilder<>&);
-  void lisp(std::ostream&);
+  llvm::Value* code(llvm::IRBuilder<>&) override;
+  void lisp(std::ostream&) override;
 };
 
 /**/
@@ -108,8 +108,8 @@ private:
   int value;
 public:
   Integer(int v) : value{v} { type = "Integer"; }
-  llvm::Value* code(llvm::IRBuilder<>&);
-  void lisp(std::ostream&);
+  llvm::Value* code(llvm::IRBuilder<>&) override;
+  void lisp(std::ostream&) override;
 };
 
 
@@ -119,8 +119,8 @@ private:
   double value;
 public:
   Double(double v) : value{v} { type = "Double"; }
-  llvm::Value* code(llvm::IRBuilder<>&);
-  void lisp(std::ostream&);
+  llvm::Value* code(llvm::IRBuilder<>&) override;
+  void lisp(std::ostream&) override;
 };
 
 /**/
@@ -131,9 +131,9 @@ private:
 public:
   Unary(const std::string&, Expression*);
   ~Unary() { delete expr; }
-  void setEnv(Function*);
-  llvm::Value* code(llvm::IRBuilder<>&);
-  void lisp(std::ostream&);
+  void setEnv(Function*) override;
+  llvm::Value* code(llvm::IRBuilder<>&) override;
+  void lisp(std::ostream&) override;
 };
 
 /**/
@@ -146,9 +146,9 @@ public:
   TypeCast(Expression* e, const std::string& f, const std::string& t)
     : expr{e}, from{f}, to{t} { type = to; }
   ~TypeCast() { delete expr; }
-  void setEnv(Function*);
-  llvm::Value* code(llvm::IRBuilder<>&);
-  void lisp(std::ostream&);
+  void setEnv(Function*) override;
+  llvm::Value* code(llvm::IRBuilder<>&) override;
+  void lisp(std::ostream&) override;
 };
 
 /**/
@@ -163,9 +163,9 @@ private:
 public:
   Binary(const std::string&, Expression*, Expression*);
   ~Binary();
-  void setEnv(Function*);
-  llvm::Value* code(llvm::IRBuilder<>&);
-  void lisp(std::ostream&);
+  void setEnv(Function*) override;
+  llvm::Value* code(llvm::IRBuilder<>&) override;
+  void lisp(std::ostream&) override;
 };
 
 /**/
@@ -178,9 +178,9 @@ public:
     : name{nm}, args{ag}
   {}
   ~FuncCall();
-  void setEnv(Function*);
-  llvm::Value* code(llvm::IRBuilder<>&);
-  void lisp(std::ostream&);
+  void setEnv(Function*) override;
+  llvm::Value* code(llvm::IRBuilder<>&) override;
+  void lisp(std::ostream&) override;
 };
 
 /* ---------------------------------------------------------------- */
@@ -201,9 +201,9 @@ public:
   Sequence(Statement* so, Statement* si) 
     : sto{so}, sti{si} {}
   ~Sequence();
-  void setEnv(Function*); 
-  llvm::Value* code(llvm::IRBuilder<>&);
-  void lisp(std::ostream&);
+  void setEnv(Function*) override; 
+  llvm::Value* code(llvm::IRBuilder<>&) override;
+  void lisp(std::ostream&) override;
 };
 
 /**/
@@ -214,8 +214,8 @@ private:
 public:
   Declare(const std::string& n, const std::string& t)
     : name{n}, type{t} {}
-  llvm::Value* code(llvm::IRBuilder<>&);
-  void lisp(std::ostream&);
+  llvm::Value* code(llvm::IRBuilder<>&) override;
+  void lisp(std::ostream&) override;
 };
 
 /**/
@@ -227,9 +227,9 @@ public:
     : subr{new FuncCall{nm, ag}}
   {}
   ~SubCall();
-  void setEnv(Function*);
-  llvm::Value* code(llvm::IRBuilder<>&);
-  void lisp(std::ostream&);
+  void setEnv(Function*) override;
+  llvm::Value* code(llvm::IRBuilder<>&) override;
+  void lisp(std::ostream&) override;
 };
 
 /**/
@@ -239,9 +239,9 @@ private:
 public:
   Result(Expression* e) : exp{e} {}
   ~Result();
-  void setEnv(Function*);
-  llvm::Value* code(llvm::IRBuilder<>&);
-  void lisp(std::ostream&);
+  void setEnv(Function*) override;
+  llvm::Value* code(llvm::IRBuilder<>&) override;
+  void lisp(std::ostream&) override;
 };
 
 /**/
@@ -253,9 +253,9 @@ public:
   Assign(const std::string& n, Expression* e)
     : name{n}, expr{e} {}
   ~Assign();
-  void setEnv(Function*);
-  llvm::Value* code(llvm::IRBuilder<>&);
-  void lisp(std::ostream&);
+  void setEnv(Function*) override;
+  llvm::Value* code(llvm::IRBuilder<>&) override;
+  void lisp(std::ostream&) override;
 };
 
 /**/
@@ -269,9 +269,9 @@ public:
     : cond{c}, thenp{t}, elsep{e} {}
   ~Branch();
   void setElse(Statement* s) { elsep = s; }
-  void setEnv(Function*);
-  llvm::Value* code(llvm::IRBuilder<>&);
-  void lisp(std::ostream&);
+  void setEnv(Function*) override;
+  llvm::Value* code(llvm::IRBuilder<>&) override;
+  void lisp(std::ostream&) override;
 };
 
 /**/
@@ -286,9 +286,9 @@ public:
   ForLoop(const std::string& pr, Expression* sa, Expression* so, Expression* se, Statement* bo)
     : param{pr}, start{sa}, stop{so}, step{se}, body{bo} {}
   ~ForLoop();
-  void setEnv(Function*);
-  llvm::Value* code(llvm::IRBuilder<>&);
-  void lisp(std::ostream&);
+  void setEnv(Function*) override;
+  llvm::Value* code(llvm::IRBuilder<>&) override;
+  void lisp(std::ostream&) override;
 };
 
 /**/
@@ -301,8 +301,8 @@ public:
     : cond{co}, body{bo} {}
   ~WhileLoop();
   void setEnv(Function*);
-  llvm::Value* code(llvm::IRBuilder<>&);
-  void lisp(std::ostream&);
+  llvm::Value* code(llvm::IRBuilder<>&) override;
+  void lisp(std::ostream&) override;
 };
 
 /**/
@@ -312,8 +312,8 @@ private:
 public:
   Input(const std::vector<std::string>& vs)
     : vars{vs} {}
-  llvm::Value* code(llvm::IRBuilder<>&);
-  void lisp(std::ostream&);
+  llvm::Value* code(llvm::IRBuilder<>&) override;
+  void lisp(std::ostream&) override;
 };
 
 /**/
@@ -324,9 +324,9 @@ public:
   Print(const std::vector<Expression*>& vl)
     : vals{vl} {}
   ~Print();
-  void setEnv(Function*);
-  llvm::Value* code(llvm::IRBuilder<>&);
-  void lisp(std::ostream&);
+  void setEnv(Function*) override;
+  llvm::Value* code(llvm::IRBuilder<>&) override;
+  void lisp(std::ostream&) override;
 };
 
 #endif
