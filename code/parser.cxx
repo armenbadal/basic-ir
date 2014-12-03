@@ -523,25 +523,25 @@ Expression* Parser::parseFactor()
     return parseVariableOrFuncCall();
 
   if( lookahead == xInteger ) {
-    auto nm = std::stoi(sc.lexeme());
+    auto nm = sc.lexeme();
     match( xInteger );
-    return new Integer{nm};
+    return new Constant{nm, "Integer"};
   }
 
   if( lookahead == xDouble ) {
-    auto nm = std::stod(sc.lexeme());
+    auto nm = sc.lexeme();
     match( xDouble );
-    return new Double{nm};
+    return new Constant{nm, "Double"};
   }
 
   if( lookahead == xTrue ) {
     match( xTrue );
-    return new Boolean{true};
+    return new Constant{"True", "Boolean"};
   }
 
   if( lookahead == xFalse ) {
     match( xFalse );
-    return new Boolean{false};
+    return new Constant{"False", "Boolean"};
   }
 
   // թվային արժեքի բացասում

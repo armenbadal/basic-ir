@@ -82,23 +82,24 @@ llvm::Value* Variable::code(llvm::IRBuilder<>& bu)
 }
 
 /**/
-llvm::Value* Boolean::code(llvm::IRBuilder<>& bu)
+llvm::Value* Constant::code(llvm::IRBuilder<>& bu)
 {
-  auto iv = llvm::APInt(1, value ? 1 : 0);
-  return llvm::ConstantInt::get(llvm::getGlobalContext(), iv);
-}
+  if( type == "Boolean" ) {
+    auto iv = llvm::APInt{1, static_cast<unsigned long>(value == "True" ? 1 : 0)};
+    return llvm::ConstantInt::get(llvm::getGlobalContext(), iv);
+  }
+  
+  if( type == "Integer" ) {
+    auto iv = llvm::APInt{32, static_cast<unsigned long>(std::stol(value)), true};
+    return llvm::ConstantInt::get(llvm::getGlobalContext(), iv);
+  }
 
-llvm::Value* Integer::code(llvm::IRBuilder<>& bu)
-{
-  auto iv = llvm::APInt(32, value, true);
-  return llvm::ConstantInt::get(llvm::getGlobalContext(), iv);
-}
-
-/**/
-llvm::Value* Double::code(llvm::IRBuilder<>& bu)
-{
-  auto fv = llvm::APFloat(value);
-  return llvm::ConstantFP::get(llvm::getGlobalContext(), fv);
+  if( type == "Double" ) {
+    auto fv = llvm::APFloat{std::stod(value)};
+    return llvm::ConstantFP::get(llvm::getGlobalContext(), fv);
+  }
+  
+  return nullptr;
 }
 
 /**/

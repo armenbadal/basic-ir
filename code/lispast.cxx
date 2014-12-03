@@ -38,24 +38,10 @@ void Variable::lisp(std::ostream& ooo)
 }
 
 /**/
-void Integer::lisp(std::ostream& ooo)
-{
-  ooo << "#S(ast-constant :value " << value;
-  ooo << " :type \"Integer\")";
-}
-
-/**/
-void Double::lisp(std::ostream& ooo)
+void Constant::lisp(std::ostream& ooo)
 {
   ooo << "#S(ast-constant :value \"" << value;
-  ooo << "\" :type \"Double\")";
-}
-
-/**/
-void Boolean::lisp(std::ostream& ooo)
-{
-  std::string sv{value ? "\"True\"" : "\"False\""};
-  ooo << "#S(ast-constant :value " << sv << " :type \"Boolean\")";
+  ooo << "\" :type \"" << type << "\")";
 }
 
 /**/

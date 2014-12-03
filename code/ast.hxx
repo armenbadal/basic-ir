@@ -17,18 +17,19 @@
 using nametype = std::pair<std::string,std::string>;
 using vectornametype = std::vector<nametype>;
 
-/* Կոդի գեներացիայի ինտերֆեյս */
+/** @brief Կոդի գեներացիայի ինտերֆեյս */
 class CodeIR {
 public:
-  /* Արտահայտությունների համար վերադարձնում է llvm::Value*, 
+  /** @brief Արտահայտությունների համար վերադարձնում է llvm::Value*, 
    իսկ հրամանների համար՝ nullptr։ */
   virtual llvm::Value* code(llvm::IRBuilder<>&) = 0;
 };
 
-/* Աբստրակտ քերականական ծառը Lisp կառուցվածքների
+/* @brief Աբստրակտ քերականական ծառը Lisp կառուցվածքների
    տեսքով արտածող ինտերֆեյս։ */
 class LispAst {
 public:
+  /** @brief Հոսքի մեջ գրում է ԱՔԾ֊ի Lisp ներկայացումը։ */
   virtual void lisp(std::ostream&) = 0;
 };
 
@@ -37,29 +38,41 @@ class Statement;
 class Function;
 
 /* ---------------------------------------------------------------- */
+/** @brief Կոմպիլյացիայի մոդուլը */
 class Module {
 private:
+  /// @brief Մոդուլի անունը
   std::string name;
+  /// @brief LLVM մոդուլի ցուցիչը
   llvm::Module* module;
+  /// @brief Մոդուլի մեջ սահմանված ենթածրագրերի ցուցակը
   std::vector<Function*> subs;
 
 public:
   Module(const std::string&);
   ~Module();
+  /// @brief Ավելացնել նոր ֆունկցիա
   void addFunction(Function*);
   void code(const std::string&);
   void lisp(const std::string&);
 };
 
 /* ---------------------------------------------------------------- */
+/** @brief BASIC-IR լեզվի ֆունկցիա կամ պրոցեդուրա։ */
 class Function : public CodeIR, public LispAst {
 public:
+  /// @brief Ենթածրագրի անուն։
   std::string name;
+  /// @brief Արգումենտների ցուցակ։
   vectornametype args;
+  /// @brief Վերադարձվող արժեքի տիպ։
   std::string type;
+  /// @brief Մարմին։
   Statement* body = nullptr;
 public:
+  /// @brief Ցուցիչ LLVM մոդուլին։
   llvm::Module* module = nullptr;
+  /// @brief Ենթածրագրում օգտագործված լոկալ անուններ։
   std::map<std::string,llvm::Value*> locals;
 public:
   Function(const std::string&, const vectornametype&, const std::string&);
@@ -71,19 +84,22 @@ public:
 };
 
 /* ---------------------------------------------------------------- */
+/** @brief Արտահայտությունների ինտերֆեյս։ */
 class Expression : public CodeIR, public LispAst {
 protected:
   Function* env{nullptr};
 public:
+  /// @brief Տիպը (ժառանգվող ատրիբուտ)։
   std::string type;
 public:
   virtual ~Expression() {}
   virtual void setEnv(Function* e) { env = e; }
 };
 
-/**/
+/** @brief Փոփոխականի ներկայացումը։ */
 class Variable : public Expression {
 private:
+  /// @brief Փոփոխականի անունը։
   std::string name;
 public:
   Variable(const std::string& n, const std::string& t)
@@ -93,32 +109,12 @@ public:
 };
 
 /**/
-class Boolean : public Expression {
+class Constant : public Expression {
 private:
-  bool value;
+  std::string value;
 public:
-  Boolean(bool v) : value{v} { type = "Boolean"; }
-  llvm::Value* code(llvm::IRBuilder<>&) override;
-  void lisp(std::ostream&) override;
-};
-
-/**/
-class Integer : public Expression {
-private:
-  int value;
-public:
-  Integer(int v) : value{v} { type = "Integer"; }
-  llvm::Value* code(llvm::IRBuilder<>&) override;
-  void lisp(std::ostream&) override;
-};
-
-
-/**/
-class Double : public Expression {
-private:
-  double value;
-public:
-  Double(double v) : value{v} { type = "Double"; }
+  Constant(const std::string& vl, const std::string& ty)
+    : value{vl} { type = ty; }
   llvm::Value* code(llvm::IRBuilder<>&) override;
   void lisp(std::ostream&) override;
 };
