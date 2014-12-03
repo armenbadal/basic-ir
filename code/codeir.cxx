@@ -19,11 +19,11 @@ namespace {
   llvm::Type* asType(const std::string& id)
   {
     auto& cx = llvm::getGlobalContext();
-    if( "Integer" == id )
+    if( Expression::TyInteger == id )
       return llvm::Type::getInt32Ty(cx);
-    if( "Double" == id )
+    if( Expression::TyDouble == id )
       return llvm::Type::getDoubleTy(cx);
-    if( "Boolean" == id )
+    if( Expression::TyBoolean == id )
       return llvm::Type::getInt1Ty(cx);
     return llvm::Type::getVoidTy(cx);
   }
@@ -84,17 +84,17 @@ llvm::Value* Variable::code(llvm::IRBuilder<>& bu)
 /**/
 llvm::Value* Constant::code(llvm::IRBuilder<>& bu)
 {
-  if( type == "Boolean" ) {
+  if( type == Expression::TyBoolean ) {
     auto iv = llvm::APInt{1, static_cast<unsigned long>(value == "True" ? 1 : 0)};
     return llvm::ConstantInt::get(llvm::getGlobalContext(), iv);
   }
   
-  if( type == "Integer" ) {
+  if( type == Expression::TyInteger ) {
     auto iv = llvm::APInt{32, static_cast<unsigned long>(std::stol(value)), true};
     return llvm::ConstantInt::get(llvm::getGlobalContext(), iv);
   }
 
-  if( type == "Double" ) {
+  if( type == Expression::TyDouble ) {
     auto fv = llvm::APFloat{std::stod(value)};
     return llvm::ConstantFP::get(llvm::getGlobalContext(), fv);
   }
@@ -109,9 +109,9 @@ llvm::Value* Unary::code(llvm::IRBuilder<>& bu)
   if( oper == "Not" )
     exc = bu.CreateNot(exc);
   else if( oper == "Neg" ) {
-    if( type == "Integer" ) 
+    if( type == Expression::TyInteger ) 
       exc = bu.CreateNeg(exc);
-    else if( type == "Double" ) 
+    else if( type == Expression::TyDouble ) 
       exc = bu.CreateFNeg(exc);
   }
   return exc;
@@ -122,9 +122,9 @@ llvm::Value* TypeCast::code(llvm::IRBuilder<>& bu)
 {
   auto& cx = llvm::getGlobalContext();
   auto exc = expr->code(bu);
-  if( from == "Integer" && to == "Double" )
+  if( from == Expression::TyInteger && to == Expression::TyDouble )
     return bu.CreateSIToFP( exc, llvm::Type::getDoubleTy(cx) );
-  if( from == "Double" && to == "Integer" )
+  if( from == Expression::TyDouble && to == Expression::TyInteger )
     return bu.CreateFPToSI( exc, llvm::Type::getInt32Ty(cx) );
   return exc;
 }
@@ -136,7 +136,8 @@ llvm::Value* Binary::code(llvm::IRBuilder<>& bu)
   auto exi = expri->code( bu ); // աջ
 
   // գործողության երկու կողմերում իրական արժեք վերադարձնող արտահայտությունենր են
-  if( expro->type == "Double" && expri->type == "Double" ) {
+  if( expro->type == Expression::TyDouble && 
+      expri->type == Expression::TyDouble ) {
     if( oper == "=" ) 
       return bu.CreateFCmpOEQ(exo, exi); 
     if( oper == "<>" )
@@ -160,7 +161,8 @@ llvm::Value* Binary::code(llvm::IRBuilder<>& bu)
     if( oper == "\\" )
       return bu.CreateFRem(exo, exi);
   }
-  else if( expro->type == "Integer" && expri->type == "Integer" ) {
+  else if( expro->type == Expression::TyInteger && 
+	   expri->type == Expression::TyInteger ) {
     if( oper == "=" ) 
       return bu.CreateICmpEQ(exo, exi); 
     if( oper == "<>" )
@@ -184,7 +186,8 @@ llvm::Value* Binary::code(llvm::IRBuilder<>& bu)
     if( oper == "\\" )
       return bu.CreateSRem(exo, exi);
   }
-  else if( expro->type == "Boolean" && expri->type == "Boolean" ) {
+  else if( expro->type == Expression::TyBoolean && 
+	   expri->type == Expression::TyBoolean ) {
     if( oper == "And" ) 
       return bu.CreateAnd(exo, exi);
     if( oper == "Or" ) 
@@ -201,7 +204,7 @@ llvm::Value* Binary::code(llvm::IRBuilder<>& bu)
 /**/
 llvm::Value* FuncCall::code(llvm::IRBuilder<>& bu)
 {
-  auto func = env->module->getFunction(name); // check
+  auto func = env->module->getFunction(name); // ստուգել
   std::vector<llvm::Value*> ags;
   for( auto& a : args )
     ags.push_back( a->code(bu) );
@@ -328,11 +331,11 @@ llvm::Value* Print::code(llvm::IRBuilder<>& bu)
   llvm::Function* pr{nullptr};
   for( auto e : vals ) {
     auto ec = e->code(bu);
-    if( e->type == "Integer" )
+    if( e->type == Expression::TyInteger )
       pr = env->module->getFunction("__printInteger__");
-    else if( e->type == "Double" )
+    else if( e->type == Expression::TyDouble )
       pr = env->module->getFunction("__printDouble__");
-    else if( e->type == "Boolean" )
+    else if( e->type == Expression::TyBoolean )
       pr = env->module->getFunction("__printBoolean__");      
     bu.CreateCall(pr, ec);
   }

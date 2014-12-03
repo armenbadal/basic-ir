@@ -18,7 +18,7 @@ namespace {
   /**/
   bool isNumeric(const std::string& id)
   {
-    return id == "Integer" || id == "Double";
+    return id == Expression::TyInteger || id == Expression::TyDouble;
   }
 }
 
@@ -351,6 +351,7 @@ Statement* Parser::parseFor()
   match( xFor );
   auto cn = sc.lexeme();
   match( xIdent );
+  // ստուգել cn-ի տիպը․ պետք է լինի Integer կամ Double
   match( xEq );
   auto st = parseAddition();
   match( xTo );
@@ -466,11 +467,11 @@ Expression* Parser::parseRelation()
   if( lookahead >= xGt && lookahead <= xLe ) {
     auto oper = TN[lookahead];
     if( res->type == "Boolean" )
-      throw new std::logic_error{"'"+oper+"' գործողության արգումենտը չի կարող լինել բուլյան։"};
+      throw new std::logic_error{"'" + oper + "' գործողության արգումենտը չի կարող լինել բուլյան։"};
     lookahead = sc.next();
     auto r = parseAddition();
     if( res->type == "Boolean" )
-      throw new std::logic_error{"'"+oper+"' գործողության արգումենտը չի կարող լինել բուլյան։"};
+      throw new std::logic_error{"'" + oper + "' գործողության արգումենտը չի կարող լինել բուլյան։"};
     res = new Binary{oper, res, r};
   }
   return res;
@@ -505,11 +506,11 @@ Expression* Parser::parsePower()
 {
   auto res = parseFactor();
   if( lookahead == xPow ) {
-    if( res->type != "Integer" || res->type != "Double" ) 
+    if( res->type != Expression::TyInteger || res->type != Expression::TyDouble ) 
       throw new std::logic_error{"Աստիճան կարող է բարձրացվել միայն թիվը։"};
     lookahead = sc.next();
     auto r = parsePower();
-    if( res->type != "Integer" || res->type != "Double" ) 
+    if( res->type != Expression::TyInteger || res->type != Expression::TyDouble ) 
       throw new std::logic_error{"Աստիճանը կարող է լինել միայն թիվ։"};
     res = new Binary{"Pow", res, r};
   }
@@ -525,30 +526,30 @@ Expression* Parser::parseFactor()
   if( lookahead == xInteger ) {
     auto nm = sc.lexeme();
     match( xInteger );
-    return new Constant{nm, "Integer"};
+    return new Constant{nm, Expression::TyInteger};
   }
 
   if( lookahead == xDouble ) {
     auto nm = sc.lexeme();
     match( xDouble );
-    return new Constant{nm, "Double"};
+    return new Constant{nm, Expression::TyDouble};
   }
 
   if( lookahead == xTrue ) {
     match( xTrue );
-    return new Constant{"True", "Boolean"};
+    return new Constant{"True", Expression::TyBoolean};
   }
 
   if( lookahead == xFalse ) {
     match( xFalse );
-    return new Constant{"False", "Boolean"};
+    return new Constant{"False", Expression::TyBoolean};
   }
 
   // թվային արժեքի բացասում
   if( lookahead == xSub ) {
     match( xSub );
     auto expr = parseFactor();
-    if( expr->type != "Double" && expr->type != "Integer" ) 
+    if( expr->type != Expression::TyDouble && expr->type != Expression::TyInteger ) 
       throw new std::logic_error{"Անհամապատասխան տիպեր։"};
     return new Unary{"Neg", expr};
   }
@@ -557,7 +558,7 @@ Expression* Parser::parseFactor()
   if( lookahead == xNot ) {
     match( xNot );
     auto expr = parseFactor();
-    if( expr->type != "Boolean" )
+    if( expr->type != Expression::TyBoolean )
       throw new std::logic_error{"Անհամապատասխան տիպեր։"};
     return new Unary{"Not", expr};
   }

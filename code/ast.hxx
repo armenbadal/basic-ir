@@ -86,6 +86,11 @@ public:
 /* ---------------------------------------------------------------- */
 /** @brief Արտահայտությունների ինտերֆեյս։ */
 class Expression : public CodeIR, public LispAst {
+public:
+  static const std::string TyBoolean;
+  static const std::string TyInteger;
+  static const std::string TyDouble;
+  static const std::string TyVoid;
 protected:
   Function* env{nullptr};
 public:

@@ -1,4 +1,5 @@
 
+#include <algorithm>
 #include <cctype>
 #include <sstream>
 
@@ -8,29 +9,29 @@
 
 
 std::map<std::string,Token> Scanner::keywords{
-  {"Declare", xDeclare},
-  {"Dim",xDim},
-  {"As", xAs},
-  {"Type", xType},
-  {"True", xTrue},
-  {"False", xFalse},
-  {"End", xEnd},
-  {"Sub", xSubroutine},
-  {"Function", xFunction},
-  {"Return", xReturn},
-  {"If", xIf},
-  {"Then", xThen},
-  {"ElseIf", xElseIf},
-  {"Else", xElse},
-  {"For", xFor},
-  {"To", xTo},
-  {"Step", xStep},
-  {"While", xWhile},
-  {"Input", xInput},
-  {"Print", xPrint},
-  {"And", xAnd},
-  {"Or", xOr},
-  {"Not", xNot}
+  {"DECLARE", xDeclare},
+  {"DIM",xDim},
+  {"AS", xAs},
+  {"TYPE", xType},
+  {"TRUE", xTrue},
+  {"FALSE", xFalse},
+  {"END", xEnd},
+  {"SUB", xSubroutine},
+  {"FUNCTION", xFunction},
+  {"RETURN", xReturn},
+  {"IF", xIf},
+  {"THEN", xThen},
+  {"ELSEIF", xElseIf},
+  {"ELSE", xElse},
+  {"FOR", xFor},
+  {"TO", xTo},
+  {"STEP", xStep},
+  {"WHILE", xWhile},
+  {"INPUT", xInput},
+  {"PRINT", xPrint},
+  {"AND", xAnd},
+  {"OR", xOr},
+  {"NOT", xNot}
 };
 
 /**/
@@ -84,7 +85,10 @@ Token Scanner::next()
   // identifiers and keywords
   if( isalpha( c ) ) {
     text = sequence( isalnum );
-    std::map<std::string,Token>::iterator kw = keywords.find(text);
+    // գրել isKeyword պրեդիկատը
+    std::string uname{text};
+    std::transform(uname.begin(), uname.end(), uname.begin(), toupper);
+    std::map<std::string,Token>::iterator kw = keywords.find(uname);
     if( kw == keywords.end() ) return xIdent;
     return kw->second;
   }

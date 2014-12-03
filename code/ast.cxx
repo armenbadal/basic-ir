@@ -9,9 +9,9 @@ Module::Module(const std::string& nm)
 
   // գրադարանային ֆունկցիաներ
   // արտածում
-  auto e0 = new Function{"__printInteger__", vectornametype{{"v","Integer"}}, "Void"};
-  auto e1 = new Function{"__printDouble__", vectornametype{{"v","Double"}}, "Void"};
-  auto e2 = new Function{"__printBoolean__", vectornametype{{"v","Boolean"}}, "Void"};
+  auto e0 = new Function{"__printInteger__", vectornametype{{"_",Expression::TyInteger}}, Expression::TyVoid};
+  auto e1 = new Function{"__printDouble__", vectornametype{{"_",Expression::TyDouble}}, Expression::TyVoid};
+  auto e2 = new Function{"__printBoolean__", vectornametype{{"_",Expression::TyBoolean}}, Expression::TyVoid};
   addFunction(e0); addFunction(e1); addFunction(e2);
 }
 
@@ -54,13 +54,19 @@ void Function::setBody(Statement* bo)
 }
 
 /**/
+const std::string Expression::TyBoolean{"BOOLEAN"};
+const std::string Expression::TyInteger{"INTEGER"};
+const std::string Expression::TyDouble{"DOUBLE"};
+const std::string Expression::TyVoid{"VOID"};
+
+/**/
 Unary::Unary(const std::string& op, Expression* ex)
   : oper{op}, expr{ex}
 {
   if( oper == "Neg" ) 
      type = expr->type;
   else if( oper == "Not" )
-    type = "Boolean";
+    type = Expression::TyBoolean;
 }
 
 /**/
@@ -86,19 +92,19 @@ Binary::Binary(const std::string& op, Expression* exo, Expression* exi)
   : oper{op}, expro{exo}, expri{exi} 
 {
   // տիպերի համաձայնեցում և ձևափոխում
-  if( expro->type == "Integer" && expri->type == "Double" )
-    expro = new TypeCast{expro, "Integer", "Double"};
-  else if( expro->type == "Double" && expri->type == "Integer" )
-    expri = new TypeCast{expri, "Integer", "Double"};
+  if( expro->type == Expression::TyInteger && expri->type == Expression::TyDouble )
+    expro = new TypeCast{expro, Expression::TyInteger, Expression::TyDouble};
+  else if( expro->type == Expression::TyDouble && expri->type == Expression::TyInteger )
+    expri = new TypeCast{expri, Expression::TyInteger, Expression::TyDouble};
 
   // տիպի դուրսբերում
   if( Numerics.end() != Numerics.find(oper) )
-    if( expro->type == "Integer" && expri->type == "Integer" )
-      type = "Integer";
+    if( expro->type == Expression::TyInteger && expri->type == Expression::TyInteger )
+      type = Expression::TyInteger;
     else
-      type = "Double";
+      type = Expression::TyDouble;
   else if( Logicals.end() !=  Logicals.find(oper) )
-    type = "Boolean";
+    type = Expression::TyBoolean;
 }
 
 /**/
