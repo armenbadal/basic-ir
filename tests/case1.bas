@@ -1,0 +1,11 @@
+
+SUB Main
+  DIM x AS INTEGER
+  x = 777
+  IF x > 1000 THEN
+    PRINT TRUE
+  ELSE
+    PRINT FALSE
+  END IF
+END SUB
+
