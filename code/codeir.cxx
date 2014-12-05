@@ -285,9 +285,68 @@ llvm::Value* Branch::code(llvm::IRBuilder<>& bu)
   return nullptr;
 }
 
-/**/
-llvm::Value* ForLoop::code(llvm::IRBuilder<>&)
+/*
+  FOR param = e0 TO e1 [STEP e2]
+    body
+  END FOR
+*/
+llvm::Value* ForLoop::code(llvm::IRBuilder<>& bu)
 {
+  /*
+    ' համարժեք գրառումը WHILE ցիկլի օգտագործմամբ
+    param = e0
+    DIM __e1 AS <type of param>
+    __e1 = e1
+    DIM __e2 AS <type of param>
+    __e2 = e2
+    WHILE __e2 > 0 AND param < __e1 OR __e2 < 0 AND param > __e1
+      body
+      param = param + __e2
+    END WHILE
+  */
+
+  // կատարել param = e0 վերագրումը
+  auto pr = env->locals[param];
+  auto e0 = start->code(bu);
+  if( e0->getType()->isPointerTy() )
+    e0 = bu.CreateLoad(s);
+  bu.CreateStore(e0, d);
+  // հաշվել պարամետրի սահմանը
+  auto e1 = stop->code(bu);
+  // հաշվել պարամետրի քայլը
+  auto e2 = step->code(bu);
+
+  // կոնտեքստը և ընդգրկող ֆունկցիան
+  auto& cx = llvm::getGlobalContext();
+  auto subr = bu.GetInsertBlock()->getParent();
+
+  auto cc = llvm::BasicBlock::Create( cx, "", subr ); // պայման
+  auto cb = llvm::BasicBlock::Create( cx, "", subr ); // մարմին
+  auto ce = llvm::BasicBlock::Create( cx, "", subr ); // ավարտ
+ 
+  subr->getBasicBlockList().push_back(cc);
+  bu.SetInsertPoint( cc );
+ 
+  auto p0 = bu.CreateLoad(env->locals[param]);
+  auto t0 = bu.CreateICmpSGT(e2, /*0*/);
+  auto t1 = bu.CreateICmpSGT(p0, e1);
+  auto t2 = bu.CreateAnd(t0, t1);
+  auto p1 = bu.CreateLoad(env->locals[param]);
+  auto t3 = bu.CreateICmpSLT(e2, /*0*/);
+  auto t4 = bu.CreateICmpSLT(p0, e1);
+  auto t5 = bu.CreateAnd(t0, t1);
+  auto t6 = bu.CreateOr(t2, t5);
+  auto tr = llvm::ConstantInt::get( cx, llvm::APInt(1, 1) );
+  auto bv = bu.CreateICmpEQ( cv, tr );
+  bu.CreateCondBr( bv, cb, ce );
+
+  subr->getBasicBlockList().push_back(cb);
+  bu.SetInsertPoint( cb );
+  body->code( bu );
+  auto p2 = bu.CreateLoad(env->locals[param]);
+  auto t7 = bu.CreateNSWAdd(p2, e2);
+  // TODO
+
   return nullptr;
 }
 
