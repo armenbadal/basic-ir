@@ -9,29 +9,32 @@
 
 
 std::map<std::string,Token> Scanner::keywords{
-  {"DECLARE", xDeclare},
-  {"DIM",xDim},
-  {"AS", xAs},
-  {"TYPE", xType},
-  {"TRUE", xTrue},
-  {"FALSE", xFalse},
-  {"END", xEnd},
-  {"SUB", xSubroutine},
-  {"FUNCTION", xFunction},
-  {"RETURN", xReturn},
-  {"IF", xIf},
-  {"THEN", xThen},
-  {"ELSEIF", xElseIf},
-  {"ELSE", xElse},
-  {"FOR", xFor},
-  {"TO", xTo},
-  {"STEP", xStep},
-  {"WHILE", xWhile},
-  {"INPUT", xInput},
-  {"PRINT", xPrint},
-  {"AND", xAnd},
-  {"OR", xOr},
-  {"NOT", xNot}
+  {"declare", xDeclare},
+  {"dim",xDim},
+  {"as", xAs},
+//{"integer", xIdent},
+//{"double", xIdent},
+//{"boolean", xIdent},
+  {"type", xType},
+  {"true", xTrue},
+  {"false", xFalse},
+  {"end", xEnd},
+  {"sub", xSubroutine},
+  {"function", xFunction},
+  {"return", xReturn},
+  {"if", xIf},
+  {"then", xThen},
+  {"elseif", xElseIf},
+  {"else", xElse},
+  {"for", xFor},
+  {"to", xTo},
+  {"step", xStep},
+  {"while", xWhile},
+  {"input", xInput},
+  {"print", xPrint},
+  {"and", xAnd},
+  {"or", xOr},
+  {"not", xNot}
 };
 
 /**/
@@ -85,10 +88,9 @@ Token Scanner::next()
   // identifiers and keywords
   if( isalpha( c ) ) {
     text = sequence( isalnum );
-    // գրել isKeyword պրեդիկատը
-    std::string uname{text};
-    std::transform(uname.begin(), uname.end(), uname.begin(), toupper);
-    std::map<std::string,Token>::iterator kw = keywords.find(uname);
+    std::transform(text.begin(), text.end(), text.begin(), tolower);
+    if( text == "main" ) text = "Main"; // բացառություն մուտքի կետի համար
+    auto kw = keywords.find(text);
     if( kw == keywords.end() ) return xIdent;
     return kw->second;
   }

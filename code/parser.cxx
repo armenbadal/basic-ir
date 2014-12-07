@@ -210,8 +210,8 @@ Function* Parser::parseSubrHeader()
   parseEols();
   if( nm == "Main" && ag.size() != 0 )
     throw new std::logic_error{"'Main' պրոցեդուրան արգումենտներ չունի։"};
-  symtab->insert( Symbol{nm, sig + " -> Void"} );
-  return new Function{nm, ag, "Void"};
+  symtab->insert( Symbol{nm, sig + " -> " + Expression::TyVoid} );
+  return new Function{nm, ag, Expression::TyVoid};
 }
 
 /**/
@@ -351,15 +351,19 @@ Statement* Parser::parseFor()
   match( xFor );
   auto cn = sc.lexeme();
   match( xIdent );
-  // ստուգել cn-ի տիպը․ պետք է լինի Integer կամ Double
+  auto nt = symtab->search(cn);
+  if( "" == nt.first )
+    throw new std::logic_error{"Չհայտարարված անուն '" + cn +"'։"};
+  if( Expression::TyInteger != nt.second )
+    throw new std::logic_error{"'For' ցիկլի հաշվիչի տիպը պետք է լինի Integer։"};
   match( xEq );
-  auto st = parseAddition();
+  auto st = parseAddition(); // ? type is Integer
   match( xTo );
-  auto ed = parseAddition();
+  auto ed = parseAddition(); // ? type is Integer
   Expression* sp{nullptr};
   if( lookahead == xStep ) {
     match( xStep );
-    sp = parseAddition();
+    sp = parseAddition(); // ? type is Integer
   }
   parseEols();
   auto bo = parseSequence();
@@ -386,15 +390,21 @@ Statement* Parser::parseWhile()
 Statement* Parser::parseInput()
 {
   match( xInput );
-  std::vector<std::string> vars;
+  symbolvector vars;
   auto nm = sc.lexeme();
   match( xIdent );
-  vars.push_back( nm );
+  auto sy = symtab->search(nm);
+  if( "" == sy.first )
+    throw new std::logic_error{"Չհայտարարված անուն '" + nm +"'։"};
+  vars.push_back( sy );
   while( lookahead == xComma ) {
     lookahead = sc.next();
     nm = sc.lexeme();
     match( xIdent );
-    vars.push_back( nm );
+    sy = symtab->search(nm);
+    if( "" == sy.first )
+      throw new std::logic_error{"Չհայտարարված անուն '" + nm +"'։"};
+    vars.push_back( sy );
   }
   parseEols();
   return new Input{vars};

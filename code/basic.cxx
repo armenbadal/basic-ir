@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 
-#include "parser.hxx"
+#include "compiler.hxx"
 
 /**/
 bool exists(const std::string& name)
@@ -28,18 +28,6 @@ int main( int argc, char* argv[] )
     return 1;
   }
 
-  std::string irout{basinp};
-  auto p = irout.find_last_of(".");
-  if( p != std::string::npos ) irout.erase(p);
-  std::string lispout{irout};
-  irout += ".ll";
-  lispout += ".lisp";
-
-  Parser sc{basinp};
-  auto moduleAst = sc.parse();
-  moduleAst->lisp(lispout);
-  moduleAst->code(irout);
-
-  delete moduleAst;
+  Compiler::compile(basinp, true);
 }
 

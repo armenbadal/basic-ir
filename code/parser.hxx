@@ -1,5 +1,5 @@
-#ifndef PARSER_H
-#define PARSER_H
+#ifndef PARSER_HXX
+#define PARSER_HXX
 
 #include <set>
 #include <string>

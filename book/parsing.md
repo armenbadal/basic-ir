@@ -36,7 +36,20 @@ public:
 
 ### Կոմպիլյացիայի միավորի մոդելը
 
-Ի սկզբանե ես չեմ նախատեսել, որ BASIC-IR լեզվի կոմպիլյատորը կատարելու է նաև _կապերի խմբագրիչի_ (linker) դեր։ 
+Նախաբանում նշեցի, որ BASIC-IR լեզվով գրված ծրագիրը՝ _կոմպիլյացիայի միավորը_, ֆունկցիաների ու պրեցեդուրաների սահմանումների (նաև հայտարարությունների) հաջորդականություն է։ `Module` դասը ես նախատեսել եմ կոմպիլյացիայի միովորը (մոդուլը) ներկայացնելու համար։ Այս դասի `name` դաշտը մոդուլի անունն է, այն ոչ մի իմաստ չի կրում և ես դրա մեջ գրում եմ կոմպիլյացիայի տրված ֆայլի անունը։ Իսկ `subs` դաշտը մոդուլում հայտարարված կամ սահմանված ենթածրագրերի ցուցակն է։
+
+````c++
+class Module {
+private:
+  std::string name;
+  std::vector<Function*> subs;
+  /* ... */
+public:
+  Module(const std::string&);
+  void addFunction(Function*);
+  /* ... */
+};
+````
 
 
 ### Ենթածրագրերի մոդելը
@@ -62,11 +75,37 @@ public:
 
 ### Արտահայտությունների մոդելը
 
+Թվաբանական, համեմատման ու տրամաբանական արտահայտությունների համար բազային դաս է հանդիսանում `Expression` աբստրակտ դասը։ `env` ցուցիչը կապված է այն ենթածրագրի օբյեկտին, որի ներսում գտնվում է արտահայտությունը։ `type` դաշտը արտահայտության տիպը ցույց տվող ժառանգվող ատրիբուտ է։ `TyBoolean`, `TyInteger`, `TyDouble` և `TyVoid` տողային ստատիկ հաստատունները նախատեսված են BASIC-IR լեզվի ներդրված տիպերը նշանակելու համար։
+
+````c++
+class Expression : public CodeIR, public LispAst {
+public:
+  static const std::string TyBoolean;
+  static const std::string TyInteger;
+  static const std::string TyDouble;
+  static const std::string TyVoid;
+protected:
+  Function* env{nullptr};
+public:
+  std::string type;
+public:
+  virtual ~Expression() {}
+  virtual void setEnv(Function* e) { env = e; }
+};
+````
 
 
 ### Հրամանների մոդելը
 
-
+````c++
+class Statement : public CodeIR, public LispAst {
+protected:
+  Function* env;
+public:
+  virtual ~Statement() {}
+  virtual void setEnv(Function* e) { env = e; }
+};
+````
 
 ## Նիշային վերլուծություն
 

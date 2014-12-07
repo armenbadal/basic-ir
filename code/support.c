@@ -5,6 +5,7 @@ BASIC IR լեզվի ներդրված ֆունկցիաների գրադարան։
 
 extern int scanf(const char*, ...);
 extern int printf(const char*, ...);
+extern int putchar(int);
 
 /* Ներմուծում */
 int __input_integer__()
@@ -37,6 +38,14 @@ void __print_boolean__(_Bool val)
 {
   printf("%s", val ? "True" : "False");
 }
+void __print_space__()
+{
+  putchar(' ');
+}
+void __print_new_line__()
+{
+  putchar('\n');
+}
 
 /* Մաթեմատիկական ֆունկցիաներ ? 
  Օգտագործել LLVM֊ի ներդրված ֆունկցիաները։ */
@@ -57,6 +66,7 @@ int __i_pow__(int x, int y)
 /* Մուտքի կետ */
 int main()
 {
+  extern void Main(void);
   Main();
   return 0;
 }

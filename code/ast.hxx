@@ -1,6 +1,6 @@
 
-#ifndef ABSTRACT_SYNTAX_TREE
-#define ABSTRACT_SYNTAX_TREE
+#ifndef ABSTRACT_SYNTAX_TREE_HXX
+#define ABSTRACT_SYNTAX_TREE_HXX
 
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Module.h>
@@ -14,8 +14,7 @@
 #include "symtab.hxx"
 
 /**/
-using nametype = std::pair<std::string,std::string>;
-using vectornametype = std::vector<nametype>;
+using symbolvector = std::vector<Symbol>;
 
 /** @brief Կոդի գեներացիայի ինտերֆեյս */
 class CodeIR {
@@ -39,22 +38,25 @@ class Function;
 
 /* ---------------------------------------------------------------- */
 /** @brief Կոմպիլյացիայի մոդուլը */
-class Module {
+class Module : public CodeIR, public LispAst {
 private:
   /// @brief Մոդուլի անունը
   std::string name;
   /// @brief LLVM մոդուլի ցուցիչը
   llvm::Module* module;
   /// @brief Մոդուլի մեջ սահմանված ենթածրագրերի ցուցակը
-  std::vector<Function*> subs;
+  std::vector<Function*> integrated;
+  std::vector<Function*> subroutines;
 
 public:
   Module(const std::string&);
   ~Module();
   /// @brief Ավելացնել նոր ֆունկցիա
-  void addFunction(Function*);
-  void code(const std::string&);
-  void lisp(const std::string&);
+  void addFunction(Function*, bool = true);
+  llvm::Module* getCompiled() { return module; }
+
+  llvm::Value* code(llvm::IRBuilder<>&) override;
+  void lisp(std::ostream&) override;
 };
 
 /* ---------------------------------------------------------------- */
@@ -64,7 +66,7 @@ public:
   /// @brief Ենթածրագրի անուն։
   std::string name;
   /// @brief Արգումենտների ցուցակ։
-  vectornametype args;
+  symbolvector args;
   /// @brief Վերադարձվող արժեքի տիպ։
   std::string type;
   /// @brief Մարմին։
@@ -75,7 +77,7 @@ public:
   /// @brief Ենթածրագրում օգտագործված լոկալ անուններ։
   std::map<std::string,llvm::Value*> locals;
 public:
-  Function(const std::string&, const vectornametype&, const std::string&);
+  Function(const std::string&, const symbolvector&, const std::string&);
   ~Function();
   void setModule(llvm::Module*);
   void setBody(Statement*);
@@ -309,9 +311,9 @@ public:
 /**/
 class Input : public Statement {
 private:
-  std::vector<std::string> vars;
+  symbolvector vars;
 public:
-  Input(const std::vector<std::string>& vs)
+  Input(const symbolvector& vs)
     : vars{vs} {}
   llvm::Value* code(llvm::IRBuilder<>&) override;
   void lisp(std::ostream&) override;

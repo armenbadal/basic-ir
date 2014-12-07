@@ -4,16 +4,14 @@
 #include "ast.hxx"
 
 /**/
-void Module::lisp(const std::string& eman)
+void Module::lisp(std::ostream& ooo)
 {
-  std::ofstream ooo{eman};
   ooo << "(defconstant +abstract-syntax-tree+ ";
   ooo << "#S(ast-module";
   ooo << " :name \"" << name << "\"";
   ooo << " :subs '(";
-  for( auto f : subs ) f->lisp(ooo); 
+  for( auto f : subroutines ) f->lisp(ooo); 
   ooo << ")))" << std::endl;
-  ooo.close();
 }
 
 /**/
@@ -184,7 +182,7 @@ void Input::lisp(std::ostream& ooo)
   ooo << "#S(ast-input";
   ooo << " :vars '(";
   for( auto& vn : vars )
-    ooo << " " << vn;
+    ooo << " " << vn.first;
   ooo << "))";
 }
 

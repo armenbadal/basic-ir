@@ -1,13 +1,8 @@
 
-#include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Function.h>
-#include <llvm/IR/PassManager.h>
-#include <llvm/IR/IRPrintingPasses.h>
 
 #include <llvm/ADT/ArrayRef.h>
-
-#include <llvm/Support/raw_os_ostream.h>
 
 #include <fstream>
 
@@ -30,20 +25,11 @@ namespace {
 }
 
 /**/
-void Module::code(const std::string& eman)
+llvm::Value* Module::code(llvm::IRBuilder<>& bu)
 {
-  llvm::IRBuilder<> builder{llvm::getGlobalContext()};
-  for( auto& e : subs ) e->code(builder);
-
-  /* DEBUG */ module->dump();
-
-  std::ofstream sout{eman};
-  llvm::raw_os_ostream roo{sout};
-  llvm::PrintModulePass pmp{roo};
-  llvm::ModulePassManager pm;
-  pm.addPass(pmp);
-  pm.run(module);
-  sout.close();
+  for( auto& e : integrated ) e->code(bu);
+  for( auto& e : subroutines ) e->code(bu);
+  return nullptr;
 }
 
 /**/
@@ -71,7 +57,7 @@ llvm::Value* Function::code(llvm::IRBuilder<>& bu)
   }
 
   body->code(bu);
-  if( type == "Void" ) bu.CreateRetVoid();
+  if( type == Expression::TyVoid ) bu.CreateRetVoid();
   return func;
 }
 
@@ -305,17 +291,6 @@ llvm::Value* ForLoop::code(llvm::IRBuilder<>& bu)
     END WHILE
   */
 
-  // կատարել param = e0 վերագրումը
-  auto pr = env->locals[param];
-  auto e0 = start->code(bu);
-  if( e0->getType()->isPointerTy() )
-    e0 = bu.CreateLoad(s);
-  bu.CreateStore(e0, d);
-  // հաշվել պարամետրի սահմանը
-  auto e1 = stop->code(bu);
-  // հաշվել պարամետրի քայլը
-  auto e2 = step->code(bu);
-
   // կոնտեքստը և ընդգրկող ֆունկցիան
   auto& cx = llvm::getGlobalContext();
   auto subr = bu.GetInsertBlock()->getParent();
@@ -323,29 +298,45 @@ llvm::Value* ForLoop::code(llvm::IRBuilder<>& bu)
   auto cc = llvm::BasicBlock::Create( cx, "", subr ); // պայման
   auto cb = llvm::BasicBlock::Create( cx, "", subr ); // մարմին
   auto ce = llvm::BasicBlock::Create( cx, "", subr ); // ավարտ
- 
+
+  // կատարել param = e0 վերագրումը
+  auto pr = env->locals[param];
+  auto e0 = start->code(bu);
+  if( e0->getType()->isPointerTy() )
+    e0 = bu.CreateLoad(e0);
+  bu.CreateStore(e0, pr);
+  // հաշվել պարամետրի սահմանը
+  auto e1 = stop->code(bu);
+  // հաշվել պարամետրի քայլը
+  auto e2 = step->code(bu);
+  bu.CreateBr( cc );
+
   subr->getBasicBlockList().push_back(cc);
   bu.SetInsertPoint( cc );
- 
-  auto p0 = bu.CreateLoad(env->locals[param]);
-  auto t0 = bu.CreateICmpSGT(e2, /*0*/);
+
+  // ցիկլի ավարտի պայման e2 > 0 & p0 > e1 | e2 < 0 & p0 < e1
+  auto p0 = bu.CreateLoad(pr);
+  auto z0 = llvm::ConstantInt::get(cx, llvm::APInt{32, 0, true});
+  auto t0 = bu.CreateICmpSGT(e2, z0);
   auto t1 = bu.CreateICmpSGT(p0, e1);
   auto t2 = bu.CreateAnd(t0, t1);
-  auto p1 = bu.CreateLoad(env->locals[param]);
-  auto t3 = bu.CreateICmpSLT(e2, /*0*/);
+  auto t3 = bu.CreateICmpSLT(e2, z0);
   auto t4 = bu.CreateICmpSLT(p0, e1);
-  auto t5 = bu.CreateAnd(t0, t1);
+  auto t5 = bu.CreateAnd(t3, t4);
   auto t6 = bu.CreateOr(t2, t5);
-  auto tr = llvm::ConstantInt::get( cx, llvm::APInt(1, 1) );
-  auto bv = bu.CreateICmpEQ( cv, tr );
+  auto tr = llvm::ConstantInt::get(cx, llvm::APInt{1, 0});
+  auto bv = bu.CreateICmpEQ(t6, tr);
   bu.CreateCondBr( bv, cb, ce );
 
   subr->getBasicBlockList().push_back(cb);
   bu.SetInsertPoint( cb );
   body->code( bu );
-  auto p2 = bu.CreateLoad(env->locals[param]);
-  auto t7 = bu.CreateNSWAdd(p2, e2);
-  // TODO
+  auto p1 = bu.CreateLoad(pr);
+  auto t7 = bu.CreateNSWAdd(p1, e2);
+  bu.CreateStore(t7, pr);
+  bu.CreateBr( cb );
+  subr->getBasicBlockList().push_back(ce);
+  bu.SetInsertPoint( ce );
 
   return nullptr;
 }
@@ -359,6 +350,8 @@ llvm::Value* WhileLoop::code(llvm::IRBuilder<>& bu)
   auto wc = llvm::BasicBlock::Create( cx, "", func ); // cond
   auto wb = llvm::BasicBlock::Create( cx, "", func ); // body
   auto we = llvm::BasicBlock::Create( cx, "", func ); // end
+
+  // bu.CreateBr( cx ); // TODO
 
   func->getBasicBlockList().push_back(wc);
   bu.SetInsertPoint( wc );
@@ -381,23 +374,37 @@ llvm::Value* WhileLoop::code(llvm::IRBuilder<>& bu)
 /**/
 llvm::Value* Input::code(llvm::IRBuilder<>& bu)
 {
+  for( auto& sy : vars ) {
+    llvm::Function* pr{nullptr};
+    if( sy.second == Expression::TyInteger )
+      pr = env->module->getFunction("__input_integer__");
+    else if( sy.second == Expression::TyDouble )
+      pr = env->module->getFunction("__input_double__");
+    else if( sy.second == Expression::TyBoolean )
+      pr = env->module->getFunction("__input_boolean__");
+    auto vl = bu.CreateCall(pr);
+    auto ds = env->locals[sy.first];
+    bu.CreateStore(vl, ds);
+  }
   return nullptr;
 }
 
 /**/
 llvm::Value* Print::code(llvm::IRBuilder<>& bu)
 {
-  llvm::Function* pr{nullptr};
   for( auto e : vals ) {
     auto ec = e->code(bu);
+    llvm::Function* pr{nullptr};
     if( e->type == Expression::TyInteger )
-      pr = env->module->getFunction("__printInteger__");
+      pr = env->module->getFunction("__print_integer__");
     else if( e->type == Expression::TyDouble )
-      pr = env->module->getFunction("__printDouble__");
+      pr = env->module->getFunction("__print_double__");
     else if( e->type == Expression::TyBoolean )
-      pr = env->module->getFunction("__printBoolean__");      
+      pr = env->module->getFunction("__print_boolean__");
     bu.CreateCall(pr, ec);
+    bu.CreateCall(env->module->getFunction("__print_space__"));
   }
+  bu.CreateCall(env->module->getFunction("__print_new_line__"));
   return nullptr;
 }
 
