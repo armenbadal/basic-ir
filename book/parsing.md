@@ -97,15 +97,65 @@ public:
 
 #### Հաստատուններ
 
+Երբ շարահյուսական անալիզատորը ծրագրում հանդիպում է ամբողջաթիվ, իրական կամ բուլյան հաստատուն, ապա ստեղծում է `Constant` տիպի օբյեկտ, որի `value` դաշտում պահում է հաստատունի արժեքը, իսկ `Expression` դասից ժառանգած `type` դաշտում՝ տիպը։
+
+````c++
+class Constant : public Expression {
+private:
+  std::string value;
+public:
+  Constant(const std::string& vl, const std::string& ty)
+    : value{vl} { type = ty; }
+  /* ... */
+};
+````
+
+
 #### Փոփոխականներ
+
+Փոփոխականների համար աբստրակտ քերականական ծառում ստեղծվում է `Variable` տիպի հանգույց։ Սրա `name` դաշտում պահվում է փոփոխականի անունը։
+
+````c++
+class Variable : public Expression {
+private:
+  std::string name;
+public:
+  Variable(const std::string& n, const std::string& t)
+    : name{n} { type = t; }
+  /* ... */
+};
+````
 
 #### ՈՒնար գործողություններ
 
+ՈՒնար գործողությունների համար նախատեսված `Unary` դասի `oper` դաշտում պահվում է գործողության անունը, օրինակ, `Not` կամ `Neg`, իսկ `expr` դաշտում՝ այն արտահայտությունն է, որի նկատմամբ պետք է կիրառել ունար գործողությունը։
+
+````c++
+class Unary : public Expression {
+private:
+  std::string oper;
+  Expression* expr;
+public:
+  Unary(const std::string&, Expression*);
+  /* ... */
+};
+````
+
 #### Բինար գործողություններ
+
+````c++
+````
 
 #### Ֆունկցիայի կանչ
 
+````c++
+````
+
 #### Տիպի փոփոխում
+
+````c++
+````
+
 
 
 ### Հրամանների մոդելը

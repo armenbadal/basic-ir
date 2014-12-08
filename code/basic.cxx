@@ -28,6 +28,6 @@ int main( int argc, char* argv[] )
     return 1;
   }
 
-  Compiler::compile(basinp, true);
+  compile(basinp, true);
 }
 

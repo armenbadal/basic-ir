@@ -15,7 +15,7 @@
 #include "support.hxx"
 
 /**/
-void Compiler::compile(const std::string& name, bool lisp)
+void compile(const std::string& name, bool lisp)
 {
   // վերլուծություն
   Parser sc{name};

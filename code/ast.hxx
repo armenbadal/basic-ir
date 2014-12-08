@@ -303,7 +303,7 @@ public:
   WhileLoop(Expression* co, Statement* bo)
     : cond{co}, body{bo} {}
   ~WhileLoop();
-  void setEnv(Function*);
+  void setEnv(Function*) override;
   llvm::Value* code(llvm::IRBuilder<>&) override;
   void lisp(std::ostream&) override;
 };
