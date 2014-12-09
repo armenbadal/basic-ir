@@ -105,9 +105,9 @@ Binary::Binary(const std::string& op, Expression* exo, Expression* exi)
 {
   // տիպերի համաձայնեցում և ձևափոխում
   if( expro->type == Expression::TyInteger && expri->type == Expression::TyDouble )
-    expro = new TypeCast{expro, Expression::TyInteger, Expression::TyDouble};
+    expro = new TypeCast{expro, Expression::TyDouble};
   else if( expro->type == Expression::TyDouble && expri->type == Expression::TyInteger )
-    expri = new TypeCast{expri, Expression::TyInteger, Expression::TyDouble};
+    expri = new TypeCast{expri, Expression::TyDouble};
 
   // տիպի դուրսբերում
   if( Numerics.end() != Numerics.find(oper) )

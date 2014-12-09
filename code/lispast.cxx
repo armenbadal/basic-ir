@@ -56,7 +56,6 @@ void Unary::lisp(std::ostream& ooo)
 void TypeCast::lisp(std::ostream& ooo)
 {
   ooo << "#S(ast-type-cast";
-  ooo << " :from " << from;
   ooo << " :to " << to;
   ooo << " :expr ";
   expr->lisp(ooo);

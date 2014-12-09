@@ -143,11 +143,10 @@ public:
 class TypeCast : public Expression {
 private:
   Expression* expr;
-  std::string from;
   std::string to;
 public:
-  TypeCast(Expression* e, const std::string& f, const std::string& t)
-    : expr{e}, from{f}, to{t} { type = to; }
+  TypeCast(Expression* e, const std::string& t)
+    : expr{e}, to{t} { type = to; }
   ~TypeCast() { delete expr; }
   void setEnv(Function*) override;
   llvm::Value* code(llvm::IRBuilder<>&) override;

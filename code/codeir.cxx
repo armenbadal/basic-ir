@@ -5,6 +5,7 @@
 #include <llvm/ADT/ArrayRef.h>
 
 #include <fstream>
+#include <iostream>
 
 #include "ast.hxx"
 
@@ -40,6 +41,14 @@ llvm::Value* Function::code(llvm::IRBuilder<>& bu)
   auto rtype = asType(type);
   auto ftype = llvm::FunctionType::get(rtype, atypes, false);
   auto func = llvm::Function::Create(ftype, llvm::Function::ExternalLinkage, name, module);
+  // ստուգել կոնֆլիկտները 
+  if( name != func->getName() ) {
+    func->eraseFromParent();
+    func = module->getFunction(name);
+    //    /* DEBUG */ std::cout << "~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~" << std::endl;
+    //    /* DEBUG */ func->dump();
+    //    /* DEBUG */ std::cout << "~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~" << std::endl;
+  }
   auto ai = func->arg_begin();
   for( auto& a : args ) {
     ai->setName(a.first);
@@ -108,9 +117,9 @@ llvm::Value* TypeCast::code(llvm::IRBuilder<>& bu)
 {
   auto& cx = llvm::getGlobalContext();
   auto exc = expr->code(bu);
-  if( from == Expression::TyInteger && to == Expression::TyDouble )
+  if( to == Expression::TyDouble )
     return bu.CreateSIToFP( exc, llvm::Type::getDoubleTy(cx) );
-  if( from == Expression::TyDouble && to == Expression::TyInteger )
+  if( to == Expression::TyInteger )
     return bu.CreateFPToSI( exc, llvm::Type::getInt32Ty(cx) );
   return exc;
 }
