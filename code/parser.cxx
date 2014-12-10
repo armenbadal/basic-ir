@@ -72,12 +72,17 @@ Module* Parser::parse()
 	sub = parseSubroutine();
       mod->addFunction(sub);
     }
+    auto ms = symtab->search("Main");
+    if( "" == ms.first )
+      throw new std::logic_error{"'Main' պրոցեդուրան սահմանված չէ։"};
   }
   catch( std::exception* e ) {
     std::cerr << "ՍԽԱԼ [" << sc.line() << "]: " << e->what() << std::endl;
     delete e; delete mod;
     return nullptr;
   }
+  
+  symtab->closeScope();
 
   /* DEBUG */ std::cout << "PARSED" << std::endl;
   return mod;
@@ -282,6 +287,9 @@ Statement* Parser::parseDim()
 {
   match( xDim );
   auto nv = parseNameDecl();
+  auto sy = symtab->search(nv.first);
+  if( "" != sy.first ) 
+    throw new std::logic_error{"'" + nv.first + "' անունն արդեն հայտարարված է։"};
   parseEols();
   symtab->insert(nv);
   return new Declare{nv.first, nv.second};

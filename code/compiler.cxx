@@ -20,6 +20,10 @@ void compile(const std::string& name, bool lisp)
   // վերլուծություն
   Parser sc{name};
   auto moduleAst = sc.parse();
+  if( moduleAst == nullptr ) { 
+    delete moduleAst;
+    return;
+  }
 
   // արտածման ֆայլերի անուններ
   std::string basen{name};
@@ -28,7 +32,8 @@ void compile(const std::string& name, bool lisp)
   std::string irout{basen + ".ll"};
   
   // LLVM IR կոդի գեներացիա
-  llvm::IRBuilder<> builder{llvm::getGlobalContext()};
+  auto& cox = llvm::getGlobalContext();
+  llvm::IRBuilder<> builder{cox};
   moduleAst->code(builder);
 
   // արտածել Լիսպ կոդը
@@ -40,7 +45,7 @@ void compile(const std::string& name, bool lisp)
 
   llvm::SMDiagnostic er;
   llvm::Linker link{moduleAst->getCompiled()};
-  auto suplib = llvm::ParseAssemblyString(basic_ir_support_library, nullptr, er, llvm::getGlobalContext());
+  auto suplib = llvm::ParseAssemblyString(basic_ir_support_library, nullptr, er, cox);
   link.linkInModule(suplib, nullptr);
 
   std::ofstream sout{irout};
