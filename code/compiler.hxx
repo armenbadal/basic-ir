@@ -4,7 +4,7 @@
 
 #include <string>
 
-void compile(const std::string&, bool = false);
+unsigned int compile(const std::string&, bool = false);
 
 #endif
 

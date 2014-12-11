@@ -33,18 +33,13 @@ public:
   Module* parse();
 
 private:
-  static std::set<Token> FD;
-  static std::set<Token> FS;
-  static std::set<Token> FF;
-  bool inSet( const std::set<Token>& );
-
-private:
   void match( Token );
   void parseEols();
-  Symbol parseNameDecl();
-  void parseType(); // TODO
   std::string parseDeclList(std::vector<Symbol>&);
   std::string parseArguments(std::vector<Expression*>&);
+  Symbol parseNameDecl();
+
+  //void parseType(); // TODO
 
   Function* parseDeclare();
   Function* parseSubrHeader();

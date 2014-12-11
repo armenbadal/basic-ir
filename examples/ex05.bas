@@ -11,7 +11,10 @@ End Function
 '
 Sub S0
   Dim z As Integer
-  Let z = F0(True, 3.14)
+  z = F0(True, 3.14)
 End Sub
 
+
+Sub Main
+End Sub
 

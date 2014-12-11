@@ -101,9 +101,9 @@ llvm::Value* Constant::code(llvm::IRBuilder<>& bu)
 llvm::Value* Unary::code(llvm::IRBuilder<>& bu)
 {
   auto exc = expr->code( bu );
-  if( oper == "Not" )
+  if( oper == "not" )
     exc = bu.CreateNot(exc);
-  else if( oper == "Neg" ) {
+  else if( oper == "neg" ) {
     if( type == Expression::TyInteger ) 
       exc = bu.CreateNeg(exc);
     else if( type == Expression::TyDouble ) 
@@ -183,9 +183,9 @@ llvm::Value* Binary::code(llvm::IRBuilder<>& bu)
   }
   else if( expro->type == Expression::TyBoolean && 
 	   expri->type == Expression::TyBoolean ) {
-    if( oper == "And" ) 
+    if( oper == "and" ) 
       return bu.CreateAnd(exo, exi);
-    if( oper == "Or" ) 
+    if( oper == "or" ) 
       return bu.CreateOr(exo, exi);
     if( oper == "=" ) 
       return bu.CreateICmpEQ(exo, exi); 

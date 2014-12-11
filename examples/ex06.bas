@@ -2,16 +2,16 @@
 '
 '
 '
-Sub f(c As Boolean, d As Boolean, e As Boolean)
+Sub f c As Boolean, d As Boolean, e As Boolean
   Dim x As Integer
   If c Then
-    Let x = 444
+    x = 444
   ElseIf d Then 
-    Let x = 333
+    x = 333
   ElseIf e Then 
-    Let x = 222
+    x = 222
   Else
-    Let x = 111
+    x = 111
   End If
 End Sub
 
@@ -29,4 +29,8 @@ End Sub
 '  Let a = True
 'End Sub
 '
+
+Sub Main
+End Sub
+
 

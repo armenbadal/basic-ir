@@ -29,8 +29,6 @@ public:
 
   void insert(const Symbol&);
   Symbol search(const std::string&);
-
-  void dump(); // DEBUG
 };
 
 #endif

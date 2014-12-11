@@ -11,9 +11,9 @@ End Function
 '
 Function g0() As Boolean
   Dim v As Boolean
-  Let v = f0(777, 888)
+  v = f0(777, 888)
   Dim pi As Double
-  Let pi = 3.14
+  pi = 3.14
   Return False
 End Function
 
@@ -21,9 +21,8 @@ End Function
 '
 '
 '
-Function Main() As Integer
+Sub Main
   Dim pi As Double
-  Let pi = 3.14
-  Return 0
-End Function
+  pi = 3.14
+End Sub
 

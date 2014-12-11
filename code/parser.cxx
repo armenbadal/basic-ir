@@ -6,7 +6,7 @@
 #include "parser.hxx"
 
 namespace {
-  /**/
+  /* Թոքենների անունները, հաղորդագրություններում օգտագործելու համար */
   std::vector<std::string> TN = {
     "NIL", "EOL", "Integer", "Double", "True", "False", 
     "Ident", "Dim", "As", "Type", "End", "Declare", "Sub", 
@@ -15,39 +15,14 @@ namespace {
     "(", ")", ",", "And", "Or", "Not", "=", "<>", ">", 
     ">=", "<", "<=", "+", "-", "*", "/", "\\", "^", "EOF"
   };
-  /**/
-  bool isNumeric(const std::string& id)
-  {
-    return id == Expression::TyInteger || id == Expression::TyDouble;
-  }
-}
 
-/**/
-void Parser::match( Token exp )
-{
-  if( lookahead == exp )
-    lookahead = sc.next();
-  else
-    throw new std::logic_error{"ՍԽԱԼ։ Սպասվում էր `" + TN[exp] + 
-	"', բայց եղել է `" + TN[lookahead] + "'։"};
-}
-
-/**/
-void Parser::parseEols()
-{
-  while( lookahead == xEol )
-    lookahead = sc.next();
-}
-
-/* FIRST sets */
-std::set<Token> Parser::FD{ xDim, xType, xDeclare, xSubroutine, xFunction };
-std::set<Token> Parser::FS{ xDim, xIdent, xIf, xFor, xWhile, xReturn, xInput, xPrint };
-std::set<Token> Parser::FF{ xIdent, xInteger, xDouble, xTrue, xFalse, xSub, xNot, xLPar };
-
-/**/
-bool Parser::inSet( const std::set<Token>& es )
-{
-  return es.end() != es.find(lookahead);
+  /* FIRST բազմությունները, վերլուծության ուղղությունն ընտրելու համար */
+  // հայտարարություններ ու սահմանումներ
+  std::set<Token> FD{ xDim, xType, xDeclare, xSubroutine, xFunction };
+  // ղեկավարող կառուցվածքներ
+  std::set<Token> FS{ xDim, xIdent, xIf, xFor, xWhile, xReturn, xInput, xPrint };
+  // պարզ արտահայտություններ (factor)
+  std::set<Token> FF{ xIdent, xInteger, xDouble, xTrue, xFalse, xSub, xNot, xLPar };
 }
 
 /* Այստեղից սկսվում է վերլուծությունը */
@@ -59,10 +34,10 @@ Module* Parser::parse()
     lookahead = sc.next();
   while( lookahead == xEol );
 
-  symtab->openScope(); // ?
+  symtab->openScope();
 
   try {
-    while( inSet(FD) ) {
+    while( FD.end() != FD.find(lookahead) ) {
       Function* sub{nullptr};
       if( lookahead == xDeclare )
 	sub = parseDeclare();
@@ -86,6 +61,23 @@ Module* Parser::parse()
 
   /* DEBUG */ std::cout << "PARSED" << std::endl;
   return mod;
+}
+
+/**/
+void Parser::match( Token exp )
+{
+  if( lookahead == exp )
+    lookahead = sc.next();
+  else
+    throw new std::logic_error{"ՍԽԱԼ։ Սպասվում էր `" + TN[exp] + 
+	"', բայց եղել է `" + TN[lookahead] + "'։"};
+}
+
+/**/
+void Parser::parseEols()
+{
+  while( lookahead == xEol )
+    lookahead = sc.next();
 }
 
 /**/
@@ -122,7 +114,7 @@ Statement* Parser::parseStatement()
 Statement* Parser::parseSequence()
 {
   Statement* res{nullptr};
-  while( inSet(FS) )
+  while( FS.end() != FS.find(lookahead) )
     if( res == nullptr )
       res = parseStatement();
     else
@@ -161,7 +153,7 @@ std::string Parser::parseDeclList(std::vector<Symbol>& ds)
 std::string Parser::parseArguments(std::vector<Expression*>& es)
 {
   std::stringstream spec;
-  if( inSet(FF) ) {
+  if( FF.end() != FF.find(lookahead) ) {
     auto ex = parseDisjunction();
     spec << ex->type;
     es.push_back( ex );
@@ -175,20 +167,20 @@ std::string Parser::parseArguments(std::vector<Expression*>& es)
   return spec.str();
 }
 
-/**/
-void Parser::parseType()
-{
-  match( xType );
-  std::string nm = sc.lexeme();
-  match( xIdent );
-  match( xEol );
-  while( lookahead == xIdent ) {
-    parseNameDecl();
-    match( xEol );
-  }
-  match( xEnd );
-  match( xType );
-}
+/* TODO */
+//void Parser::parseType()
+//{
+//  match( xType );
+//  std::string nm = sc.lexeme();
+//  match( xIdent );
+//  match( xEol );
+//  while( lookahead == xIdent ) {
+//    parseNameDecl();
+//    match( xEol );
+//  }
+//  match( xEnd );
+//  match( xType );
+//}
 
 /**/
 Function* Parser::parseDeclare()
@@ -439,13 +431,13 @@ Expression* Parser::parseDisjunction()
 {
   auto res = parseConjunction();
   while( lookahead == xOr ) {
-    if( res->type != "Boolean" )
+    if( res->type != Expression::TyBoolean )
       throw new std::logic_error{"'Or' գործողությունը սպասում է բուլյան արգումենտ։"};
     lookahead = sc.next();
     auto r = parseConjunction();
-    if( r->type != "Boolean" )
+    if( r->type != Expression::TyBoolean )
       throw new std::logic_error{"'Or' գործողությունը սպասում է բուլյան արգումենտ։"};
-    res = new Binary{"Or", res, r};
+    res = new Binary{"or", res, r};
   }
   return res;
 }
@@ -455,13 +447,13 @@ Expression* Parser::parseConjunction()
 {
   auto res = parseEquality();
   while( lookahead == xAnd ) {
-    if( res->type != "Boolean" )
+    if( res->type != Expression::TyBoolean )
       throw new std::logic_error{"'And' գործողությունը սպասում է բուլյան արգումենտ։"};
     lookahead = sc.next();
     auto r = parseEquality();
-    if( r->type != "Boolean" )
+    if( r->type != Expression::TyBoolean )
       throw new std::logic_error{"'And' գործողությունը սպասում է բուլյան արգումենտ։"};
-    res = new Binary{"And", res, r};
+    res = new Binary{"and", res, r};
   }
   return res;
 }
@@ -484,11 +476,11 @@ Expression* Parser::parseRelation()
   auto res = parseAddition();
   if( lookahead >= xGt && lookahead <= xLe ) {
     auto oper = TN[lookahead];
-    if( res->type == "Boolean" )
+    if( res->type == Expression::TyBoolean )
       throw new std::logic_error{"'" + oper + "' գործողության արգումենտը չի կարող լինել բուլյան։"};
     lookahead = sc.next();
     auto r = parseAddition();
-    if( res->type == "Boolean" )
+    if( res->type == Expression::TyBoolean )
       throw new std::logic_error{"'" + oper + "' գործողության արգումենտը չի կարող լինել բուլյան։"};
     res = new Binary{oper, res, r};
   }
@@ -524,13 +516,13 @@ Expression* Parser::parsePower()
 {
   auto res = parseFactor();
   if( lookahead == xPow ) {
-    if( res->type != Expression::TyInteger || res->type != Expression::TyDouble ) 
+    if( res->type != Expression::TyInteger && res->type != Expression::TyDouble ) 
       throw new std::logic_error{"Աստիճան կարող է բարձրացվել միայն թիվը։"};
     lookahead = sc.next();
     auto r = parsePower();
-    if( res->type != Expression::TyInteger || res->type != Expression::TyDouble ) 
+    if( res->type != Expression::TyInteger && res->type != Expression::TyDouble ) 
       throw new std::logic_error{"Աստիճանը կարող է լինել միայն թիվ։"};
-    res = new Binary{"Pow", res, r};
+    res = new Binary{"^", res, r};
   }
   return res;
 }
@@ -555,12 +547,12 @@ Expression* Parser::parseFactor()
 
   if( lookahead == xTrue ) {
     match( xTrue );
-    return new Constant{"True", Expression::TyBoolean};
+    return new Constant{"true", Expression::TyBoolean};
   }
 
   if( lookahead == xFalse ) {
     match( xFalse );
-    return new Constant{"False", Expression::TyBoolean};
+    return new Constant{"false", Expression::TyBoolean};
   }
 
   // թվային արժեքի բացասում
@@ -569,7 +561,7 @@ Expression* Parser::parseFactor()
     auto expr = parseFactor();
     if( expr->type != Expression::TyDouble && expr->type != Expression::TyInteger ) 
       throw new std::logic_error{"Անհամապատասխան տիպեր։"};
-    return new Unary{"Neg", expr};
+    return new Unary{"neg", expr};
   }
 
   // բուլյան արտահայտության ժխտում
@@ -578,7 +570,7 @@ Expression* Parser::parseFactor()
     auto expr = parseFactor();
     if( expr->type != Expression::TyBoolean )
       throw new std::logic_error{"Անհամապատասխան տիպեր։"};
-    return new Unary{"Not", expr};
+    return new Unary{"not", expr};
   }
 
   if( lookahead == xLPar ) {

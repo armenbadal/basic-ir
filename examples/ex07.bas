@@ -14,3 +14,8 @@ Function w(n As Boolean) As Integer
   Return s
 End Function
 
+'
+'
+Sub Main
+End Sub
+

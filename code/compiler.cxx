@@ -15,14 +15,14 @@
 #include "support.hxx"
 
 /**/
-void compile(const std::string& name, bool lisp)
+unsigned int compile(const std::string& name, bool lisp)
 {
   // վերլուծություն
   Parser sc{name};
   auto moduleAst = sc.parse();
   if( moduleAst == nullptr ) { 
     delete moduleAst;
-    return;
+    return 1;
   }
 
   // արտածման ֆայլերի անուններ
@@ -57,6 +57,7 @@ void compile(const std::string& name, bool lisp)
   sout.close();
 
   delete moduleAst;
+  return 0;
 }
 
 
