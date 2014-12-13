@@ -28,6 +28,7 @@ int main( int argc, char* argv[] )
     return 1;
   }
 
-  compile(basinp, true);
+  auto result = compile(basinp, true);
+  return result;
 }
 

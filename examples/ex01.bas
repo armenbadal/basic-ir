@@ -3,9 +3,13 @@
 ' subroutine
 '
 Sub Main
-  Dim a0 As Integer
-  Dim a1 As Double
-  Dim a2 As Boolean
+  Print 7
+  Print 3.14
+  Print True
+
+  Print True, False
+  Print 3, 4, 5
+  Print 1.2, 3.4, 5.6, 7.8, 9.10
 End Sub
 
 

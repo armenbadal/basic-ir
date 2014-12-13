@@ -15,6 +15,12 @@
 /**/
 class Parser {
 private:
+  static std::vector<std::string> TN;
+  static std::set<Token> FD;
+  static std::set<Token> FS;
+  static std::set<Token> FF;
+
+private:
   std::string file;
   Scanner sc;
   Token lookahead;

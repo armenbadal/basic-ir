@@ -1,6 +1,7 @@
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Function.h>
+#include <llvm/IR/Verifier.h>
 
 #include <llvm/ADT/ArrayRef.h>
 
@@ -12,24 +13,39 @@
 /**/
 namespace {
   /**/
+  auto& context = llvm::getGlobalContext();
+  /**/
+  const auto I = llvm::Type::getInt32Ty(context);
+  const auto D = llvm::Type::getDoubleTy(context);
+  const auto B = llvm::Type::getInt1Ty(context);
+  const auto V = llvm::Type::getVoidTy(context);
+  /**/
   llvm::Type* asType(const std::string& id)
   {
-    auto& cx = llvm::getGlobalContext();
-    if( Expression::TyInteger == id )
-      return llvm::Type::getInt32Ty(cx);
-    if( Expression::TyDouble == id )
-      return llvm::Type::getDoubleTy(cx);
-    if( Expression::TyBoolean == id )
-      return llvm::Type::getInt1Ty(cx);
-    return llvm::Type::getVoidTy(cx);
+    if( Expression::TyInteger == id ) return I;
+    if( Expression::TyDouble == id ) return D;
+    if( Expression::TyBoolean == id ) return B;
+    return V;
+  }
+  /**/
+  llvm::FunctionType* signature(const std::vector<llvm::Type*>& tyargs, llvm::Type* tyret)
+  {
+    return llvm::FunctionType::get(tyret, tyargs, false);
   }
 }
 
 /**/
 llvm::Value* Module::code(llvm::IRBuilder<>& bu)
 {
-  for( auto& e : integrated ) e->code(bu);
-  for( auto& e : subroutines ) e->code(bu);
+  module = new llvm::Module( name, context );
+
+  // սահմանված ենթածրագրեր
+  for( auto& e : subroutines ) { 
+    e->setModule(module);
+    e->code(bu);
+  }
+
+  llvm::verifyModule(*module);
   return nullptr;
 }
 
@@ -45,9 +61,6 @@ llvm::Value* Function::code(llvm::IRBuilder<>& bu)
   if( name != func->getName() ) {
     func->eraseFromParent();
     func = module->getFunction(name);
-    //    /* DEBUG */ std::cout << "~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~" << std::endl;
-    //    /* DEBUG */ func->dump();
-    //    /* DEBUG */ std::cout << "~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~" << std::endl;
   }
   auto ai = func->arg_begin();
   for( auto& a : args ) {
@@ -56,7 +69,7 @@ llvm::Value* Function::code(llvm::IRBuilder<>& bu)
   }
   if( body == nullptr ) return func;
 
-  auto block = llvm::BasicBlock::Create(llvm::getGlobalContext(), "start", func);
+  auto block = llvm::BasicBlock::Create(context, "start", func);
   bu.SetInsertPoint(block);
 
   for( auto ai = func->arg_begin(); ai != func->arg_end(); ++ai ) {
@@ -67,6 +80,8 @@ llvm::Value* Function::code(llvm::IRBuilder<>& bu)
 
   body->code(bu);
   if( type == Expression::TyVoid ) bu.CreateRetVoid();
+
+  llvm::verifyFunction(*func);
   return func;
 }
 
@@ -80,18 +95,18 @@ llvm::Value* Variable::code(llvm::IRBuilder<>& bu)
 llvm::Value* Constant::code(llvm::IRBuilder<>& bu)
 {
   if( type == Expression::TyBoolean ) {
-    auto iv = llvm::APInt{1, static_cast<unsigned long>(value == "True" ? 1 : 0)};
-    return llvm::ConstantInt::get(llvm::getGlobalContext(), iv);
+    auto iv = llvm::APInt{1, static_cast<unsigned long>(value == "true" ? 1 : 0)};
+    return llvm::ConstantInt::get(context, iv);
   }
   
   if( type == Expression::TyInteger ) {
     auto iv = llvm::APInt{32, static_cast<unsigned long>(std::stol(value)), true};
-    return llvm::ConstantInt::get(llvm::getGlobalContext(), iv);
+    return llvm::ConstantInt::get(context, iv);
   }
 
   if( type == Expression::TyDouble ) {
     auto fv = llvm::APFloat{std::stod(value)};
-    return llvm::ConstantFP::get(llvm::getGlobalContext(), fv);
+    return llvm::ConstantFP::get(context, fv);
   }
   
   return nullptr;
@@ -115,12 +130,11 @@ llvm::Value* Unary::code(llvm::IRBuilder<>& bu)
 /**/
 llvm::Value* TypeCast::code(llvm::IRBuilder<>& bu)
 {
-  auto& cx = llvm::getGlobalContext();
   auto exc = expr->code(bu);
   if( to == Expression::TyDouble )
-    return bu.CreateSIToFP( exc, llvm::Type::getDoubleTy(cx) );
+    return bu.CreateSIToFP( exc, llvm::Type::getDoubleTy(context) );
   if( to == Expression::TyInteger )
-    return bu.CreateFPToSI( exc, llvm::Type::getInt32Ty(cx) );
+    return bu.CreateFPToSI( exc, llvm::Type::getInt32Ty(context) );
   return exc;
 }
 
@@ -155,6 +169,10 @@ llvm::Value* Binary::code(llvm::IRBuilder<>& bu)
       return bu.CreateFDiv(exo, exi);
     if( oper == "\\" )
       return bu.CreateFRem(exo, exi);
+    if( oper == "^" ) {
+      auto pw = env->module->getOrInsertFunction("llvm.pow.f64", signature({D,D}, D));
+      return bu.CreateCall2(pw, exo, exi);
+    }
   }
   else if( expro->type == Expression::TyInteger && 
 	   expri->type == Expression::TyInteger ) {
@@ -180,6 +198,12 @@ llvm::Value* Binary::code(llvm::IRBuilder<>& bu)
       return bu.CreateSDiv(exo, exi);
     if( oper == "\\" )
       return bu.CreateSRem(exo, exi);
+    if( oper == "^" ) {
+      exo = bu.CreateSIToFP( exo, D );
+      auto pw = env->module->getOrInsertFunction("llvm.powi.f64", signature({D,I}, D));
+      auto r0 = bu.CreateCall2( pw, exo, exi );
+      return bu.CreateFPToSI( r0, I );
+    }
   }
   else if( expro->type == Expression::TyBoolean && 
 	   expri->type == Expression::TyBoolean ) {
@@ -248,17 +272,16 @@ llvm::Value* Assign::code(llvm::IRBuilder<>& bu)
 /**/
 llvm::Value* Branch::code(llvm::IRBuilder<>& bu)
 {
-  auto& cx = llvm::getGlobalContext();
   auto func = bu.GetInsertBlock()->getParent();
 
   auto cv = cond->code( bu );
-  auto bv = bu.CreateICmpEQ( cv, llvm::ConstantInt::get( cx, llvm::APInt(1, 1) ) );
+  auto bv = bu.CreateICmpEQ( cv, llvm::ConstantInt::get( context, llvm::APInt(1, 1) ) );
 
-  auto tb = llvm::BasicBlock::Create( cx, "", func );
-  auto cb = llvm::BasicBlock::Create( cx, "", func );
+  auto tb = llvm::BasicBlock::Create( context, "", func );
+  auto cb = llvm::BasicBlock::Create( context, "", func );
   auto eb = cb;
   if( elsep != nullptr )
-    eb = llvm::BasicBlock::Create( cx, "", func );
+    eb = llvm::BasicBlock::Create( context, "", func );
   
   bu.CreateCondBr( bv, tb, eb );
   
@@ -301,12 +324,11 @@ llvm::Value* ForLoop::code(llvm::IRBuilder<>& bu)
   */
 
   // կոնտեքստը և ընդգրկող ֆունկցիան
-  auto& cx = llvm::getGlobalContext();
   auto subr = bu.GetInsertBlock()->getParent();
 
-  auto cc = llvm::BasicBlock::Create( cx, "", subr ); // պայման
-  auto cb = llvm::BasicBlock::Create( cx, "", subr ); // մարմին
-  auto ce = llvm::BasicBlock::Create( cx, "", subr ); // ավարտ
+  auto cc = llvm::BasicBlock::Create( context, "", subr ); // պայման
+  auto cb = llvm::BasicBlock::Create( context, "", subr ); // մարմին
+  auto ce = llvm::BasicBlock::Create( context, "", subr ); // ավարտ
 
   // կատարել param = e0 վերագրումը
   auto pr = env->locals[param];
@@ -325,7 +347,7 @@ llvm::Value* ForLoop::code(llvm::IRBuilder<>& bu)
 
   // ցիկլի ավարտի պայման e2 > 0 & p0 > e1 | e2 < 0 & p0 < e1
   auto p0 = bu.CreateLoad(pr);
-  auto z0 = llvm::ConstantInt::get(cx, llvm::APInt{32, 0, true});
+  auto z0 = llvm::ConstantInt::get(context, llvm::APInt{32, 0, true});
   auto t0 = bu.CreateICmpSGT(e2, z0);
   auto t1 = bu.CreateICmpSGT(p0, e1);
   auto t2 = bu.CreateAnd(t0, t1);
@@ -333,7 +355,7 @@ llvm::Value* ForLoop::code(llvm::IRBuilder<>& bu)
   auto t4 = bu.CreateICmpSLT(p0, e1);
   auto t5 = bu.CreateAnd(t3, t4);
   auto t6 = bu.CreateOr(t2, t5);
-  auto tr = llvm::ConstantInt::get(cx, llvm::APInt{1, 0});
+  auto tr = llvm::ConstantInt::get(context, llvm::APInt{1, 0});
   auto bv = bu.CreateICmpEQ(t6, tr);
   bu.CreateCondBr( bv, cb, ce );
 
@@ -353,19 +375,18 @@ llvm::Value* ForLoop::code(llvm::IRBuilder<>& bu)
 /**/
 llvm::Value* WhileLoop::code(llvm::IRBuilder<>& bu)
 {
-  auto& cx = llvm::getGlobalContext();
   auto func = bu.GetInsertBlock()->getParent();
 
-  auto wc = llvm::BasicBlock::Create( cx, "", func ); // cond
-  auto wb = llvm::BasicBlock::Create( cx, "", func ); // body
-  auto we = llvm::BasicBlock::Create( cx, "", func ); // end
+  auto wc = llvm::BasicBlock::Create( context, "", func ); // cond
+  auto wb = llvm::BasicBlock::Create( context, "", func ); // body
+  auto we = llvm::BasicBlock::Create( context, "", func ); // end
 
   // bu.CreateBr( cx ); // TODO
 
   func->getBasicBlockList().push_back(wc);
   bu.SetInsertPoint( wc );
   auto cv = cond->code( bu );
-  auto tr = llvm::ConstantInt::get( cx, llvm::APInt(1, 1) );
+  auto tr = llvm::ConstantInt::get( context, llvm::APInt(1, 1) );
   auto bv = bu.CreateICmpEQ( cv, tr );
   bu.CreateCondBr( bv, wb, we );
 
@@ -384,13 +405,13 @@ llvm::Value* WhileLoop::code(llvm::IRBuilder<>& bu)
 llvm::Value* Input::code(llvm::IRBuilder<>& bu)
 {
   for( auto& sy : vars ) {
-    llvm::Function* pr{nullptr};
+    llvm::Value* pr{nullptr};
     if( sy.second == Expression::TyInteger )
-      pr = env->module->getFunction("__input_integer__");
+      pr = env->module->getOrInsertFunction("__input_integer__", signature({}, I));
     else if( sy.second == Expression::TyDouble )
-      pr = env->module->getFunction("__input_double__");
+      pr = env->module->getOrInsertFunction("__input_double__", signature({}, D));
     else if( sy.second == Expression::TyBoolean )
-      pr = env->module->getFunction("__input_boolean__");
+      pr = env->module->getOrInsertFunction("__input_boolean__", signature({}, B));
     auto vl = bu.CreateCall(pr);
     auto ds = env->locals[sy.first];
     bu.CreateStore(vl, ds);
@@ -401,19 +422,21 @@ llvm::Value* Input::code(llvm::IRBuilder<>& bu)
 /**/
 llvm::Value* Print::code(llvm::IRBuilder<>& bu)
 {
+  const auto space = llvm::ConstantInt::get(context, llvm::APInt{32, 32});
   for( auto e : vals ) {
     auto ec = e->code(bu);
-    llvm::Function* pr{nullptr};
+    llvm::Value* pr{nullptr};
     if( e->type == Expression::TyInteger )
-      pr = env->module->getFunction("__print_integer__");
+      pr = env->module->getOrInsertFunction("__print_integer__", signature({I}, V));
     else if( e->type == Expression::TyDouble )
-      pr = env->module->getFunction("__print_double__");
+      pr = env->module->getOrInsertFunction("__print_double__", signature({D}, V));
     else if( e->type == Expression::TyBoolean )
-      pr = env->module->getFunction("__print_boolean__");
+      pr = env->module->getOrInsertFunction("__print_boolean__", signature({B}, V));
     bu.CreateCall(pr, ec);
-    bu.CreateCall(env->module->getFunction("__print_space__"));
+    bu.CreateCall(env->module->getOrInsertFunction("putchar", signature({I}, I)), space);
   }
-  bu.CreateCall(env->module->getFunction("__print_new_line__"));
+  const auto newli = llvm::ConstantInt::get(context, llvm::APInt{32, 10});
+  bu.CreateCall(env->module->getOrInsertFunction("putchar", signature({I}, I)), newli);
   return nullptr;
 }
 

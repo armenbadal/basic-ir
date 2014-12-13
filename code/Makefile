@@ -4,7 +4,8 @@ DEB=-gdwarf-2
 CPPFLAGS=`llvm-config --cppflags`
 LDFLAGS=`llvm-config --ldflags`
 LIBS=`llvm-config --libs --system-libs`
-COV=-fprofile-arcs -ftest-coverage
+#COV=-fprofile-arcs -ftest-coverage
+COV=
 
 TARGET=basic
 

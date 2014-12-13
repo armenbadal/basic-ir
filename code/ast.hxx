@@ -43,20 +43,22 @@ private:
   /// @brief Մոդուլի անունը
   std::string name;
   /// @brief LLVM մոդուլի ցուցիչը
-  llvm::Module* module;
+  llvm::Module* module{nullptr};
   /// @brief Մոդուլի մեջ սահմանված ենթածրագրերի ցուցակը
-  std::vector<Function*> integrated;
   std::vector<Function*> subroutines;
 
 public:
   Module(const std::string&);
   ~Module();
   /// @brief Ավելացնել նոր ֆունկցիա
-  void addFunction(Function*, bool = true);
+  void addFunction(Function*);
   llvm::Module* getCompiled() { return module; }
 
   llvm::Value* code(llvm::IRBuilder<>&) override;
   void lisp(std::ostream&) override;
+
+private:
+  void addInternal(const std::string&, const std::vector<llvm::Type*>&, llvm::Type*);
 };
 
 /* ---------------------------------------------------------------- */

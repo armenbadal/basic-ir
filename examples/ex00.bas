@@ -14,7 +14,8 @@ Sub S0
   a2 = a0 * a1
   a2 = a0 / a1
   a2 = a0 \ a1
-  'a2 = a0 ^ a1
+  a2 = a0 ^ a1
+  print a2
 
   Dim b0 As Double
   Dim b1 As Double
@@ -27,7 +28,7 @@ Sub S0
   b2 = b0 * b1
   b2 = b0 / b1
   b2 = b0 \ b1
-  'b2 = b0 ^ b1
+  b2 = b0 ^ b1
 
   Dim c0 As Boolean
   Dim c1 As Boolean

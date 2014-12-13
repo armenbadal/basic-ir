@@ -5,25 +5,23 @@
 
 #include "parser.hxx"
 
-namespace {
-  /* Թոքենների անունները, հաղորդագրություններում օգտագործելու համար */
-  std::vector<std::string> TN = {
-    "NIL", "EOL", "Integer", "Double", "True", "False", 
-    "Ident", "Dim", "As", "Type", "End", "Declare", "Sub", 
-    "Function", "Return", "If", "Then", "ElseIf", "Else",
-    "For", "To", "Step", "While", "Input", "Print",
-    "(", ")", ",", "And", "Or", "Not", "=", "<>", ">", 
-    ">=", "<", "<=", "+", "-", "*", "/", "\\", "^", "EOF"
-  };
+/* Թոքենների անունները, հաղորդագրություններում օգտագործելու համար */
+std::vector<std::string> Parser::TN = {
+  "NIL", "EOL", "Integer", "Double", "True", "False", 
+  "Ident", "Dim", "As", "Type", "End", "Declare", "Sub", 
+  "Function", "Return", "If", "Then", "ElseIf", "Else",
+  "For", "To", "Step", "While", "Input", "Print",
+  "(", ")", ",", "And", "Or", "Not", "=", "<>", ">", 
+  ">=", "<", "<=", "+", "-", "*", "/", "\\", "^", "EOF"
+};
 
-  /* FIRST բազմությունները, վերլուծության ուղղությունն ընտրելու համար */
-  // հայտարարություններ ու սահմանումներ
-  std::set<Token> FD{ xDim, xType, xDeclare, xSubroutine, xFunction };
-  // ղեկավարող կառուցվածքներ
-  std::set<Token> FS{ xDim, xIdent, xIf, xFor, xWhile, xReturn, xInput, xPrint };
-  // պարզ արտահայտություններ (factor)
-  std::set<Token> FF{ xIdent, xInteger, xDouble, xTrue, xFalse, xSub, xNot, xLPar };
-}
+/* FIRST բազմությունները, վերլուծության ուղղությունն ընտրելու համար */
+// հայտարարություններ ու սահմանումներ
+std::set<Token> Parser::FD{ xDim, xType, xDeclare, xSubroutine, xFunction };
+// ղեկավարող կառուցվածքներ
+std::set<Token> Parser::FS{ xDim, xIdent, xIf, xFor, xWhile, xReturn, xInput, xPrint };
+// պարզ արտահայտություններ (factor)
+std::set<Token> Parser::FF{ xIdent, xInteger, xDouble, xTrue, xFalse, xSub, xNot, xLPar };
 
 /* Այստեղից սկսվում է վերլուծությունը */
 Module* Parser::parse()
