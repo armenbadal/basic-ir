@@ -1,5 +1,4 @@
 
-#include <iostream> /* DEBUG */
 #include <algorithm>
 
 #include "symtab.hxx"
@@ -26,7 +25,7 @@ void SymbolTable::closeScope()
 
 /**/
 void SymbolTable::insert(const Symbol& sp)
-{ 
+{
   scopes.front().push_back( sp );
 }
 

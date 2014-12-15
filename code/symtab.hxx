@@ -1,8 +1,6 @@
 
-#ifndef SYMTAB_H
-#define SYMTAB_H
-
-#include <llvm/IR/Type.h>
+#ifndef SYMTAB_HXX
+#define SYMTAB_HXX
 
 #include <list>
 #include <string>

@@ -32,7 +32,7 @@ Module* Parser::parse()
     lookahead = sc.next();
   while( lookahead == xEol );
 
-  symtab->openScope();
+  symtab.openScope();
 
   try {
     while( FD.end() != FD.find(lookahead) ) {
@@ -45,8 +45,7 @@ Module* Parser::parse()
 	sub = parseSubroutine();
       mod->addFunction(sub);
     }
-    auto ms = symtab->search("Main");
-    if( "" == ms.first )
+    if( "" == symtab.search("Main").first )
       throw new std::logic_error{"'Main' պրոցեդուրան սահմանված չէ։"};
   }
   catch( std::exception* e ) {
@@ -55,7 +54,7 @@ Module* Parser::parse()
     return nullptr;
   }
   
-  symtab->closeScope();
+  symtab.closeScope();
 
   /* DEBUG */ std::cout << "PARSED" << std::endl;
   return mod;
@@ -205,7 +204,7 @@ Function* Parser::parseSubrHeader()
   parseEols();
   if( nm == "Main" && ag.size() != 0 )
     throw new std::logic_error{"'Main' պրոցեդուրան արգումենտներ չունի։"};
-  symtab->insert( Symbol{nm, sig + " -> " + Expression::TyVoid} );
+  symtab.insert( Symbol{nm, sig + " -> " + Expression::TyVoid} );
   return new Function{nm, ag, Expression::TyVoid};
 }
 
@@ -213,15 +212,15 @@ Function* Parser::parseSubrHeader()
 Function* Parser::parseSubroutine()
 {
   auto pr = parseSubrHeader();
-  symtab->openScope();
+  symtab.openScope();
   for( auto& a : pr->args )
-    symtab->insert( Symbol{a.first, a.second} );
+    symtab.insert( Symbol{a.first, a.second} );
   auto bo = parseSequence();
   match( xEnd );
   match( xSubroutine );
   parseEols();
   pr->setBody( bo );
-  symtab->closeScope();
+  symtab.closeScope();
   return pr;
 }
 
@@ -243,7 +242,7 @@ Function* Parser::parseFuncHeader()
   std::string ty = sc.lexeme();
   match( xIdent );
   parseEols();
-  symtab->insert( Symbol{nm, sig + " -> " + ty} );
+  symtab.insert( Symbol{nm, sig + " -> " + ty} );
   return new Function{nm, ag, ty};
 }
 
@@ -251,15 +250,15 @@ Function* Parser::parseFuncHeader()
 Function* Parser::parseFunction()
 {
   auto pr = parseFuncHeader();
-  symtab->openScope();
+  symtab.openScope();
   for( auto& a : pr->args )
-    symtab->insert( Symbol{a.first, a.second} );
+    symtab.insert( Symbol{a.first, a.second} );
   auto bo = parseSequence();
   match( xEnd );
   match( xFunction );
   parseEols();
   pr->setBody( bo );
-  symtab->closeScope();
+  symtab.closeScope();
   return pr;
 }
 
@@ -277,11 +276,11 @@ Statement* Parser::parseDim()
 {
   match( xDim );
   auto nv = parseNameDecl();
-  auto sy = symtab->search(nv.first);
+  auto sy = symtab.search(nv.first);
   if( "" != sy.first ) 
     throw new std::logic_error{"'" + nv.first + "' անունն արդեն հայտարարված է։"};
   parseEols();
-  symtab->insert(nv);
+  symtab.insert(nv);
   return new Declare{nv.first, nv.second};
 }
 
@@ -291,7 +290,7 @@ Statement* Parser::parseSubCallOrAssign()
   // փոփոխականի կամ պրոցեդուրայի անուն
   auto vn = sc.lexeme();
   match( xIdent );
-  auto nt = symtab->search(vn);
+  auto nt = symtab.search(vn);
   if( "" == nt.first )
     throw new std::logic_error{"Չհայտարարված անուն '" + vn +"'։"};
 
@@ -349,7 +348,7 @@ Statement* Parser::parseFor()
   match( xFor );
   auto cn = sc.lexeme();
   match( xIdent );
-  auto nt = symtab->search(cn);
+  auto nt = symtab.search(cn);
   if( "" == nt.first )
     throw new std::logic_error{"Չհայտարարված անուն '" + cn +"'։"};
   if( Expression::TyInteger != nt.second )
@@ -391,7 +390,7 @@ Statement* Parser::parseInput()
   symbolvector vars;
   auto nm = sc.lexeme();
   match( xIdent );
-  auto sy = symtab->search(nm);
+  auto sy = symtab.search(nm);
   if( "" == sy.first )
     throw new std::logic_error{"Չհայտարարված անուն '" + nm +"'։"};
   vars.push_back( sy );
@@ -399,7 +398,7 @@ Statement* Parser::parseInput()
     lookahead = sc.next();
     nm = sc.lexeme();
     match( xIdent );
-    sy = symtab->search(nm);
+    sy = symtab.search(nm);
     if( "" == sy.first )
       throw new std::logic_error{"Չհայտարարված անուն '" + nm +"'։"};
     vars.push_back( sy );
@@ -587,7 +586,7 @@ Expression* Parser::parseVariableOrFuncCall()
 {
   auto vn = sc.lexeme();
   match( xIdent );
-  auto nt = symtab->search(vn);
+  auto nt = symtab.search(vn);
   if( "" == nt.first )
     throw new std::logic_error{"Չհայտարարված անուն '" + vn +"'։"};
 

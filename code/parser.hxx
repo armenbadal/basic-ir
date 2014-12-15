@@ -24,18 +24,12 @@ private:
   std::string file;
   Scanner sc;
   Token lookahead;
-  SymbolTable*  symtab;
+  SymbolTable symtab;
 
 public:
   Parser(const std::string& nm) 
     : file{nm}, sc{file}
-  {
-    symtab = new SymbolTable();
-  }
-  ~Parser()
-  {
-    delete symtab;
-  }
+  {}
   Module* parse();
 
 private:

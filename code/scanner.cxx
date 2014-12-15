@@ -52,31 +52,29 @@ std::string Scanner::lexeme() const
 /**/
 Token Scanner::next()
 {
+  // լեքսեմ
   text = "";
 
-  // whitespaces
+  // բացատանիշեր
   while( c == ' ' || c == '\t' ) source >> c;
 
-  // end of file
+  // ֆայլի ավարտ
   if( c == -1 || source.eof() ) return xEof;
 
-  // comments
+  // մեկնաբանություններ
   if( c == '\'' ) {
     while( c != '\n' ) source >> c;
     return next();
   }
 
-  // newline
+  // նոր տողի նիշ
   if( c == '\n' ) {
     ++linenum;
     source >> c;
     return xEol;
   }
 
-  // lexeme 
-  text = "";
-
-  // integers and reals
+  // ամբողջ և իրական թվեր
   if( isdigit(c) ) {
     text = sequence( isdigit );
     if( c != '.' ) return xInteger;
@@ -85,7 +83,7 @@ Token Scanner::next()
     return xDouble;
   }
 
-  // identifiers and keywords
+  // իդենտիֆիկատորներ և շառայողական բառեր
   if( isalpha( c ) ) {
     text = sequence( isalnum );
     std::transform(text.begin(), text.end(), text.begin(), tolower);
@@ -95,7 +93,7 @@ Token Scanner::next()
     return kw->second;
   }
 
-  // character sequences
+  // հործողություններ և մետասիմվոլեր
   Token result{xNull};
   switch( c ) {
     case '(': result = xLPar; break;
