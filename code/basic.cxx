@@ -28,7 +28,9 @@ int main( int argc, char* argv[] )
     return 1;
   }
 
-  auto result = compile(basinp, true);
+  int result{0};
+  result = compile(basinp, true);
+  jitRun(basinp);
   return result;
 }
 

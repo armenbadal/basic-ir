@@ -14,7 +14,15 @@
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/SourceMgr.h>
 
+#include <iostream>
+
 using namespace llvm;
+
+
+void hello()
+{
+  std::cout << "I am here" << std::endl;
+}
 
 int main() 
 {
@@ -28,6 +36,8 @@ int main()
   auto F = M->getFunction("main");
 
   ExecutionEngine* EE = EngineBuilder(M).create();
+  auto h = M->getFunction("hello");
+  EE->addGlobalMapping(h, (void*)&hello);
 
   std::vector<GenericValue> noargs;
   GenericValue gv = EE->runFunction(F, noargs);
