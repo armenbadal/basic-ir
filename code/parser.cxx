@@ -56,7 +56,6 @@ Module* Parser::parse()
   
   symtab.closeScope();
 
-  /* DEBUG */ std::cout << "PARSED" << std::endl;
   return mod;
 }
 
