@@ -39,9 +39,11 @@ class Function;
 /* ---------------------------------------------------------------- */
 /** @brief Կոմպիլյացիայի մոդուլը */
 class Module : public CodeIR, public LispAst {
-private:
+public:
   /// @brief Մոդուլի անունը
   std::string name;
+
+private:
   /// @brief LLVM մոդուլի ցուցիչը
   llvm::Module* module{nullptr};
   /// @brief Մոդուլի մեջ սահմանված ենթածրագրերի ցուցակը

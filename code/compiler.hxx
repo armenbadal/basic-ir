@@ -4,8 +4,12 @@
 
 #include <string>
 
-unsigned int compile(const std::string&, bool = false);
-void jitRun(const std::string&);
+class Module;
+
+/**/
+Module* compile(const std::string&, bool = false);
+void generate(Module*);
+void jitRun(Module*);
 
 #endif
 

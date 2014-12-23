@@ -1,9 +1,9 @@
 
 STD=-std=c++11
 DEB=-gdwarf-2
-CPPFLAGS=`llvm-config --cppflags`
-LDFLAGS=`llvm-config --ldflags`
-LIBS=`llvm-config --libs --system-libs`
+CPPFLAGS=$(shell llvm-config --cppflags)
+LDFLAGS=$(shell llvm-config --ldflags)
+LIBS=$(shell llvm-config --libs --system-libs)
 #COV=-fprofile-arcs -ftest-coverage
 COV=
 

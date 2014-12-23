@@ -28,9 +28,12 @@ int main( int argc, char* argv[] )
     return 1;
   }
 
-  int result{0};
-  result = compile(basinp, true);
-  jitRun(basinp);
-  return result;
+  auto ast = compile(basinp, true);
+  if( ast == nullptr ) return 1;
+
+  generate(ast);
+  jitRun(ast);
+
+  return 0;
 }
 
