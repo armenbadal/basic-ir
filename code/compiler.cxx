@@ -6,12 +6,12 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/PassManager.h>
+
+#include <llvm/PassManager.h>
 #include <llvm/IR/IRPrintingPasses.h>
 
 #include <llvm/ExecutionEngine/GenericValue.h>
 #include <llvm/ExecutionEngine/Interpreter.h>
-#include <llvm/ExecutionEngine/JIT.h>
 
 #include <llvm/Support/ManagedStatic.h>
 #include <llvm/Support/TargetSelect.h>
@@ -20,6 +20,7 @@
 #include <llvm/Support/raw_os_ostream.h>
 
 #include <iostream>
+#include <memory>
 
 #include "ast.hxx"
 #include "parser.hxx"
@@ -63,27 +64,31 @@ void generate(Module* moduleAst)
   
   std::ofstream sout{irout};
   llvm::raw_os_ostream roo{sout};
-  llvm::PrintModulePass pmp{roo};
-  llvm::ModulePassManager pm;
-  pm.addPass(pmp);
-  pm.run(moduleAst->getCompiled());
+  auto pmp = llvm::createPrintModulePass(roo, "");
+  llvm::PassManager pm;
+  pm.add(pmp);
+  pm.run(*(moduleAst->getCompiled()));
   sout.close();
 }
 
 /**/
 void jitRun(Module* moduleAst)
 {
+  /*
   llvm::SMDiagnostic er;
-  llvm::Linker link{moduleAst->getCompiled()};
-  auto suplib = llvm::ParseAssemblyString(basic_ir_support_library, 
-					  nullptr, er, llvm::getGlobalContext());
-  link.linkInModule(suplib, nullptr);
+  auto suplib = llvm::parseAssemblyString(basic_ir_support_library, er, llvm::getGlobalContext());
+  llvm::Linker link{suplib.get()};
+  auto mo = moduleAst->getCompiled();
+  link.linkInModule(mo);
 
-  auto irmod = moduleAst->getCompiled();
+  auto irmod = std::unique_ptr<llvm::Module>{link.getModule()};
   auto ep = irmod->getFunction("Main");
+irmod->dump();  
   llvm::InitializeNativeTarget();
-  llvm::ExecutionEngine* exen = llvm::EngineBuilder(irmod).create();
+  llvm::ExecutionEngine* exen = llvm::EngineBuilder(std::move(irmod)).create();
   std::vector<llvm::GenericValue> noargs;
   llvm::GenericValue gv = exen->runFunction(ep, noargs);
+  //delete exen;
+  */
 }
 

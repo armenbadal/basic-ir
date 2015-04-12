@@ -5,6 +5,7 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Module.h>
 
+#include <memory>
 #include <ostream>
 #include <set>
 #include <string>
@@ -45,7 +46,7 @@ public:
 
 private:
   /// @brief LLVM մոդուլի ցուցիչը
-  llvm::Module* module{nullptr};
+  llvm::Module* module;
   /// @brief Մոդուլի մեջ սահմանված ենթածրագրերի ցուցակը
   std::vector<Function*> subroutines;
 

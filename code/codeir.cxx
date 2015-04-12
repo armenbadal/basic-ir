@@ -433,10 +433,10 @@ llvm::Value* Print::code(llvm::IRBuilder<>& bu)
     else if( e->type == Expression::TyBoolean )
       pr = env->module->getOrInsertFunction("__print_boolean__", signature({B}, V));
     bu.CreateCall(pr, ec);
-    bu.CreateCall(env->module->getOrInsertFunction("putchar", signature({I}, I)), space);
+    //bu.CreateCall(env->module->getOrInsertFunction("putchar", signature({I}, I)), space);
   }
-  const auto newli = llvm::ConstantInt::get(context, llvm::APInt{32, 10});
-  bu.CreateCall(env->module->getOrInsertFunction("putchar", signature({I}, I)), newli);
+  //const auto newli = llvm::ConstantInt::get(context, llvm::APInt{32, 10});
+  //bu.CreateCall(env->module->getOrInsertFunction("putchar", signature({I}, I)), newli);
   return nullptr;
 }
 
