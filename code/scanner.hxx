@@ -9,24 +9,44 @@
 
 #include "tokens.hxx"
 
-/**/
+/** @brief Նիշային վերլուծիչ
+ *
+ * Scanner դասը նախատեսված է BASIC-IR լեզվի նիշային
+ * վերլուծության համար։ 
+ */
 class Scanner {
 private:
-  std::ifstream source;
-  char c;
+  /// @brief Ֆայլի պարունակությունը
+  char* source;
+  /// @brief Հերթական նիշի դիրքը
+  size_t position = 0;
 
-  int linenum{1};
-  std::string text{""};
+  /// @brief Ընթացիկ տողի համարը
+  int linenum = 1;
+  /// @brief Կարդացած լեքսեմը
+  std::string text = "";
+  /// @brief Ծառայողական բառերի աղյուսակը
   static std::map<std::string,Token> keywords;
 
 public:
-  Scanner(const std::string&);
-  std::string lexeme() const;
-  inline int line() const { return linenum; }
+  /** @brief Կոնստրուկտոր
+   *
+   * @param name Ֆայլի անունը
+   */
+  Scanner( const std::string& name );
+  ~Scanner();
+
+  /** @brief Վերադարձնում է լեքսեմը */
+  std::string lexeme() const { return text; }
+  /** @brief Վերադարձնում է տողի համարը */
+  const int line() const { return linenum; }
+  /** @brief Վերադարձնում է հերթական թոքենը */
   Token next();
 
 private:
-  std::string sequence(std::function<bool(char)>);
+  /** @brief հոսքից կարդում է տրված պրեդիկատին 
+   * բավարարող նիշերի հաջորդականություն։ */
+  std::string sequence( std::function<bool(char)> );
 };
 
 #endif

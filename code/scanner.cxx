@@ -39,15 +39,29 @@ std::map<std::string,Token> Scanner::keywords{
 
 /**/
 Scanner::Scanner( const std::string& name )
-  : source{name.c_str()}
 {
-  source.unsetf( std::ios::skipws );
-  source >> c;
+  std::ifstream inps{name};
+  // TODO ստուգել ֆայլի հաջող բացված լինելը
+
+  // հաշվել ֆայլի երկարությունը
+  inps.seekg(0, inps.end);
+  int size = inps.tellg();
+  inps.seekg(0, inps.beg);
+  
+  // կարդալ ֆայլի պարունակությունը
+  source = new char[size+1];
+  inps.read(source, size);
+  source[size] = '\0';
+
+  // փակել ֆայլի հոսքը
+  inps.close();
 }
 
 /**/
-std::string Scanner::lexeme() const
-{ return text; }
+Scanner::~Scanner()
+{
+  delete[] source;
+}
 
 /**/
 Token Scanner::next()
@@ -56,35 +70,39 @@ Token Scanner::next()
   text = "";
 
   // բացատանիշեր
-  while( c == ' ' || c == '\t' ) source >> c;
+  while( source[position] == ' ' || source[position] == '\t' )
+	++position;
 
-  // ֆայլի ավարտ
-  if( c == -1 || source.eof() ) return xEof;
+  // տեքստի ավարտ
+  if( source[position] == '\0' )
+	return xEof;
 
   // մեկնաբանություններ
-  if( c == '\'' ) {
-    while( c != '\n' ) source >> c;
+  if( source[position] == '\'' ) {
+    while( source[position] != '\n' )
+	  ++position;
     return next();
   }
 
   // նոր տողի նիշ
-  if( c == '\n' ) {
+  if( source[position] == '\n' ) {
     ++linenum;
-    source >> c;
+	++position;
     return xEol;
   }
 
   // ամբողջ և իրական թվեր
-  if( isdigit(c) ) {
+  if( isdigit(source[position]) ) {
     text = sequence( isdigit );
-    if( c != '.' ) return xInteger;
-    text += "."; source >> c;
-    text += sequence( isdigit );
+    if( source[position] != '.' )
+	  return xInteger;
+	++position;
+	text += "." + sequence( isdigit );
     return xDouble;
   }
 
-  // իդենտիֆիկատորներ և շառայողական բառեր
-  if( isalpha( c ) ) {
+  // իդենտիֆիկատորներ և ծառայողական բառեր
+  if( isalpha(source[position]) ) {
     text = sequence( isalnum );
     std::transform(text.begin(), text.end(), text.begin(), tolower);
     if( text == "main" ) text = "Main"; // բացառություն մուտքի կետի համար
@@ -94,42 +112,62 @@ Token Scanner::next()
   }
 
   // հործողություններ և մետասիմվոլեր
-  Token result{xNull};
-  switch( c ) {
-    case '(': result = xLPar; break;
-    case ')': result = xRPar; break;
-    case ',': result = xComma; break;
-    case '+': result = xAdd; break;
-    case '-': result = xSub; break;
-    case '*': result = xMul; break;
-    case '/': result = xDiv; break;
-    case '\\': result = xMod; break;
-    case '^': result = xPow; break;
-    case '=': result = xEq; break;
+  Token result = xNull;
+  switch( source[position] ) {
+    case '(':
+	  result = xLPar;
+	  break;
+    case ')':
+	  result = xRPar;
+	  break;
+    case ',':
+	  result = xComma;
+	  break;
+    case '+':
+	  result = xAdd;
+	  break;
+    case '-':
+	  result = xSub;
+	  break;
+    case '*':
+	  result = xMul;
+	  break;
+    case '/':
+	  result = xDiv;
+	  break;
+    case '\\':
+	  result = xMod;
+	  break;
+    case '^':
+	  result = xPow;
+	  break;
+    case '=':
+	  result = xEq;
+	  break;
     case '<':
-      source >> c;
-      if( c == '>' )
+      ++position;
+      if( source[position] == '>' )
         result = xNe;
-      else if ( c == '=' ) 
+      else if ( source[position] == '=' ) 
         result = xLe;
       else {
-        source.unget();
+        --position;
         result = xLt;
       }
       break;
     case '>':
-      source >> c;
-      if( c == '=' ) 
+	  ++position;
+      if( source[position] == '=' ) 
         result = xGe;
       else {
-        source.unget();
+		--position;
         result = xGt;
       }
       break;
     default: 
       break;
   }
-  source >> c;
+  ++position;
 
   return result;
 }
@@ -137,12 +175,12 @@ Token Scanner::next()
 /**/
 std::string Scanner::sequence( std::function<bool(char)> predicate )
 {
-  std::stringstream buffer;
-  while( predicate(c) ) {
-    buffer << c;
-    source >> c;
+  std::string res = "";
+  while( predicate(source[position]) ) {
+	res.push_back(source[position]);
+	++position;
   }
-  return buffer.str();
+  return res;
 }
 
 

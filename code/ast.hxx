@@ -193,7 +193,8 @@ public:
 /* ---------------------------------------------------------------- */
 class Statement : public CodeIR, public LispAst {
 protected:
-  Function* env;
+  Function* env = nullptr;
+
 public:
   virtual ~Statement() {}
   virtual void setEnv(Function* e) { env = e; }
