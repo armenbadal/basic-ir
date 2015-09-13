@@ -14,6 +14,7 @@
 
 #include "symtab.hxx"
 
+namespace basic {
 /**/
 using symbolvector = std::vector<Symbol>;
 
@@ -336,6 +337,8 @@ public:
   llvm::Value* code(llvm::IRBuilder<>&) override;
   void lisp(std::ostream&) override;
 };
+
+} // basic
 
 #endif
 

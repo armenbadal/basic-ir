@@ -11,7 +11,7 @@
 #include "ast.hxx"
 
 /**/
-namespace {
+namespace basic {
   /**/
   auto& context = llvm::getGlobalContext();
   /**/
@@ -34,6 +34,7 @@ namespace {
   }
 }
 
+namespace basic {
 /**/
 llvm::Value* Module::code(llvm::IRBuilder<>& bu)
 {
@@ -437,5 +438,5 @@ llvm::Value* Print::code(llvm::IRBuilder<>& bu)
   return nullptr;
 }
 
-
+} // basic
 

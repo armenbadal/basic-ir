@@ -5,16 +5,7 @@
 
 #include "parser.hxx"
 
-/* Թոքենների անունները, հաղորդագրություններում օգտագործելու համար */
-std::vector<std::string> Parser::TN = {
-  "NIL", "EOL", "Integer", "Double", "True", "False", 
-  "Ident", "Dim", "As", "Type", "End", "Declare", "Sub", 
-  "Function", "Return", "If", "Then", "ElseIf", "Else",
-  "For", "To", "Step", "While", "Input", "Print",
-  "(", ")", ",", "And", "Or", "Not", "=", "<>", ">", 
-  ">=", "<", "<=", "+", "-", "*", "/", "\\", "^", "EOF"
-};
-
+namespace basic {
 /* FIRST բազմությունները, վերլուծության ուղղությունն ընտրելու համար */
 // հայտարարություններ ու սահմանումներ
 std::set<Token> Parser::FD{ xDim, xType, xDeclare, xSubroutine, xFunction };
@@ -26,31 +17,32 @@ std::set<Token> Parser::FF{ xIdent, xInteger, xDouble, xTrue, xFalse, xSub, xNot
 /* Այստեղից սկսվում է վերլուծությունը */
 Module* Parser::parse()
 {
-  Module* mod = new Module{file};
+  auto mod = new Module{file};
 
+  // կարդալ ֆայլի սկզբի դատարկ մասը
   do
     lookahead = sc.next();
-  while( lookahead == xEol );
+  while( lookahead.is(xEol) );
 
   symtab.openScope();
 
   try {
-    while( FD.end() != FD.find(lookahead) ) {
+    while( FD.end() != FD.find(lookahead.kind) ) {
       Function* sub{nullptr};
-      if( lookahead == xDeclare )
+      if( lookahead.is(xDeclare) )
 	sub = parseDeclare();
-      else if( lookahead == xFunction )
+      else if( lookahead.is(xFunction) )
 	sub = parseFunction();
-      else if( lookahead == xSubroutine )
+      else if( lookahead.is(xSubroutine) )
 	sub = parseSubroutine();
       mod->addFunction(sub);
     }
     if( "" == symtab.search("Main").first )
-      throw new std::logic_error{"'Main' պրոցեդուրան սահմանված չէ։"};
+      throw std::logic_error{"'Main' պրոցեդուրան սահմանված չէ։"};
   }
-  catch( std::exception* e ) {
-    std::cerr << "ՍԽԱԼ [" << sc.line() << "]: " << e->what() << std::endl;
-    delete e; delete mod;
+  catch( std::exception e ) {
+    std::cerr << "ՍԽԱԼ [" << sc.line() << "]: " << e.what() << std::endl;
+    delete mod;
     return nullptr;
   }
   
@@ -62,45 +54,45 @@ Module* Parser::parse()
 /**/
 void Parser::match( Token exp )
 {
-  if( lookahead == exp )
-    lookahead = sc.next();
-  else
-    throw new std::logic_error{"ՍԽԱԼ։ Սպասվում էր `" + TN[exp] + 
-	"', բայց եղել է `" + TN[lookahead] + "'։"};
+  if( !lookahead.is(exp) )
+    throw std::logic_error{"ՍԽԱԼ։ Սպասվում էր `" + N(exp) + 
+	"`, բայց եղել է `" + N(lookahead.kind) + "`։"};
+
+  lookahead = sc.next();
 }
 
 /**/
 void Parser::parseEols()
 {
-  while( lookahead == xEol )
+  while( lookahead.is(xEol) )
     lookahead = sc.next();
 }
 
 /**/
 Statement* Parser::parseStatement()
 {
-  if( lookahead == xDim )
+  if( lookahead.is(xDim) )
     return parseDim();
 
-  if( lookahead == xIdent )
+  if( lookahead.is(xIdent) )
     return parseSubCallOrAssign();
 
-  if( lookahead == xIf )
+  if( lookahead.is(xIf) )
     return parseIf();
 
-  if( lookahead == xFor )
+  if( lookahead.is(xFor) )
     return parseFor();
 
-  if( lookahead == xWhile )
+  if( lookahead.is(xWhile) )
     return parseWhile();
 
-  if( lookahead == xInput )
+  if( lookahead.is(xInput) )
     return parseInput();
 
-  if( lookahead == xPrint )
+  if( lookahead.is(xPrint) )
     return parsePrint();
 
-  if( lookahead == xReturn )
+  if( lookahead.is(xReturn) )
     return parseReturn();
 
   return nullptr;
@@ -110,7 +102,7 @@ Statement* Parser::parseStatement()
 Statement* Parser::parseSequence()
 {
   Statement* res{nullptr};
-  while( FS.end() != FS.find(lookahead) )
+  while( FS.end() != FS.find(lookahead.kind) )
     if( res == nullptr )
       res = parseStatement();
     else
@@ -136,7 +128,7 @@ std::string Parser::parseDeclList(std::vector<Symbol>& ds)
   auto nv = parseNameDecl();
   ds.push_back( nv );
   ss << nv.second;
-  while( lookahead == xComma ) {
+  while( lookahead.is(xComma) ) {
     match( xComma );
     nv = parseNameDecl();
     ds.push_back( nv );
@@ -149,11 +141,11 @@ std::string Parser::parseDeclList(std::vector<Symbol>& ds)
 std::string Parser::parseArguments(std::vector<Expression*>& es)
 {
   std::stringstream spec;
-  if( FF.end() != FF.find(lookahead) ) {
+  if( FF.end() != FF.find(lookahead.kind) ) {
     auto ex = parseDisjunction();
     spec << ex->type;
     es.push_back( ex );
-    while( lookahead == xComma ) {
+    while( lookahead.is(xComma) ) {
       lookahead = sc.next();
       ex = parseDisjunction();
       spec << " x " << ex->type;
@@ -183,9 +175,9 @@ Function* Parser::parseDeclare()
 {
   Function* result{nullptr};
   match( xDeclare );
-  if( lookahead == xSubroutine )
+  if( lookahead.is(xSubroutine) )
     result = parseSubrHeader();
-  else if( lookahead == xFunction )
+  else if( lookahead.is(xFunction) )
     result = parseFuncHeader();
   return result;
 }
@@ -198,11 +190,11 @@ Function* Parser::parseSubrHeader()
   match( xIdent );
   std::string sig{"()"};
   std::vector<Symbol> ag;
-  if( lookahead == xIdent )
+  if( lookahead.is(xIdent) )
     sig = parseDeclList( ag );
   parseEols();
   if( nm == "Main" && ag.size() != 0 )
-    throw new std::logic_error{"'Main' պրոցեդուրան արգումենտներ չունի։"};
+    throw std::logic_error{"'Main' պրոցեդուրան արգումենտներ չունի։"};
   symtab.insert( Symbol{nm, sig + " -> " + Expression::TyVoid} );
   return new Function{nm, ag, Expression::TyVoid};
 }
@@ -234,7 +226,7 @@ Function* Parser::parseFuncHeader()
   match( xLPar );
   std::string sig{"()"};
   std::vector<Symbol> ag;
-  if( lookahead == xIdent )
+  if( lookahead.is(xIdent) )
     sig = parseDeclList( ag );
   match( xRPar );
   match( xAs );
@@ -294,7 +286,7 @@ Statement* Parser::parseSubCallOrAssign()
     throw new std::logic_error{"Չհայտարարված անուն '" + vn +"'։"};
 
   // վերագրման հրաման
-  if( lookahead == xEq ) {
+  if( lookahead.is(xEq) ) {
     lookahead = sc.next();
     auto ex = parseDisjunction();
     parseEols();
@@ -319,7 +311,7 @@ Statement* Parser::parseIf()
   auto thenp = parseSequence();
   auto branch = new Branch{cond, thenp, nullptr};
   auto brit = branch;
-  while( lookahead == xElseIf ) {
+  while( lookahead.is(xElseIf) ) {
     match( xElseIf );
     cond = parseDisjunction();
     match( xThen );
@@ -329,7 +321,7 @@ Statement* Parser::parseIf()
     brit->setElse( elsep );
     brit = elsep;
   }
-  if( lookahead == xElse ) {
+  if( lookahead.is(xElse) ) {
     match( xElse );
     parseEols();
     auto elsep = parseSequence();
@@ -349,15 +341,15 @@ Statement* Parser::parseFor()
   match( xIdent );
   auto nt = symtab.search(cn);
   if( "" == nt.first )
-    throw new std::logic_error{"Չհայտարարված անուն '" + cn +"'։"};
+    throw std::logic_error{"Չհայտարարված անուն '" + cn +"'։"};
   if( Expression::TyInteger != nt.second )
-    throw new std::logic_error{"'For' ցիկլի հաշվիչի տիպը պետք է լինի Integer։"};
+    throw std::logic_error{"'For' ցիկլի հաշվիչի տիպը պետք է լինի Integer։"};
   match( xEq );
   auto st = parseAddition(); // ? type is Integer
   match( xTo );
   auto ed = parseAddition(); // ? type is Integer
   Expression* sp{nullptr};
-  if( lookahead == xStep ) {
+  if( lookahead.is(xStep) ) {
     match( xStep );
     sp = parseAddition(); // ? type is Integer
   }
@@ -391,15 +383,15 @@ Statement* Parser::parseInput()
   match( xIdent );
   auto sy = symtab.search(nm);
   if( "" == sy.first )
-    throw new std::logic_error{"Չհայտարարված անուն '" + nm +"'։"};
+    throw std::logic_error{"Չհայտարարված անուն '" + nm +"'։"};
   vars.push_back( sy );
-  while( lookahead == xComma ) {
+  while( lookahead.is(xComma) ) {
     lookahead = sc.next();
     nm = sc.lexeme();
     match( xIdent );
     sy = symtab.search(nm);
     if( "" == sy.first )
-      throw new std::logic_error{"Չհայտարարված անուն '" + nm +"'։"};
+      throw std::logic_error{"Չհայտարարված անուն '" + nm +"'։"};
     vars.push_back( sy );
   }
   parseEols();
@@ -413,26 +405,27 @@ Statement* Parser::parsePrint()
   std::vector<Expression*> vals;
   auto ex =  parseDisjunction();
   vals.push_back( ex );
-  while( lookahead == xComma ) {
+  while( lookahead.is(xComma) ) {
     lookahead = sc.next();
     ex = parseDisjunction();
     vals.push_back( ex );
   }
   parseEols();
-  return new Print{vals};
+  return new Print{vals};  /**/
+
 }
 
 /**/
 Expression* Parser::parseDisjunction()
 {
   auto res = parseConjunction();
-  while( lookahead == xOr ) {
+  while( lookahead.is(xOr) ) {
     if( res->type != Expression::TyBoolean )
-      throw new std::logic_error{"'Or' գործողությունը սպասում է բուլյան արգումենտ։"};
+      throw std::logic_error{"'Or' գործողությունը սպասում է բուլյան արգումենտ։"};
     lookahead = sc.next();
     auto r = parseConjunction();
     if( r->type != Expression::TyBoolean )
-      throw new std::logic_error{"'Or' գործողությունը սպասում է բուլյան արգումենտ։"};
+      throw std::logic_error{"'Or' գործողությունը սպասում է բուլյան արգումենտ։"};
     res = new Binary{"or", res, r};
   }
   return res;
@@ -442,13 +435,13 @@ Expression* Parser::parseDisjunction()
 Expression* Parser::parseConjunction()
 {
   auto res = parseEquality();
-  while( lookahead == xAnd ) {
+  while( lookahead.is(xAnd) ) {
     if( res->type != Expression::TyBoolean )
-      throw new std::logic_error{"'And' գործողությունը սպասում է բուլյան արգումենտ։"};
+      throw std::logic_error{"'And' գործողությունը սպասում է բուլյան արգումենտ։"};
     lookahead = sc.next();
     auto r = parseEquality();
     if( r->type != Expression::TyBoolean )
-      throw new std::logic_error{"'And' գործողությունը սպասում է բուլյան արգումենտ։"};
+      throw std::logic_error{"'And' գործողությունը սպասում է բուլյան արգումենտ։"};
     res = new Binary{"and", res, r};
   }
   return res;
@@ -458,8 +451,8 @@ Expression* Parser::parseConjunction()
 Expression* Parser::parseEquality()
 {
   auto res = parseRelation();
-  if( lookahead == xEq || lookahead == xNe ) {
-    auto oper = TN[lookahead];
+  if( lookahead.is(xEq) || lookahead.is(xNe) ) {
+    auto oper = N(lookahead.kind);
     lookahead = sc.next();
     res = new Binary{oper, res, parseRelation()};
   }
@@ -470,14 +463,14 @@ Expression* Parser::parseEquality()
 Expression* Parser::parseRelation()
 {
   auto res = parseAddition();
-  if( lookahead >= xGt && lookahead <= xLe ) {
-    auto oper = TN[lookahead];
+  if( lookahead.in(xGt, xLe) ) {
+    auto oper = N(lookahead.kind);
     if( res->type == Expression::TyBoolean )
-      throw new std::logic_error{"'" + oper + "' գործողության արգումենտը չի կարող լինել բուլյան։"};
+      throw std::logic_error{"'" + oper + "' գործողության արգումենտը չի կարող լինել բուլյան։"};
     lookahead = sc.next();
     auto r = parseAddition();
     if( res->type == Expression::TyBoolean )
-      throw new std::logic_error{"'" + oper + "' գործողության արգումենտը չի կարող լինել բուլյան։"};
+      throw std::logic_error{"'" + oper + "' գործողության արգումենտը չի կարող լինել բուլյան։"};
     res = new Binary{oper, res, r};
   }
   return res;
@@ -487,8 +480,8 @@ Expression* Parser::parseRelation()
 Expression* Parser::parseAddition()
 {
   auto res = parseMultiplication();
-  while( lookahead == xAdd || lookahead == xSub ) {
-    auto oper = TN[lookahead];
+  while( lookahead.is(xAdd) || lookahead.is(xSub) ) {
+    auto oper = N(lookahead.kind);
     lookahead = sc.next();
     res = new Binary{oper, res, parseMultiplication()};
   }
@@ -499,8 +492,8 @@ Expression* Parser::parseAddition()
 Expression* Parser::parseMultiplication()
 {
   auto res = parsePower();
-  while( lookahead == xMul || lookahead == xDiv || lookahead == xMod ) {
-    auto oper = TN[lookahead];
+  while( lookahead.is(xMul) || lookahead.is(xDiv) || lookahead.is(xMod) ) {
+    auto oper = N(lookahead.kind);
     lookahead = sc.next();
     res = new Binary{oper, res, parsePower()};
   }
@@ -511,13 +504,13 @@ Expression* Parser::parseMultiplication()
 Expression* Parser::parsePower()
 {
   auto res = parseFactor();
-  if( lookahead == xPow ) {
+  if( lookahead.is(xPow) ) {
     if( res->type != Expression::TyInteger && res->type != Expression::TyDouble ) 
-      throw new std::logic_error{"Աստիճան կարող է բարձրացվել միայն թիվը։"};
+      throw std::logic_error{"Աստիճան կարող է բարձրացվել միայն թիվը։"};
     lookahead = sc.next();
     auto r = parsePower();
     if( res->type != Expression::TyInteger && res->type != Expression::TyDouble ) 
-      throw new std::logic_error{"Աստիճանը կարող է լինել միայն թիվ։"};
+      throw std::logic_error{"Աստիճանը կարող է լինել միայն թիվ։"};
     res = new Binary{"^", res, r};
   }
   return res;
@@ -526,58 +519,57 @@ Expression* Parser::parsePower()
 /**/
 Expression* Parser::parseFactor()
 {
-  if( lookahead == xIdent )
+  if( lookahead.is(xIdent) )
     return parseVariableOrFuncCall();
 
-  if( lookahead == xInteger ) {
+  if( lookahead.is(xInteger) ) {
     auto nm = sc.lexeme();
     match( xInteger );
     return new Constant{nm, Expression::TyInteger};
   }
 
-  if( lookahead == xDouble ) {
+  if( lookahead.is(xDouble) ) {
     auto nm = sc.lexeme();
     match( xDouble );
     return new Constant{nm, Expression::TyDouble};
   }
 
-  if( lookahead == xTrue ) {
+  if( lookahead.is(xTrue) ) {
     match( xTrue );
     return new Constant{"true", Expression::TyBoolean};
   }
 
-  if( lookahead == xFalse ) {
+  if( lookahead.is(xFalse) ) {
     match( xFalse );
     return new Constant{"false", Expression::TyBoolean};
   }
 
   // թվային արժեքի բացասում
-  if( lookahead == xSub ) {
+  if( lookahead.is(xSub) ) {
     match( xSub );
     auto expr = parseFactor();
     if( expr->type != Expression::TyDouble && expr->type != Expression::TyInteger ) 
-      throw new std::logic_error{"Անհամապատասխան տիպեր։"};
+      throw std::logic_error{"Անհամապատասխան տիպեր։"};
     return new Unary{"neg", expr};
   }
 
   // բուլյան արտահայտության ժխտում
-  if( lookahead == xNot ) {
+  if( lookahead.is(xNot) ) {
     match( xNot );
     auto expr = parseFactor();
     if( expr->type != Expression::TyBoolean )
-      throw new std::logic_error{"Անհամապատասխան տիպեր։"};
+      throw std::logic_error{"Անհամապատասխան տիպեր։"};
     return new Unary{"not", expr};
   }
 
-  if( lookahead == xLPar ) {
+  if( lookahead.is(xLPar) ) {
     match( xLPar );
     auto rs = parseRelation();
     match( xRPar );
     return rs;
   }
   
-  std::cerr << "Syntax Error: Unexpected factor." << std::endl;
-  return nullptr;
+  throw std::logic_error{"Չսպասված արտադրիչ (factor)։"};
 }
 
 /**/
@@ -587,10 +579,10 @@ Expression* Parser::parseVariableOrFuncCall()
   match( xIdent );
   auto nt = symtab.search(vn);
   if( "" == nt.first )
-    throw new std::logic_error{"Չհայտարարված անուն '" + vn +"'։"};
+    throw std::logic_error{"Չհայտարարված անուն '" + vn +"'։"};
 
   // փոփոխականի օգտագործում
-  if( lookahead != xLPar )  
+  if( !lookahead.is(xLPar) )  
     return new Variable{vn, nt.second};
 
   // ֆունկցիայի կանչ
@@ -601,4 +593,6 @@ Expression* Parser::parseVariableOrFuncCall()
 
   return new FuncCall{vn, es};
 }
+
+} // basic
 

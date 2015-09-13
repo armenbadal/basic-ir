@@ -1,6 +1,8 @@
 
 #include "ast.hxx"
 
+namespace basic {
+
 /**/
 Module::Module(const std::string& nm)
   : name{nm}
@@ -9,7 +11,8 @@ Module::Module(const std::string& nm)
 /**/
 Module::~Module()
 {
-  for( auto em : subroutines ) delete em;
+  for( auto em : subroutines )
+    delete em;
   delete module;
 }
 
@@ -115,14 +118,16 @@ void Binary::setEnv(Function* e)
 /**/
 FuncCall::~FuncCall()
 {
-  for( auto e : args ) delete e; 
+  for( auto e : args )
+    delete e; 
 }
 
 /**/
 void FuncCall::setEnv(Function* e)
 {
   Expression::setEnv( e );
-  for( auto& a : args ) a->setEnv( e );
+  for( auto& a : args )
+    a->setEnv( e );
 }
 
 /**/
@@ -193,7 +198,8 @@ void Branch::setEnv(Function* e)
   Statement::setEnv( e );
   cond->setEnv( e );
   thenp->setEnv( e );
-  if( elsep != nullptr ) elsep->setEnv( e );
+  if( elsep != nullptr )
+    elsep->setEnv( e );
 }
 
 /**/
@@ -233,13 +239,17 @@ void WhileLoop::setEnv(Function* e)
 /**/
 Print::~Print()
 {
-  for( auto v : vals ) delete v; 
+  for( auto v : vals )
+    delete v; 
 }
 
 /**/
 void Print::setEnv(Function* e)
 {
   Statement::setEnv( e );
-  for( auto& v : vals ) v->setEnv( e );
+  for( auto& v : vals )
+    v->setEnv( e );
 }
+
+} // basic
 

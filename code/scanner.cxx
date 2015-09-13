@@ -7,38 +7,39 @@
 
 #include <iostream>
 
-
-std::map<std::string,Token> Scanner::keywords{
-  {"declare", xDeclare},
-  {"dim",xDim},
-  {"as", xAs},
-//{"integer", xIdent},
-//{"double", xIdent},
-//{"boolean", xIdent},
-  {"type", xType},
-  {"true", xTrue},
-  {"false", xFalse},
-  {"end", xEnd},
-  {"sub", xSubroutine},
-  {"function", xFunction},
-  {"return", xReturn},
-  {"if", xIf},
-  {"then", xThen},
-  {"elseif", xElseIf},
-  {"else", xElse},
-  {"for", xFor},
-  {"to", xTo},
-  {"step", xStep},
-  {"while", xWhile},
-  {"input", xInput},
-  {"print", xPrint},
-  {"and", xAnd},
-  {"or", xOr},
-  {"not", xNot}
-};
+namespace basic {
+  std::map<std::string,Token> Scanner::keywords{
+    {"declare",  xDeclare},
+    {"dim",      xDim},
+    {"as",       xAs},
+  //{"integer",  xIdent},
+  //{"double",   xIdent},
+  //{"boolean",  xIdent},
+    {"type",     xType},
+    {"true",     xTrue},
+    {"false",    xFalse},
+    {"end",      xEnd},
+    {"sub",      xSubroutine},
+    {"function", xFunction},
+    {"return",   xReturn},
+    {"if",       xIf},
+    {"then",     xThen},
+    {"elseif",   xElseIf},
+    {"else",     xElse},
+    {"for",      xFor},
+    {"to",       xTo},
+    {"step",     xStep},
+    {"while",    xWhile},
+    {"input",    xInput},
+    {"print",    xPrint},
+    {"and",      xAnd},
+    {"or",       xOr},
+    {"not",      xNot}
+  };
+}
 
 /**/
-Scanner::Scanner( const std::string& name )
+basic::Scanner::Scanner( const std::string& name )
 {
   std::ifstream inps{name};
   // TODO ստուգել ֆայլի հաջող բացված լինելը
@@ -58,92 +59,94 @@ Scanner::Scanner( const std::string& name )
 }
 
 /**/
-Scanner::~Scanner()
+basic::Scanner::~Scanner()
 {
   delete[] source;
 }
 
 /**/
-Token Scanner::next()
+basic::Lexeme basic::Scanner::next()
 {
   // լեքսեմ
   text = "";
 
   // բացատանիշեր
   while( source[position] == ' ' || source[position] == '\t' )
-	++position;
+    ++position;
 
   // տեքստի ավարտ
   if( source[position] == '\0' )
-	return xEof;
-
+    return Lexeme{xEof, "", linenum};
+  
   // մեկնաբանություններ
   if( source[position] == '\'' ) {
     while( source[position] != '\n' )
-	  ++position;
+      ++position;
     return next();
   }
 
   // նոր տողի նիշ
   if( source[position] == '\n' ) {
     ++linenum;
-	++position;
-    return xEol;
+    ++position;
+    return Lexeme{xEol, "", linenum};
   }
 
   // ամբողջ և իրական թվեր
   if( isdigit(source[position]) ) {
     text = sequence( isdigit );
     if( source[position] != '.' )
-	  return xInteger;
-	++position;
-	text += "." + sequence( isdigit );
-    return xDouble;
+      return Lexeme{xInteger, text, linenum};
+    ++position;
+    text += "." + sequence( isdigit );
+    return Lexeme{xDouble, text, linenum};
   }
 
   // իդենտիֆիկատորներ և ծառայողական բառեր
   if( isalpha(source[position]) ) {
     text = sequence( isalnum );
     std::transform(text.begin(), text.end(), text.begin(), tolower);
-    if( text == "main" ) text = "Main"; // բացառություն մուտքի կետի համար
+    if( text == "main" ) // բացառություն մուտքի կետի համար
+      text = "Main";
     auto kw = keywords.find(text);
-    if( kw == keywords.end() ) return xIdent;
-    return kw->second;
+    if( kw == keywords.end() ) 
+      return Lexeme{xIdent, text, linenum};
+    return Lexeme{kw->second, kw->first, linenum};
   }
 
   // հործողություններ և մետասիմվոլեր
   Token result = xNull;
   switch( source[position] ) {
     case '(':
-	  result = xLPar;
-	  break;
+      result = xLPar;
+      break;
     case ')':
-	  result = xRPar;
-	  break;
+      result = xRPar;
+      break;
     case ',':
-	  result = xComma;
-	  break;
+      result = xComma;
+      break;
     case '+':
-	  result = xAdd;
-	  break;
+      result = xAdd;
+      break;
     case '-':
-	  result = xSub;
-	  break;
+      result = xSub;
+      break;
     case '*':
-	  result = xMul;
-	  break;
+      result = xMul;
+      break;
     case '/':
-	  result = xDiv;
-	  break;
+      result = xDiv;
+      break;
     case '\\':
-	  result = xMod;
-	  break;
+      result = xMod;
+      break;
     case '^':
-	  result = xPow;
-	  break;
+      result = xPow;
+      break;
     case '=':
-	  result = xEq;
-	  break;
+      result = xEq;
+      break;
     case '<':
       ++position;
       if( source[position] == '>' )
@@ -156,11 +159,11 @@ Token Scanner::next()
       }
       break;
     case '>':
-	  ++position;
+      ++position;
       if( source[position] == '=' ) 
         result = xGe;
       else {
-		--position;
+	--position;
         result = xGt;
       }
       break;
@@ -169,19 +172,17 @@ Token Scanner::next()
   }
   ++position;
 
-  return result;
+  return Lexeme{result, "", linenum};
 }
 
 /**/
-std::string Scanner::sequence( std::function<bool(char)> predicate )
+std::string basic::Scanner::sequence( std::function<bool(char)> predicate )
 {
   std::string res = "";
   while( predicate(source[position]) ) {
-	res.push_back(source[position]);
-	++position;
+    res.push_back(source[position]);
+    ++position;
   }
   return res;
 }
-
-
 
