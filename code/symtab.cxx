@@ -3,6 +3,7 @@
 
 #include "symtab.hxx"
 
+namespace basic {
 /**/
 SymbolTable::~SymbolTable()
 {
@@ -35,9 +36,11 @@ Symbol SymbolTable::search(const std::string& nm)
   auto pr = [&nm](Symbol s)->bool { return nm == s.first; };
   for( auto& sc : scopes ) {
     auto it = std::find_if( sc.begin(), sc.end(), pr );
-    if( it != sc.end() ) return *it;
+    if( it != sc.end() )
+      return *it;
   }
   return Symbol{"",""};
 }
 
+} // basic
 

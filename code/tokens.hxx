@@ -50,5 +50,8 @@ enum class Token : int {
   xEof
 };
 
+  std::string N( Token k );
+}
+
 #endif
 

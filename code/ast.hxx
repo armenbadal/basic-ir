@@ -14,6 +14,7 @@
 
 #include "symtab.hxx"
 
+namespace basic {
 /**/
 using symbolvector = std::vector<Symbol>;
 
@@ -193,7 +194,8 @@ public:
 /* ---------------------------------------------------------------- */
 class Statement : public CodeIR, public LispAst {
 protected:
-  Function* env;
+  Function* env = nullptr;
+
 public:
   virtual ~Statement() {}
   virtual void setEnv(Function* e) { env = e; }
@@ -335,6 +337,8 @@ public:
   llvm::Value* code(llvm::IRBuilder<>&) override;
   void lisp(std::ostream&) override;
 };
+
+} // basic
 
 #endif
 

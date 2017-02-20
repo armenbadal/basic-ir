@@ -7,6 +7,36 @@
 
 #include <iostream>
 
+namespace basic {
+  std::map<std::string,Token> Scanner::keywords{
+    {"declare",  xDeclare},
+    {"dim",      xDim},
+    {"as",       xAs},
+  //{"integer",  xIdent},
+  //{"double",   xIdent},
+  //{"boolean",  xIdent},
+    {"type",     xType},
+    {"true",     xTrue},
+    {"false",    xFalse},
+    {"end",      xEnd},
+    {"sub",      xSubroutine},
+    {"function", xFunction},
+    {"return",   xReturn},
+    {"if",       xIf},
+    {"then",     xThen},
+    {"elseif",   xElseIf},
+    {"else",     xElse},
+    {"for",      xFor},
+    {"to",       xTo},
+    {"step",     xStep},
+    {"while",    xWhile},
+    {"input",    xInput},
+    {"print",    xPrint},
+    {"and",      xAnd},
+    {"or",       xOr},
+    {"not",      xNot}
+  };
+}
 
 std::map<std::string,Token> Scanner::keywords{
   {"declare", Token::xDeclare},
@@ -38,44 +68,60 @@ std::map<std::string,Token> Scanner::keywords{
 };
 
 /**/
-Scanner::Scanner( const std::string& name )
-  : source{name.c_str()}
+basic::Scanner::Scanner( const std::string& name )
 {
-  source.unsetf( std::ios::skipws );
-  source >> c;
+  std::ifstream inps{name};
+  // TODO ստուգել ֆայլի հաջող բացված լինելը
+
+  // հաշվել ֆայլի երկարությունը
+  inps.seekg(0, inps.end);
+  int size = inps.tellg();
+  inps.seekg(0, inps.beg);
+  
+  // կարդալ ֆայլի պարունակությունը
+  source = new char[size+1];
+  inps.read(source, size);
+  source[size] = '\0';
+
+  // փակել ֆայլի հոսքը
+  inps.close();
 }
 
 /**/
-std::string Scanner::lexeme() const
-{ return text; }
+basic::Scanner::~Scanner()
+{
+  delete[] source;
+}
 
 /**/
-Token Scanner::next()
+basic::Lexeme basic::Scanner::next()
 {
   // լեքսեմ
   text = "";
 
   // բացատանիշեր
-  while( c == ' ' || c == '\t' ) source >> c;
+  while( source[position] == ' ' || source[position] == '\t' )
+    ++position;
 
   // ֆայլի ավարտ
   if( c == -1 || source.eof() ) return Token::xEof;
 
   // մեկնաբանություններ
-  if( c == '\'' ) {
-    while( c != '\n' ) source >> c;
+  if( source[position] == '\'' ) {
+    while( source[position] != '\n' )
+      ++position;
     return next();
   }
 
   // նոր տողի նիշ
-  if( c == '\n' ) {
+  if( source[position] == '\n' ) {
     ++linenum;
     source >> c;
     return Token::xEol;
   }
 
   // ամբողջ և իրական թվեր
-  if( isdigit(c) ) {
+  if( isdigit(source[position]) ) {
     text = sequence( isdigit );
     if( c != '.' ) return Token::xInteger;
     text += "."; source >> c;
@@ -83,11 +129,12 @@ Token Scanner::next()
     return Token::xDouble;
   }
 
-  // իդենտիֆիկատորներ և շառայողական բառեր
-  if( isalpha( c ) ) {
+  // իդենտիֆիկատորներ և ծառայողական բառեր
+  if( isalpha(source[position]) ) {
     text = sequence( isalnum );
     std::transform(text.begin(), text.end(), text.begin(), tolower);
-    if( text == "main" ) text = "Main"; // բացառություն մուտքի կետի համար
+    if( text == "main" ) // բացառություն մուտքի կետի համար
+      text = "Main";
     auto kw = keywords.find(text);
     if( kw == keywords.end() ) return Token::xIdent;
     return kw->second;
@@ -129,21 +176,19 @@ Token Scanner::next()
     default: 
       break;
   }
-  source >> c;
+  ++position;
 
-  return result;
+  return Lexeme{result, "", linenum};
 }
 
 /**/
-std::string Scanner::sequence( std::function<bool(char)> predicate )
+std::string basic::Scanner::sequence( std::function<bool(char)> predicate )
 {
-  std::stringstream buffer;
-  while( predicate(c) ) {
-    buffer << c;
-    source >> c;
+  std::string res = "";
+  while( predicate(source[position]) ) {
+    res.push_back(source[position]);
+    ++position;
   }
-  return buffer.str();
+  return res;
 }
-
-
 

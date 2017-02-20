@@ -11,7 +11,7 @@
 #include "ast.hxx"
 
 /**/
-namespace {
+namespace basic {
   /**/
   auto& context = llvm::getGlobalContext();
   /**/
@@ -34,6 +34,7 @@ namespace {
   }
 }
 
+namespace basic {
 /**/
 llvm::Value* Module::code(llvm::IRBuilder<>& bu)
 {
@@ -285,19 +286,16 @@ llvm::Value* Branch::code(llvm::IRBuilder<>& bu)
   
   bu.CreateCondBr( bv, tb, eb );
   
-  func->getBasicBlockList().push_back(tb);
   bu.SetInsertPoint( tb );
   thenp->code( bu );
   bu.CreateBr( cb );
   
   if( elsep != nullptr ) {
-    func->getBasicBlockList().push_back(eb);
     bu.SetInsertPoint( eb );
     elsep->code( bu );
     bu.CreateBr( cb );
   }
 
-  func->getBasicBlockList().push_back(cb);
   bu.SetInsertPoint( cb );
 
   return nullptr;
@@ -342,7 +340,7 @@ llvm::Value* ForLoop::code(llvm::IRBuilder<>& bu)
   auto e2 = step->code(bu);
   bu.CreateBr( cc );
 
-  subr->getBasicBlockList().push_back(cc);
+  //  subr->getBasicBlockList().push_back(cc);
   bu.SetInsertPoint( cc );
 
   // ցիկլի ավարտի պայման e2 > 0 & p0 > e1 | e2 < 0 & p0 < e1
@@ -359,14 +357,14 @@ llvm::Value* ForLoop::code(llvm::IRBuilder<>& bu)
   auto bv = bu.CreateICmpEQ(t6, tr);
   bu.CreateCondBr( bv, cb, ce );
 
-  subr->getBasicBlockList().push_back(cb);
+  //  subr->getBasicBlockList().push_back(cb);
   bu.SetInsertPoint( cb );
   body->code( bu );
   auto p1 = bu.CreateLoad(pr);
   auto t7 = bu.CreateNSWAdd(p1, e2);
   bu.CreateStore(t7, pr);
   bu.CreateBr( cb );
-  subr->getBasicBlockList().push_back(ce);
+  //  subr->getBasicBlockList().push_back(ce);
   bu.SetInsertPoint( ce );
 
   return nullptr;
@@ -383,19 +381,19 @@ llvm::Value* WhileLoop::code(llvm::IRBuilder<>& bu)
 
   // bu.CreateBr( cx ); // TODO
 
-  func->getBasicBlockList().push_back(wc);
+  //  func->getBasicBlockList().push_back(wc);
   bu.SetInsertPoint( wc );
   auto cv = cond->code( bu );
   auto tr = llvm::ConstantInt::get( context, llvm::APInt(1, 1) );
   auto bv = bu.CreateICmpEQ( cv, tr );
   bu.CreateCondBr( bv, wb, we );
 
-  func->getBasicBlockList().push_back(wb);
+  //  func->getBasicBlockList().push_back(wb);
   bu.SetInsertPoint( wb );
   body->code( bu );
   bu.CreateBr( wc );
 
-  func->getBasicBlockList().push_back(we);
+  //  func->getBasicBlockList().push_back(we);
   bu.SetInsertPoint( we );
 
   return nullptr;
@@ -440,5 +438,5 @@ llvm::Value* Print::code(llvm::IRBuilder<>& bu)
   return nullptr;
 }
 
-
+} // basic
 

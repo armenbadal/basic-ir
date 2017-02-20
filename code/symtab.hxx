@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+namespace basic {
 /**/
 using Symbol = std::pair<std::string,std::string>;
 
@@ -19,15 +20,17 @@ private:
   std::list<Scope> scopes;
 
 public:
-  SymbolTable() {}
+  SymbolTable() = default;
   ~SymbolTable();
 
   void openScope();
   void closeScope();
 
-  void insert(const Symbol&);
-  Symbol search(const std::string&);
+  void insert( const Symbol& );
+  Symbol search( const std::string& );
 };
+
+} // basic
 
 #endif
 
