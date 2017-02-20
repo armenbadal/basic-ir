@@ -9,32 +9,32 @@
 
 
 std::map<std::string,Token> Scanner::keywords{
-  {"declare", xDeclare},
-  {"dim",xDim},
-  {"as", xAs},
+  {"declare", Token::xDeclare},
+  {"dim", Token::xDim},
+  {"as", Token::xAs},
 //{"integer", xIdent},
 //{"double", xIdent},
 //{"boolean", xIdent},
-  {"type", xType},
-  {"true", xTrue},
-  {"false", xFalse},
-  {"end", xEnd},
-  {"sub", xSubroutine},
-  {"function", xFunction},
-  {"return", xReturn},
-  {"if", xIf},
-  {"then", xThen},
-  {"elseif", xElseIf},
-  {"else", xElse},
-  {"for", xFor},
-  {"to", xTo},
-  {"step", xStep},
-  {"while", xWhile},
-  {"input", xInput},
-  {"print", xPrint},
-  {"and", xAnd},
-  {"or", xOr},
-  {"not", xNot}
+  {"type", Token::xType},
+  {"true", Token::xTrue},
+  {"false", Token::xFalse},
+  {"end", Token::xEnd},
+  {"sub", Token::xSubroutine},
+  {"function", Token::xFunction},
+  {"return", Token::xReturn},
+  {"if", Token::xIf},
+  {"then", Token::xThen},
+  {"elseif", Token::xElseIf},
+  {"else", Token::xElse},
+  {"for", Token::xFor},
+  {"to", Token::xTo},
+  {"step", Token::xStep},
+  {"while", Token::xWhile},
+  {"input", Token::xInput},
+  {"print", Token::xPrint},
+  {"and", Token::xAnd},
+  {"or", Token::xOr},
+  {"not", Token::xNot}
 };
 
 /**/
@@ -59,7 +59,7 @@ Token Scanner::next()
   while( c == ' ' || c == '\t' ) source >> c;
 
   // ֆայլի ավարտ
-  if( c == -1 || source.eof() ) return xEof;
+  if( c == -1 || source.eof() ) return Token::xEof;
 
   // մեկնաբանություններ
   if( c == '\'' ) {
@@ -71,16 +71,16 @@ Token Scanner::next()
   if( c == '\n' ) {
     ++linenum;
     source >> c;
-    return xEol;
+    return Token::xEol;
   }
 
   // ամբողջ և իրական թվեր
   if( isdigit(c) ) {
     text = sequence( isdigit );
-    if( c != '.' ) return xInteger;
+    if( c != '.' ) return Token::xInteger;
     text += "."; source >> c;
     text += sequence( isdigit );
-    return xDouble;
+    return Token::xDouble;
   }
 
   // իդենտիֆիկատորներ և շառայողական բառեր
@@ -89,41 +89,41 @@ Token Scanner::next()
     std::transform(text.begin(), text.end(), text.begin(), tolower);
     if( text == "main" ) text = "Main"; // բացառություն մուտքի կետի համար
     auto kw = keywords.find(text);
-    if( kw == keywords.end() ) return xIdent;
+    if( kw == keywords.end() ) return Token::xIdent;
     return kw->second;
   }
 
-  // հործողություններ և մետասիմվոլեր
-  Token result{xNull};
+  // գործողություններ և մետասիմվոլեր
+  Token result = Token::xNull;
   switch( c ) {
-    case '(': result = xLPar; break;
-    case ')': result = xRPar; break;
-    case ',': result = xComma; break;
-    case '+': result = xAdd; break;
-    case '-': result = xSub; break;
-    case '*': result = xMul; break;
-    case '/': result = xDiv; break;
-    case '\\': result = xMod; break;
-    case '^': result = xPow; break;
-    case '=': result = xEq; break;
+    case '(': result = Token::xLPar; break;
+    case ')': result = Token::xRPar; break;
+    case ',': result = Token::xComma; break;
+    case '+': result = Token::xAdd; break;
+    case '-': result = Token::xSub; break;
+    case '*': result = Token::xMul; break;
+    case '/': result = Token::xDiv; break;
+    case '\\': result = Token::xMod; break;
+    case '^': result = Token::xPow; break;
+    case '=': result = Token::xEq; break;
     case '<':
       source >> c;
       if( c == '>' )
-        result = xNe;
+        result = Token::xNe;
       else if ( c == '=' ) 
-        result = xLe;
+        result = Token::xLe;
       else {
         source.unget();
-        result = xLt;
+        result = Token::xLt;
       }
       break;
     case '>':
       source >> c;
       if( c == '=' ) 
-        result = xGe;
+        result = Token::xGe;
       else {
         source.unget();
-        result = xGt;
+        result = Token::xGt;
       }
       break;
     default: 

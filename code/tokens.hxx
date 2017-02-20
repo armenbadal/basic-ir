@@ -3,7 +3,7 @@
 #define TOKENS_H
 
 /**/
-enum Token {
+enum class Token : int {
   xNull,
   xEol,
   xInteger,
