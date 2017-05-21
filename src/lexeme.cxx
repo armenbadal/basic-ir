@@ -12,5 +12,11 @@ namespace basic {
   {
     return k == kind;
   }
+  
+  //
+  std::string Lexeme::toString() const
+  {
+    return "<" + value + ", " + std::to_string(line) + ">";
+  }
 } // basic
 
