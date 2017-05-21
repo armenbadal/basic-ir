@@ -7,13 +7,14 @@
 #include <map>
 #include <functional>
 
-#include "Lexeme.h"
+#include "lexeme.hxx"
 
 namespace basic {
+  //
   class Scanner {
   private:
     static std::map<const std::string, Token> keywords;
-
+    
   private:
     std::ifstream source;
     char ch;

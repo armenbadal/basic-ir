@@ -1,164 +1,179 @@
 
-#include "Parser.h"
+#include "parser.hxx"
 
 namespace basic {
-///
-Parser::Parser(Scanner& scan)
+  ///
+  Parser::Parser( Scanner& scan )
     :scanner{ scan }
-{}
-
-///
-void Parser::parseProgram()
-{
-    while (true) {
-        if (lookahead.is(Token::Declare))
-            parseDeclare();
-        else if (lookahead.is(Token::Function))
-            parseFunction();
-        else
-            break;
+  {}
+  
+  ///
+  Program* Parser::parseProgram()
+  {
+    while( true ) {
+      if( lookahead.is(Token::Declare) )
+	parseDeclare();
+      else if( lookahead.is(Token::Subroutine) )
+	parseSubroutine();
+      else
+	break;
     }
-}
+    return nullptr;
+  }
 
-///
-void Parser::parseDeclare()
-{
+  ///
+  Subroutine* Parser::parseDeclare()
+  {
     match(Token::Declare);
     parseHeader();
-}
+    return nullptr;
+  }
 
-///
-void Parser::parseFunction()
-{
+  ///
+  Subroutine* Parser::parseSubroutine()
+  {
     parseHeader();
     //
     match(Token::End);
-    match(Token::Function);
-}
+    match(Token::Subroutine);
+    return nullptr;
+  }
 
-///
-void Parser::parseHeader()
-{
-    match(Token::Function);
+  ///
+  Subroutine* Parser::parseHeader()
+  {
+    match(Token::Subroutine);
     match(Token::Identifier);
     match(Token::LeftPar);
-    if (lookahead.is(Token::Identifier)) {
-        match(Token::Identifier);
-        while (lookahead.is(Token::Comma)) {
-            match(Token::Comma);
-            match(Token::Identifier);
-        }
+    if( lookahead.is(Token::Identifier) ) {
+      match(Token::Identifier);
+      while( lookahead.is(Token::Comma) ) {
+	match(Token::Comma);
+	match(Token::Identifier);
+      }
     }
     match(Token::RightPar);
     parseNewLines();
-}
+    return nullptr;
+  }
 
-///
-void Parser::parseCommand()
-{
-    while (true) {
-        if (lookahead.is(Token::Input))
-            parseInput();
-        else if (lookahead.is(Token::Print))
-            parsePrint();
-        else if (lookahead.is(Token::Let))
-            parseLet();
-        else if (lookahead.is(Token::Identifier))
-            parseLet();
-        else if (lookahead.is(Token::If))
-            parseIf();
-        else if (lookahead.is(Token::While))
-            parseWhile();
-        else if (lookahead.is(Token::For))
-            parseFor();
-        else if (lookahead.is(Token::Call))
-            parseCall();
-        else
-            break;
-        parseNewLines();
+  ///
+  Statement* Parser::parseStatement()
+  {
+    while( true ) {
+      if( lookahead.is(Token::Input) )
+	parseInput();
+      else if( lookahead.is(Token::Print) )
+	parsePrint();
+      else if( lookahead.is(Token::Let) )
+	parseLet();
+      else if( lookahead.is(Token::Identifier) )
+	parseLet();
+      else if( lookahead.is(Token::If) )
+	parseIf();
+      else if( lookahead.is(Token::While) )
+	parseWhile();
+      else if( lookahead.is(Token::For) )
+	parseFor();
+      else if( lookahead.is(Token::Call) )
+	parseCall();
+      else
+	break;
+      parseNewLines();
     }
-}
+    return nullptr;
+  }
 
-///
-void Parser::parseInput()
-{
+  ///
+  Input* Parser::parseInput()
+  {
     match(Token::Input);
     match(Token::Identifier);
-}
+    return nullptr;
+  }
 
-//
-void Parser::parsePrint()
-{
+  ///
+  Print* Parser::parsePrint()
+  {
     match(Token::Print);
     // TODO parse expression
-}
+    return nullptr;
+  }
 
-void Parser::parseLet()
-{
-    if (lookahead.is(Token::Let))
-        scanner >> lookahead;
+  ///
+  Let* Parser::parseLet()
+  {
+    if( lookahead.is(Token::Let) )
+      scanner >> lookahead;
     match(Token::Identifier);
     match(Token::Eq);
     // TODO parse expression
-}
-
-///
-void Parser::parseIf()
-{
-    match(Token::If);
+    return nullptr;
+  }
+  
+  ///
+  If* Parser::parseIf()
+  {
+    match( Token::If );
     // TODO parse expression
     match(Token::Then);
     parseNewLines();
-    parseCommand();
-    while (lookahead.is(Token::ElseIf)) {
-        match(Token::ElseIf);
-        // TODO parse expression
-        match(Token::Then);
-        parseNewLines();
-        parseCommand();
+    parseStatement();
+    while( lookahead.is(Token::ElseIf) ) {
+      match(Token::ElseIf);
+      // TODO parse expression
+      match(Token::Then);
+      parseNewLines();
+      parseStatement();
     }
-    if (lookahead.is(Token::Else)) {
-        match(Token::Else);
-        parseNewLines();
-        parseCommand();
+    if( lookahead.is(Token::Else) ) {
+      match(Token::Else);
+      parseNewLines();
+      parseStatement();
     }
     match(Token::End);
     match(Token::If);
-}
 
-///
-void Parser::parseWhile()
-{
+    return nullptr;
+  }
+
+  ///
+  While* Parser::parseWhile()
+  {
     match(Token::While);
     // TODO parse expression
     parseNewLines();
-    parseCommand();
+    parseStatement();
     match(Token::End);
     match(Token::While);
-}
+    return nullptr;
+  }
 
-///
-void Parser::parseFor()
-{
+  ///
+  For* Parser::parseFor()
+  {
+    return nullptr;
+  }
 
-}
+  ///
+  Call* Parser::parseCall()
+  {
+    return nullptr;
+  }
 
-///
-void Parser::parseCall()
-{}
-
-///
-void Parser::parseNewLines()
-{
+  ///
+  void Parser::parseNewLines()
+  {
     while (lookahead.is(Token::NewLine))
-        scanner >> lookahead;
-}
-
-///
-void Parser::match(Token tok)
-{
+      scanner >> lookahead;
+  }
+  
+  ///
+  void Parser::match(Token tok)
+  {
     if (!lookahead.is(tok))
-        throw std::string{"Syntax error"};
-}
+      throw std::string{"Syntax error"};
+  }
+  
+} // basic
 
-} // basic 

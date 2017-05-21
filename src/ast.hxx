@@ -11,14 +11,11 @@ namespace basic {
   //
   class AstNode {
   public:
-    virtual ~AstNode() = 0;
+    virtual ~AstNode() = default;
   };
 
   //
-  class Expression : public AstNode {
-  public:
-    virtual ~Expression() = default;
-  };
+  class Expression : public AstNode {};
   
   //
   class Double : public Expression {
@@ -90,10 +87,7 @@ namespace basic {
   };
 
   //
-  class Statement : public AstNode {
-  public:
-    virtual ~Statement() = default;
-  };
+  class Statement : public AstNode {};
 
   //
   class Sequence : public Statement {
@@ -197,7 +191,7 @@ namespace basic {
   //
   class Program : public AstNode {
   public:
-    std::string& filename = "";
+    std::string filename = "";
     std::vector<Subroutine*> members;
     
   public:

@@ -14,7 +14,7 @@ namespace basic {
     Identifier,
 
     Declare,
-    Function,
+    Subroutine,
     Input,
     Print,
     Let,
@@ -67,7 +67,7 @@ namespace basic {
     Lexeme() = default;
     Lexeme( Token t, const std::string& v, unsigned int l );
 
-    bool is(Token exp);
+    bool is(Token exp) const;
 
     std::string toString() const;
   };

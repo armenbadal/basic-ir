@@ -112,12 +112,12 @@ namespace basic {
   }
 
   //
-  For( const std::string& pr, Expression* be, Expression* en, Expression* st, Statement* bo )
-    : parameters{pr}, begin{be}, end{en}, step{st}, body{bo}
+  For::For( const std::string& pr, Expression* be, Expression* en, Expression* st, Statement* bo )
+    : parameter{pr}, begin{be}, end{en}, step{st}, body{bo}
   {}
   
   //
-  ~For()
+  For::~For()
   {}
 
   //

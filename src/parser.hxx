@@ -1,32 +1,34 @@
-#include "Lexeme.h"
-#include "Scanner.h"
+
+#include "ast.hxx"
+#include "lexeme.hxx"
+#include "scanner.hxx"
 
 namespace basic {
-class Parser {
-private:
+  //
+  class Parser {
+  private:
     Scanner& scanner;
     Lexeme lookahead;
-
-public:
-    Parser(Scanner& scan);
-
-private:
-    void match(Token tok);
-
-    void parseProgram();
-    void parseDeclare();
-    void parseFunction();
-    void parseHeader();
-    void parseCommand();
-    void parseInput();
-    void parsePrint();
-    void parseLet();
-    void parseIf();
-    void parseWhile();
-    void parseFor();
-    void parseCall();
+    
+  public:
+    Parser( Scanner& scan );
+    
+  private:
+    void match( Token tok );
+    
+    Program* parseProgram();
+    Subroutine* parseDeclare();
+    Subroutine* parseSubroutine();
+    Subroutine* parseHeader();
+    Statement* parseStatement();
+    Input* parseInput();
+    Print* parsePrint();
+    Let* parseLet();
+    If* parseIf();
+    While* parseWhile();
+    For* parseFor();
+    Call* parseCall();
 
     void parseNewLines();
-};
-
-}
+  };
+} // basic
