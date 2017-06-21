@@ -3,17 +3,17 @@
 #define LEXEME_HXX
 
 #include <string>
+#include <vector>
 
 namespace basic {
   ///
   enum class Token : int {
     None,
 
-    Real,
+    Number,
     Text,
     Identifier,
 
-    Declare,
     Subroutine,
     Input,
     Print,
@@ -44,6 +44,7 @@ namespace basic {
 
     Add,
     Sub,
+    Amp,
     Mul,
     Div,
     Mod,
@@ -65,9 +66,10 @@ namespace basic {
   
   public:
     Lexeme() = default;
-    Lexeme( Token t, const std::string& v, unsigned int l );
+    Lexeme( Token k, const std::string& v, unsigned int l );
 
-    bool is(Token exp) const;
+    bool is( Token exp ) const;
+    bool is( const std::vector<Token>& exps ) const;
 
     std::string toString() const;
   };

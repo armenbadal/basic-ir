@@ -10,12 +10,27 @@ namespace basic {
 
   //
   class AstNode {
+  private:
+    unsigned int line = 0;
+    
   public:
     virtual ~AstNode() = default;
   };
 
+  
   //
-  class Expression : public AstNode {};
+  enum class Type : char {
+    Void = 'V',
+    Number = 'N',
+    Text = 'T'  
+  };
+
+  
+  //
+  class Expression : public AstNode {
+  public:
+    Type type = Type::Void;
+  };
   
   //
   class Double : public Expression {
@@ -86,6 +101,7 @@ namespace basic {
     ~Apply();
   };
 
+  
   //
   class Statement : public AstNode {};
 

@@ -8,11 +8,20 @@ namespace basic {
   {}
 
   //
-  bool Lexeme::is( Token k ) const
+  bool Lexeme::is( Token exp ) const
   {
-    return k == kind;
+    return exp == kind;
   }
-  
+
+  //
+  bool Lexeme::is( const std::vector<Token>& exps ) const
+  {
+    for( auto k : exps )
+      if( k == kind )
+	return true;
+    return false;
+  }
+    
   //
   std::string Lexeme::toString() const
   {

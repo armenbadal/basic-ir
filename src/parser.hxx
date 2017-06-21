@@ -17,18 +17,26 @@ namespace basic {
     void match( Token tok );
     
     Program* parseProgram();
-    Subroutine* parseDeclare();
     Subroutine* parseSubroutine();
-    Subroutine* parseHeader();
-    Statement* parseStatement();
-    Input* parseInput();
-    Print* parsePrint();
-    Let* parseLet();
-    If* parseIf();
-    While* parseWhile();
-    For* parseFor();
-    Call* parseCall();
 
+    Statement* parseStatements();
+    Statement* parseInput();
+    Statement* parsePrint();
+    Statement* parseLet();
+    Statement* parseIf();
+    Statement* parseWhile();
+    Statement* parseFor();
+    Statement* parseCall();
+
+    Expression* parseExpression();
+    Expression* parseConjunction();
+    Expression* parseEquality();
+    Expression* parseComparison();
+    Expression* parseAddition();
+    Expression* parseMultiplication();
+    Expression* parsePower();
+    Expression* parseFactor();
+    
     void parseNewLines();
   };
 } // basic

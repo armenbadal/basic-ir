@@ -5,9 +5,10 @@ namespace basic {
   
   ///
   std::map<const std::string, Token> Scanner::keywords{
+    { "SUB", Token::Subroutine },
+    { "LET", Token::Let },
     { "PRINT", Token::Print },
     { "INPUT", Token::Input },
-    { "LET", Token::Let },
     { "IF", Token::If },
     { "THEN", Token::Then },
     { "ELSEIF", Token::ElseIf },
@@ -172,7 +173,7 @@ namespace basic {
       lex.value.push_back(ch);
       source >> ch;
     }
-    lex.kind = Token::Real;
+    lex.kind = Token::Number;
     return true;
   }
 
