@@ -33,21 +33,21 @@ namespace basic {
   };
   
   //
-  class Double : public Expression {
+  class Number : public Expression {
   public:
     double value = 0.0;
     
   public:
-    Double( double vl );
+    Number( double vl );
   };
 
   //
-  class String : public Expression {
+  class Text : public Expression {
   public:
     std::string value = "";
 
   public:
-    String( const std::string& vl );
+    Text( const std::string& vl );
   };
 
   //

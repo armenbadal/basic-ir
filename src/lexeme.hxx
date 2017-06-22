@@ -45,13 +45,12 @@ namespace basic {
     Add,
     Sub,
     Amp,
+    Or,
     Mul,
     Div,
     Mod,
-    Pow,
-
     And,
-    Or,
+    Pow,
     Not,
 
     Eof
@@ -70,6 +69,7 @@ namespace basic {
 
     bool is( Token exp ) const;
     bool is( const std::vector<Token>& exps ) const;
+    bool isIn( Token el, Token eh ) const;
 
     std::string toString() const;
   };

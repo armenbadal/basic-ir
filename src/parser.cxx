@@ -4,12 +4,14 @@
 namespace basic {
   ///
   Parser::Parser( Scanner& scan )
-    :scanner{ scan }
+    : scanner{ scan }
   {}
   
   ///
   Program* Parser::parseProgram()
   {
+    scanner >> lookahead;
+    
     while( lookahead.is(Token::NewLine) )
       match(Token::NewLine);      
     
@@ -26,17 +28,18 @@ namespace basic {
   {
     match(Token::Subroutine);
     match(Token::Identifier);
-    match(Token::LeftPar);
-    if( lookahead.is(Token::Identifier) ) {
-      match(Token::Identifier);
-      while( lookahead.is(Token::Comma) ) {
-	match(Token::Comma);
+    if( lookahead.is(Token::LeftPar) ) {
+      match(Token::LeftPar);
+      if( lookahead.is(Token::Identifier) ) {
 	match(Token::Identifier);
+	while( lookahead.is(Token::Comma) ) {
+	  match(Token::Comma);
+	  match(Token::Identifier);
+	}
       }
+      match(Token::RightPar);
     }
-    match(Token::RightPar);
-    parseNewLines();
-
+    parseStatements();
     match(Token::End);
     match(Token::Subroutine);
     return nullptr;
@@ -45,6 +48,7 @@ namespace basic {
   ///
   Statement* Parser::parseStatements()
   {
+    parseNewLines();
     while( true ) {
       if( lookahead.is(Token::Let) )
 	parseLet();
@@ -52,8 +56,6 @@ namespace basic {
 	parseInput();
       else if( lookahead.is(Token::Print) )
 	parsePrint();
-      else if( lookahead.is(Token::Identifier) )
-	parseLet();
       else if( lookahead.is(Token::If) )
 	parseIf();
       else if( lookahead.is(Token::While) )
@@ -101,18 +103,15 @@ namespace basic {
     match( Token::If );
     parseExpression();
     match(Token::Then);
-    parseNewLines();
     parseStatements();
     while( lookahead.is(Token::ElseIf) ) {
       match(Token::ElseIf);
       parseExpression();
       match(Token::Then);
-      parseNewLines();
       parseStatements();
     }
     if( lookahead.is(Token::Else) ) {
       match(Token::Else);
-      parseNewLines();
       parseStatements();
     }
     match(Token::End);
@@ -126,7 +125,6 @@ namespace basic {
   {
     match(Token::While);
     parseExpression();
-    parseNewLines();
     parseStatements();
     match(Token::End);
     match(Token::While);
@@ -150,41 +148,8 @@ namespace basic {
   //
   Expression* Parser::parseExpression()
   {
-    parseConjunction();
-    while( lookahead.is(Token::Or) ) {
-      scanner >> lookahead;
-      parseConjunction();
-    }
-    return nullptr;
-  }
-
-  //
-  Expression* Parser::parseConjunction()
-  {
-    parseEquality();
-    while( lookahead.is(Token::And) ) {
-      scanner >> lookahead;
-      parseEquality();
-    }
-    return nullptr;
-  }
-
-  //
-  Expression* Parser::parseEquality()
-  {
-    parseComparison();
-    if( lookahead.is({Token::Eq, Token::Ne}) ) {
-      scanner >> lookahead;
-      parseComparison();
-    }
-    return nullptr;
-  }
-
-  //
-  Expression* Parser::parseComparison()
-  {
     parseAddition();
-    if( lookahead.is({Token::Gt, Token::Ge, Token::Lt, Token::Le}) ) {
+    if( lookahead.is({Token::Gt, Token::Ge, Token::Lt, Token::Le, Token::Eq, Token::Ne}) ) {
       scanner >> lookahead;
       parseAddition();
     }
@@ -195,7 +160,7 @@ namespace basic {
   Expression* Parser::parseAddition()
   {
     parseMultiplication();
-    while( lookahead.is({Token::Add, Token::Sub, Token::Amp}) ) {
+    while( lookahead.is({Token::Add, Token::Sub, Token::Amp, Token::Or}) ) {
       scanner >> lookahead;
       parseMultiplication();
     }
@@ -205,10 +170,10 @@ namespace basic {
   //
   Expression* Parser::parseMultiplication()
   {
-    parsePower();
-    while( lookahead.is({Token::Mul, Token::Div, Token::Mod}) ) {
+    auto res = parsePower();
+    while( lookahead.is({Token::Mul, Token::Div, Token::Mod, Token::And}) ) {
       scanner >> lookahead;
-      parsePower();
+      auto exo = parsePower();
     }
     return nullptr;
   }
@@ -216,64 +181,74 @@ namespace basic {
   //
   Expression* Parser::parsePower()
   {
-    parseFactor();
+    auto res = parseFactor();
     if( lookahead.is(Token::Pow) ) {
       match(Token::Pow);
-      parseFactor();
+      auto exo = parseFactor();
+      res = new Binary(Operation::Pow, res, exo);
     }
-    return nullptr;
+    return res;
   }
   
-  //
-  // Factor = DOUBLE
-  //        | STRING
-  //        | IDENT
-  //        | IDENT '(' [ExpressionList] ')'
-  //        | '(' Expression ')'.
-  //
+  ///
   Expression* Parser::parseFactor()
   {
     //
     if( lookahead.is(Token::Number) ) {
+      auto lex = lookahead.value;
       match(Token::Number);
-      return nullptr;
+      return new Number(std::stod(lex));
     }
 
     //
     if( lookahead.is(Token::Text) ) {
+      auto lex = lookahead.value;
       match(Token::Text);
-      return nullptr;
+      return new Text(lex);
     }
 
     //
     if( lookahead.is({Token::Sub, Token::Not}) ) {
-      match(lookahead.kind);
-      return nullptr;
+      Operation opc = Operation::None;
+      if( lookahead.is(Token::Sub) ) {
+	opc = Operation::Sub;
+	match(Token::Sub);
+      }
+      else if( lookahead.is(Token::Not) ) {
+	opc = Operation::Not;
+	match(Token::Not);
+      }
+      auto exo = parseFactor();
+      return new Unary(opc, exo);
     }
     
     //
     if( lookahead.is(Token::Identifier) ) {
+      auto name = lookahead.value;
       match(Token::Identifier);
       if( lookahead.is(Token::LeftPar) ) {
+	std::vector<Expression*> args;
 	match(Token::LeftPar);
-	parseExpression();
+	auto exo = parseExpression();
+	args.push_back(exo);
 	while( lookahead.is({Token::Number, Token::Text, Token::Identifier,
 		Token::Sub, Token::Not, Token::LeftPar}) ) {
 	  match(Token::Comma);
-	  parseExpression();
+	  exo = parseExpression();
+	  args.push_back(exo);
 	}
 	match(Token::RightPar);
-	return nullptr;
+	return new Apply(name, args);
       }
-      return nullptr;
+      return new Variable(name);
     }
 
     //
     if( lookahead.is(Token::LeftPar) ) {
       match(Token::LeftPar);
-      parseExpression();
+      auto exo = parseExpression();
       match(Token::RightPar);
-      return nullptr;
+      return exo;
     }
 
     return nullptr;

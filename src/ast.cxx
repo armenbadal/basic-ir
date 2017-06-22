@@ -3,12 +3,12 @@
 
 namespace basic {
   //
-  Double::Double( double vl )
+  Number::Number( double vl )
     : value{vl}
   {}
 
   //
-  String::String( const std::string& vl )
+  Text::Text( const std::string& vl )
     : value{vl}
   {}
 

@@ -12,11 +12,11 @@ namespace basic {
     
   public:
     Parser( Scanner& scan );
-    
-  private:
-    void match( Token tok );
-    
+
+  public:
     Program* parseProgram();
+
+  private:
     Subroutine* parseSubroutine();
 
     Statement* parseStatements();
@@ -29,14 +29,13 @@ namespace basic {
     Statement* parseCall();
 
     Expression* parseExpression();
-    Expression* parseConjunction();
-    Expression* parseEquality();
-    Expression* parseComparison();
     Expression* parseAddition();
     Expression* parseMultiplication();
     Expression* parsePower();
     Expression* parseFactor();
     
     void parseNewLines();
+
+    void match( Token tok );
   };
 } // basic

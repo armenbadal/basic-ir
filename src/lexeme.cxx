@@ -21,7 +21,13 @@ namespace basic {
 	return true;
     return false;
   }
-    
+
+  //
+  bool Lexeme::isIn( Token el, Token eh ) const
+  {
+    return kind >= el && kind <= eh;
+  }
+  
   //
   std::string Lexeme::toString() const
   {
