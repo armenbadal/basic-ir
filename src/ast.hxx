@@ -2,6 +2,7 @@
 #ifndef AST_HXX
 #define AST_HXX
 
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -15,6 +16,7 @@ namespace basic {
     
   public:
     virtual ~AstNode() = default;
+    virtual void lisp( std::ostringstream& ooo ) {}
   };
 
   
@@ -39,6 +41,7 @@ namespace basic {
     
   public:
     Number( double vl );
+    void lisp( std::ostringstream& ooo );
   };
 
   //
@@ -48,6 +51,7 @@ namespace basic {
 
   public:
     Text( const std::string& vl );
+    void lisp( std::ostringstream& ooo );
   };
 
   //
@@ -57,6 +61,7 @@ namespace basic {
 
   public:
     Variable( const std::string& nm );
+    void lisp( std::ostringstream& ooo );
   };
 
   //
@@ -64,7 +69,8 @@ namespace basic {
     None,
     Add, Sub, Mul, Div, Mod, Pow,
     Eq, Ne, Gt, Ge, Lt, Le,
-    And, Or, Not
+    And, Or, Not,
+    Conc
   };
 
   //
@@ -76,6 +82,7 @@ namespace basic {
   public:
     Unary( Operation op, Expression* ex );
     ~Unary();
+    void lisp( std::ostringstream& ooo );
   };
 
   //
@@ -88,6 +95,7 @@ namespace basic {
   public:
     Binary( Operation op, Expression* exo, Expression* exi );
     ~Binary();
+    void lisp( std::ostringstream& ooo );
   };
 
   //
@@ -99,6 +107,7 @@ namespace basic {
   public:
     Apply( const std::string& pn, const std::vector<Expression*>& ags );
     ~Apply();
+    void lisp( std::ostringstream& ooo );
   };
 
   
@@ -113,6 +122,7 @@ namespace basic {
   public:
     Sequence() = default;
     ~Sequence();
+    void lisp( std::ostringstream& ooo );
   };
   
   //
@@ -122,6 +132,7 @@ namespace basic {
     
   public:
     Input( const std::string& vn );
+    void lisp( std::ostringstream& ooo );
   };
 
   //
@@ -132,6 +143,7 @@ namespace basic {
   public:
     Print( Expression* ex );
     ~Print();
+    void lisp( std::ostringstream& ooo );
   };
   
   //
@@ -143,6 +155,7 @@ namespace basic {
   public:
     Let( const std::string& vn, Expression* ex );
     ~Let();
+    void lisp( std::ostringstream& ooo );
   };
   
   //
@@ -155,6 +168,7 @@ namespace basic {
   public:
     If( Expression* co, Statement* de, Statement* al = nullptr );
     ~If();
+    void lisp( std::ostringstream& ooo );
   };
   
   //
@@ -166,6 +180,7 @@ namespace basic {
   public:
     While( Expression* co, Statement* bo );
     ~While();
+    void lisp( std::ostringstream& ooo );
   };
   
   //
@@ -180,6 +195,7 @@ namespace basic {
   public:
     For( const std::string& pr, Expression* be, Expression* en, Expression* st, Statement* bo );
     ~For();
+    void lisp( std::ostringstream& ooo );
   };
 
   //
@@ -190,6 +206,7 @@ namespace basic {
   public:
     Call( const std::string& sn, const std::vector<Expression*> as );
     ~Call();
+    void lisp( std::ostringstream& ooo );
   };
 
   //
@@ -202,6 +219,7 @@ namespace basic {
   public:
     Subroutine( const std::string& nm, const std::vector<std::string>& ps, Statement* bo = nullptr );
     ~Subroutine();
+    void lisp( std::ostringstream& ooo );
   };
 
   //
@@ -213,6 +231,7 @@ namespace basic {
   public:
     Program( const std::string& fn );
     ~Program();
+    void lisp( std::ostringstream& ooo );
   };
 }
 

@@ -1,4 +1,6 @@
 
+#include <string>
+
 #include "ast.hxx"
 #include "lexeme.hxx"
 #include "scanner.hxx"
@@ -7,13 +9,12 @@ namespace basic {
   //
   class Parser {
   private:
-    Scanner& scanner;
+    Scanner scanner;
     Lexeme lookahead;
     
   public:
-    Parser( Scanner& scan );
+    Parser( const std::string& filename );
 
-  public:
     Program* parseProgram();
 
   private:

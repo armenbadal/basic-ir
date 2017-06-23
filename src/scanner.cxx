@@ -155,6 +155,7 @@ namespace basic {
 	lex.kind = Token::Eq;
 	break;
     };
+    source >> ch;
 
     return lex.kind != Token::None;
   }
