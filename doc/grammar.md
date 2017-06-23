@@ -1,34 +1,26 @@
-
-
 # BASIC-IR լեզվի քերականությունը (EBNF)
 
 ````
 Program = { Subroutine NewLines }.
-Subroutine = Declaration | Definition.
 NewLines = EOL { EOL }.
-Declaration = 'DECLARE' SubrHeader.
-Definition = SubrHeader StatementList 'END' 'SUB'.
-SubrHeader = 'SUB' IDENT '(' [IdentList] ')' NewLines.
-StatementList = { Statement NewLines }.
+Subroutine = 'SUB' IDENT ['(' [IdentList] ')'] StatementList 'END' 'SUB'.
+StatementList = NewLines { Statement NewLines }.
 IdentList = IDENT {',' IDENT}.
-Statement = Input | Print | Let | If | While | For | Call.
+Statement = Let | Input | Print | If | While | For | Call.
 Input = 'INPUT' IDENT.
 Print = 'PRINT' Expression.
-Let = ['LET'] IDENT '=' Expression.
-If = 'IF' Expression 'THEN' NewLines StatementList
-     {'ELSEIF' Expression 'THEN' NewLines StatementList }
-     ['ELSE' NewLines StatementList] 'END' 'IF'.
-While = 'WHILE' Expression NewLines StatementList 'END' 'WHILE'.
+Let = 'LET' IDENT '=' Expression.
+If = 'IF' Expression 'THEN' StatementList
+     {'ELSEIF' Expression 'THEN' StatementList }
+     ['ELSE' StatementList] 'END' 'IF'.
+While = 'WHILE' Expression StatementList 'END' 'WHILE'.
 For = 'FOR' IDENT '=' Expression 'TO' Expression ['STEP' Expression]
-      NewLines StatementList 'END' 'FOR'.
-Call = 'CALL' IDENT '(' [ExpressionList] ')'.
+      StatementList 'END' 'FOR'.
+Call = 'CALL' IDENT [ExpressionList].
 ExpressionList = Expression {',' Expression}.
-Expression = Disjunction {'AND' Disjunction}.
-Disjunction = Equality {'OR' Equality}.
-Equality = Comparison ('=' | '<>') Comparison.
-Comparison = Multiplication ('>' | '>=' | '<' | '<=') Multiplication.
-Multiplication = Addition {('*' | '/' | '\') Addition}.
-Addition = Power {('+' | '-' | '&') Power}.
+Expression = Addition [('=' | '<>' | '>' | '>=' | '<' | '<=') Addition].
+Addition = Multiplication {('+' | '-' | '&' | 'OR') Multiplication}.
+Multiplication = Power {('*' | '/' | '\' | 'AND') Power}.
 Power = Factor ['^' Power].
 Factor = DOUBLE | STRING | IDENT | '(' Expression ')' 
        | IDENT '(' [ExpressionList] ')'.
