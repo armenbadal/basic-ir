@@ -1,4 +1,5 @@
 
+#include <exception>
 #include <string>
 
 #include "ast.hxx"
@@ -14,10 +15,10 @@ namespace basic {
     
   public:
     Parser( const std::string& filename );
-
-    Program* parseProgram();
-
+    Program* parse();
+    
   private:
+    Program* parseProgram();
     Subroutine* parseSubroutine();
 
     Statement* parseStatements();
@@ -38,5 +39,19 @@ namespace basic {
     void parseNewLines();
 
     void match( Token tok );
+  };
+
+  //
+  class ParseError : std::exception {
+  private:
+    std::string message = "";
+  public:
+    ParseError( const std::string& mes )
+      : message{mes}
+    {}
+    const char* what() const noexcept
+    {
+      return message.c_str();
+    }
   };
 } // basic

@@ -8,12 +8,14 @@
 //
 int main()
 {
-  basic::Parser parser("../cases/case01.bas");
-  auto prog = parser.parseProgram();
+  basic::Parser parser("../cases/case00.bas");
+  auto prog = parser.parse();
 
-  std::ostringstream out;
-  prog->lisp(out);
-  std::cout << out.str() << std::endl;
+  if( nullptr != prog ) {
+    std::ostringstream out;
+    prog->lisp(out);
+    std::cout << out.str() << std::endl;
+  }
   
   return 0;
 }

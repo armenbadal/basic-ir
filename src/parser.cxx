@@ -1,4 +1,7 @@
 
+#include <exception>
+#include <iostream>
+
 #include "parser.hxx"
 
 namespace basic {
@@ -6,6 +9,20 @@ namespace basic {
   Parser::Parser( const std::string& filename )
     : scanner{ filename }
   {}
+
+  ///
+  Program* Parser::parse()
+  {
+    Program* prog = nullptr;
+    try {
+      prog = parseProgram();
+    }
+    catch( ParseError& e ) {
+      std::cerr << e.what() << std::endl;
+      prog = nullptr;
+    }
+    return prog;
+  }
   
   ///
   Program* Parser::parseProgram()
@@ -351,7 +368,7 @@ namespace basic {
   void Parser::match( Token exp )
   {
     if( !lookahead.is(exp) )
-      throw std::string{"Syntax error"};
+      throw ParseError{"Syntax error"};
 
     scanner >> lookahead;
   }  
