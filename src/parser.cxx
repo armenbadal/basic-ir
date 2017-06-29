@@ -19,8 +19,13 @@ namespace basic {
     }
     catch( ParseError& e ) {
       std::cerr << e.what() << std::endl;
-      prog = nullptr;
+      AstNode::delete_allocated_nodes();
     }
+    catch( TypeError& e ) {
+      std::cerr << e.what() << std::endl;
+      AstNode::delete_allocated_nodes();
+    }
+
     return prog;
   }
   
@@ -95,7 +100,7 @@ namespace basic {
       else if( lookahead.is(Token::Call) )
 	stat = parseCall();
       else
-	break;
+	throw ParseError{"Unknown start of control statement."};
       sequ->items.push_back(stat);
       parseNewLines();
     }
@@ -321,6 +326,8 @@ namespace basic {
 	match(Token::Not);
       }
       auto exo = parseFactor();
+      if( exo->type != Type::Number )
+	throw TypeError{"Unary operation is applicable only for numbers."};
       return new Unary(opc, exo);
     }
     

@@ -54,4 +54,18 @@ namespace basic {
       return message.c_str();
     }
   };
+
+  //
+  class TypeError : std::exception {
+  private:
+    std::string message = "";
+  public:
+    TypeError( const std::string& mes )
+      : message{mes}
+    {}
+    const char* what() const noexcept
+    {
+      return message.c_str();
+    }
+  };
 } // basic
