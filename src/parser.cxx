@@ -378,6 +378,29 @@ namespace basic {
       throw ParseError{"Syntax error"};
 
     scanner >> lookahead;
-  }  
+  }
+
+  ///
+  Type Parser::checkType( Operation op, Type left, Type right )
+  {
+    if( left == Type::Number && right == Type::Number ) {
+      if( op == Operation::Conc )
+	throw TypeError{"2"};
+      
+      return Type::Number;
+    }
+
+    if( left == Type::Text && right == Type::Text ) {
+      if( op == Operation::Conc )
+	return Type::Text;
+      
+      if( op >= Operation::Eq && op <= Operation::Le )
+	return Type::Number;
+      
+      throw TypeError{"3"};
+    }
+    
+    throw TypeError{"1"};
+  }
 } // basic
 

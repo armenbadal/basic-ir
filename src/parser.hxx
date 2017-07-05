@@ -39,6 +39,8 @@ namespace basic {
     void parseNewLines();
 
     void match( Token tok );
+
+    Type checkType( Operation op, Type left, Type right );
   };
 
   //
