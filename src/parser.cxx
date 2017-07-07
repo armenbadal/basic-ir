@@ -83,7 +83,7 @@ namespace basic {
     parseNewLines();
 
     auto sequ = new Sequence();
-    while( true ) {
+    while( !lookahead.is(Token::End) ) {
       Statement* stat = nullptr;
       if( lookahead.is(Token::Let) )
 	stat = parseLet();

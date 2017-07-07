@@ -11,15 +11,37 @@
 namespace basic {
 
   //
+  enum class NodeKind : int {
+    Empty,
+    Number,
+    Text,
+    Variable,
+    Unary,
+    Binary,
+    Apply,
+    Sequence,
+    Input,
+    Print,
+    Let,
+    If,
+    While,
+    For,
+    Call,
+    Subroutine,
+    Program
+  };
+  
+  //
   class AstNode {
-  private:
+  public:
+    NodeKind kind = NodeKind::Empty;
+
+  private:    
     unsigned int line = 0;
 
   public:
     AstNode();
     virtual ~AstNode() = default;
-
-    virtual void lisp( std::ostringstream& ooo ) {}
 
   private:
     static std::list<AstNode*> allocated_nodes;
@@ -50,8 +72,6 @@ namespace basic {
 
   public:
     Number( double vl );
-
-    void lisp( std::ostringstream& ooo );
   };
 
   //
@@ -61,8 +81,6 @@ namespace basic {
 
   public:
     Text( const std::string& vl );
-
-    void lisp( std::ostringstream& ooo );
   };
 
   //
@@ -72,8 +90,6 @@ namespace basic {
 
   public:
     Variable( const std::string& nm );
-
-    void lisp( std::ostringstream& ooo );
   };
 
   //
@@ -93,8 +109,6 @@ namespace basic {
 
   public:
     Unary( Operation op, Expression* ex );
-
-    void lisp( std::ostringstream& ooo );
   };
 
   //
@@ -106,8 +120,6 @@ namespace basic {
 
   public:
     Binary( Operation op, Expression* exo, Expression* exi );
-
-    void lisp( std::ostringstream& ooo );
   };
 
   //
@@ -118,8 +130,6 @@ namespace basic {
 
   public:
     Apply( const std::string& pn, const std::vector<Expression*>& ags );
-
-    void lisp( std::ostringstream& ooo );
   };
 
   
@@ -133,8 +143,6 @@ namespace basic {
     
   public:
     Sequence() = default;
-
-    void lisp( std::ostringstream& ooo );
   };
   
   //
@@ -144,8 +152,6 @@ namespace basic {
     
   public:
     Input( const std::string& vn );
-
-    void lisp( std::ostringstream& ooo );
   };
 
   //
@@ -155,8 +161,6 @@ namespace basic {
     
   public:
     Print( Expression* ex );
-
-    void lisp( std::ostringstream& ooo );
   };
   
   //
@@ -167,8 +171,6 @@ namespace basic {
     
   public:
     Let( const std::string& vn, Expression* ex );
-
-    void lisp( std::ostringstream& ooo );
   };
   
   //
@@ -180,8 +182,6 @@ namespace basic {
     
   public:
     If( Expression* co, Statement* de, Statement* al = nullptr );
-
-    void lisp( std::ostringstream& ooo );
   };
   
   //
@@ -192,8 +192,6 @@ namespace basic {
 
   public:
     While( Expression* co, Statement* bo );
-
-    void lisp( std::ostringstream& ooo );
   };
   
   //
@@ -207,8 +205,6 @@ namespace basic {
     
   public:
     For( const std::string& pr, Expression* be, Expression* en, Expression* st, Statement* bo );
-
-    void lisp( std::ostringstream& ooo );
   };
 
   //
@@ -218,8 +214,6 @@ namespace basic {
     
   public:
     Call( const std::string& sn, const std::vector<Expression*> as );
-
-    void lisp( std::ostringstream& ooo );
   };
 
   //
@@ -231,8 +225,6 @@ namespace basic {
     
   public:
     Subroutine( const std::string& nm, const std::vector<std::string>& ps, Statement* bo );
-
-    void lisp( std::ostringstream& ooo );
   };
 
   //
@@ -243,8 +235,6 @@ namespace basic {
 
   public:
     Program( const std::string& fn );
-
-    void lisp( std::ostringstream& ooo );
   };
 
 } // basic
