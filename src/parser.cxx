@@ -50,31 +50,31 @@ namespace basic {
   ///
   Subroutine* Parser::parseSubroutine()
   {
-    match(Token::Subroutine);
-    auto name = lookahead.value;
-    match(Token::Identifier);
-    std::vector<std::string> params;
-    if( lookahead.is(Token::LeftPar) ) {
-      match(Token::LeftPar);
-      if( lookahead.is(Token::Identifier) ) {
-	auto idlex = lookahead.value;
-	match(Token::Identifier);
- 	params.push_back(idlex);
-	while( lookahead.is(Token::Comma) ) {
-	  match(Token::Comma);
-	  idlex = lookahead.value;
-	  match(Token::Identifier);
-	  params.push_back(idlex);
-	}
+      match(Token::Subroutine);
+      auto name = lookahead.value;
+      match(Token::Identifier);
+      std::vector<std::string> params;
+      if( lookahead.is(Token::LeftPar) ) {
+          match(Token::LeftPar);
+          if( lookahead.is(Token::Identifier) ) {
+              auto idlex = lookahead.value;
+              match(Token::Identifier);
+              params.push_back(idlex);
+              while( lookahead.is(Token::Comma) ) {
+                  match(Token::Comma);
+                  idlex = lookahead.value;
+                  match(Token::Identifier);
+                  params.push_back(idlex);
+              }
+          }
+          match(Token::RightPar);
       }
-      match(Token::RightPar);
-    }
-    
-    auto body = parseStatements();
-    match(Token::End);
-    match(Token::Subroutine);
-    
-    return new Subroutine(name, params, body);
+
+      auto body = parseStatements();
+      match(Token::End);
+      match(Token::Subroutine);
+
+      return new Subroutine(name, params, body);
   }
 
   ///
@@ -82,29 +82,33 @@ namespace basic {
   {
     parseNewLines();
 
+    std::cout << "Parsing Statment: " << lookahead.value << std::endl;
     auto sequ = new Sequence();
-    while( !lookahead.is(Token::End) ) {
-      Statement* stat = nullptr;
-      if( lookahead.is(Token::Let) )
-	stat = parseLet();
-      else if( lookahead.is(Token::Input) )
-	stat = parseInput();
-      else if( lookahead.is(Token::Print) )
-	stat = parsePrint();
-      else if( lookahead.is(Token::If) )
-	stat = parseIf();
-      else if( lookahead.is(Token::While) )
-	stat = parseWhile();
-      else if( lookahead.is(Token::For) )
-	stat = parseFor();
-      else if( lookahead.is(Token::Call) )
-	stat = parseCall();
-      else
-	throw ParseError{"Unknown start of control statement."};
-      sequ->items.push_back(stat);
-      parseNewLines();
+    while( !lookahead.is(Token::End) && !lookahead.is(Token::Else) ) {
+        std::cout << "LOOKAHEAD: " << lookahead.value << std::endl;
+        Statement* stat = nullptr;
+        if( lookahead.is(Token::Let) )
+            stat = parseLet();
+        else if( lookahead.is(Token::Input) )
+            stat = parseInput();
+        else if( lookahead.is(Token::Print) )
+            stat = parsePrint();
+        else if( lookahead.is(Token::If) )
+            stat = parseIf();
+        else if( lookahead.is(Token::While) )
+            stat = parseWhile();
+        else if( lookahead.is(Token::For) )
+            stat = parseFor();
+        else if( lookahead.is(Token::Call) )
+            stat = parseCall();
+        else {
+            std::cout << "LOOKAHEAD THROW: " << lookahead.value << std::endl;
+            throw ParseError{"Unknown start of control statement."};
+        }
+        sequ->items.push_back(stat);
+        parseNewLines();
     }
-    
+
     return sequ;
   }
 
@@ -139,9 +143,12 @@ namespace basic {
   ///
   Statement* Parser::parseIf()
   {
+    //std::cout << __LINE__ << lookahead.value << std::endl;
     match( Token::If );
     auto cond = parseExpression();
+    //std::cout <<  __LINE__ << lookahead.value << std::endl;
     match(Token::Then);
+    //std::cout <<  __LINE__ << lookahead.value << std::endl;
     auto deci = parseStatements();
     auto sif = new If(cond, deci);
     
@@ -156,12 +163,15 @@ namespace basic {
       it = eif;
     }
 
+    //std::cout <<  __LINE__ << lookahead.value << std::endl;
     if( lookahead.is(Token::Else) ) {
       match(Token::Else);
       auto alte = parseStatements();
       it->alternative = alte;
     }
+    //std::cout <<  __LINE__ << lookahead.value << std::endl;
     match(Token::End);
+    //std::cout <<  __LINE__ << lookahead.value << std::endl;
     match(Token::If);
 
     return sif;

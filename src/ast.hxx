@@ -40,6 +40,7 @@ namespace basic {
     unsigned int line = 0;
 
   public:
+    void printKind();
     AstNode();
     virtual ~AstNode() = default;
 

@@ -1,5 +1,6 @@
 
 #include "ast.hxx"
+#include <iostream>
 
 namespace basic {
   //
@@ -10,6 +11,66 @@ namespace basic {
   {
     for( auto e : allocated_nodes )
       delete e;
+  }
+
+  void AstNode::printKind()
+  {
+      switch (kind) {
+          case NodeKind::Empty:
+              std::cout << "Empty" << std::endl;
+              break;
+          case NodeKind::Number:
+              std::cout << "Number:" << std::endl;
+              break;
+          case NodeKind::Text:
+              std::cout << "Text:" << std::endl;
+              break;
+          case NodeKind::Variable:
+              std::cout << "Variable:" << std::endl;
+              break;
+          case NodeKind::Unary:
+              std::cout << "Unary:" << std::endl;
+              break;
+          case NodeKind::Binary:
+              std::cout << "Binary:" << std::endl;
+              break;
+          case NodeKind::Apply:
+              std::cout << "Apply" << std::endl;
+              break;
+          case NodeKind::Sequence:
+              std::cout << "Sequence" << std::endl;
+              break;
+          case NodeKind::Input:
+              std::cout << "Input" << std::endl;
+              break;
+          case NodeKind::Print:
+              std::cout << "Print" << std::endl;
+              break;
+          case NodeKind::Let:
+              std::cout << "Let" << std::endl;
+              break;
+          case NodeKind::If:
+              std::cout << "If" << std::endl;
+              break;
+          case NodeKind::While:
+              std::cout << "While" << std::endl;
+              break;
+          case NodeKind::For:
+              std::cout << "For" << std::endl;
+              break;
+          case NodeKind::Call:
+              std::cout << "Call" << std::endl;
+              break;
+          case NodeKind::Subroutine:
+              std::cout << "Subroutine" << std::endl;
+              break;
+          case NodeKind::Program:
+              std::cout << "Program" << std::endl;
+              break;
+          default : 
+              std::cout << "UNKNOWN" << std::endl;
+
+      }
   }
 
   //
