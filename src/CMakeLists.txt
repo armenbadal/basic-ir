@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 project(basic-ir)
 add_definitions(-std=c++14)
-add_definitions(-gdwarf-2)
+add_definitions(-gdwarf-2 -g)
 
 #include_directories(../../llvm/build/include)
 #link_directories(../../llvm/build/lib)
