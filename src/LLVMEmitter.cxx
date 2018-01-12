@@ -3,6 +3,7 @@
 #include "ast.hxx"
 
 #include <llvm/IR/GlobalValue.h>
+#include <llvm/Support/raw_ostream.h>
 
 #include <iostream>
 #include <sstream>
@@ -32,14 +33,8 @@ void LLVMEmitter::emitModule(Program* prog)
     for( Subroutine* si : prog->members ) {
         //mOut << "Name: " << (*si).name <<  std::endl;
         emitFunction(si);
-
-        //if (auto body = dynamic_cast<Sequence*>(si->body)) {
-        //    for (auto st : body->items) {
-        //        st->printKind();
-        //    }
-        //}
     }
-    mModule->dump();
+    mModule->print(llvm::errs(), nullptr);
 }
 
 void LLVMEmitter::emitFunction(Subroutine* sub)
