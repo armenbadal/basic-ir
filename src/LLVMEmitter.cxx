@@ -52,14 +52,19 @@ void LLVMEmitter::emitFunction(Subroutine* sub)
     
     for (auto& arg : fun->args()) {
         auto i = arg.getArgNo();
-        arg.setName(sub->parameters[i]);
+        auto name = sub->parameters[i];
+        arg.setName(name);
+        auto addr = mBuilder.CreateAlloca(mBuilder.getDoubleTy(), nullptr, name + "_addr");
+        mBuilder.CreateStore(&arg, addr);
+        mAddresses.insert({&arg, addr});
     }
+
     mEmittedNodes.insert({sub, fun});
 }
 
 llvm::BasicBlock* LLVMEmitter::processSequence(Sequence* seq, llvm::Function* parent, const std::string& name)
 {
-    if (! seq || ! parent) { assert(0);return nullptr; }
+    if (! seq) { assert(0);return nullptr; }
 
     if (auto ret = getEmittedNode(seq)) { return llvm::cast<llvm::BasicBlock>(ret); }
     auto bb = llvm::BasicBlock::Create(llvmContext, name, parent);
@@ -118,11 +123,15 @@ void LLVMEmitter::processIf(If* ifSt)
     if (! ifSt) { assert(0);return; }
 
     if (getEmittedNode(ifSt)) { return ; }
+    auto insertBB = mBuilder.GetInsertBlock();
+    auto fun = insertBB->getParent();
     auto cnd = processExpression(ifSt->condition);
-    auto fun = mBuilder.GetInsertBlock()->getParent();
     llvm::BasicBlock* decBB = processSequence(static_cast<Sequence*>(ifSt->decision), fun);
     llvm::BasicBlock* altBB = processSequence(static_cast<Sequence*>(ifSt->alternative), fun);
+
+    mBuilder.SetInsertPoint(insertBB);
     auto br = mBuilder.CreateCondBr(cnd, decBB, altBB);
+
     mEmittedNodes.insert({ifSt, br});
 }
 
@@ -138,8 +147,9 @@ llvm::Value* LLVMEmitter::processExpression(Expression* expr)
         std::cout << __LINE__ << std::endl;
         //return emitString(num);
     } else if (auto var = dynamic_cast<Variable*>(expr)) {
-        //std::cout << __LINE__ << "  PAR NAME:" << var->name << std::endl;
-        return emitAlloca(var);
+        std::cout << __LINE__ << "  VAR NAME:" << var->name << std::endl;
+        //return emitAlloca(var);
+        return emitLoad(var);
     } else if (auto unary = dynamic_cast<Unary*>(expr)) {
         std::cout << __LINE__ << std::endl;
         return processUnary(unary);
@@ -155,15 +165,43 @@ llvm::Value* LLVMEmitter::processExpression(Expression* expr)
     return nullptr;
 }
 
+llvm::Value* LLVMEmitter::getVariableAddress(Variable* var)
+{
+    if (!var) { return nullptr; }
+    auto it = mAddresses.find(var);
+    if (it != mAddresses.end()) {
+        return it->second;
+    }
+    return nullptr;
+}
+
+llvm::LoadInst* LLVMEmitter::emitLoad(Variable* var)
+{
+    if (!var) { return nullptr; }
+
+    auto addr = getVariableAddress(var);
+    llvm::LoadInst* load = nullptr;
+    if (var->type == Type::Text) {
+        //TODO
+    } else {
+        load = mBuilder.CreateLoad(mBuilder.getDoubleTy(), addr, var->name);
+    }
+    llvm::errs() << *load << "\n";
+    
+    return load;
+}
+
 llvm::AllocaInst* LLVMEmitter::emitAlloca(Variable* var)
 {
     if (!var) { return nullptr; }
 
     llvm::AllocaInst* alloca = nullptr;
     if (var->type == Type::Text) {
-
+        //TODO
     } else {
         alloca = mBuilder.CreateAlloca(mBuilder.getDoubleTy(), nullptr, var->name + "_addr");
+        llvm::errs() << *alloca << "\n";
+        mAddresses.insert({var, alloca});
     }
     
     return alloca;
