@@ -42,32 +42,41 @@ void LLVMEmitter::emitFunction(Subroutine* sub)
     if (! sub) { return; }
     auto paramNum = sub->parameters.size();
     std::vector<llvm::Type*> paramTypes;
-    paramTypes.insert(paramTypes.begin(), paramNum, mBuilder.getInt32Ty());
+    paramTypes.insert(paramTypes.begin(), paramNum, mBuilder.getDoubleTy());
 
-    auto ft = llvm::FunctionType::get(mBuilder.getVoidTy(), paramTypes, false);
+    auto ft = llvm::FunctionType::get(mBuilder.getDoubleTy(), paramTypes, false);
     auto fun = llvm::Function::Create(ft, llvm::GlobalValue::ExternalLinkage, sub->name, mModule);
-    //auto bb = llvm::BasicBlock::Create(llvmContext, "entry", fun);
-    auto body = static_cast<Sequence*>(sub->body);
-    processSequence(body, fun, "entry");
     
+    auto bb = llvm::BasicBlock::Create(llvmContext, "entry", fun);
+    mBuilder.SetInsertPoint(bb);
     for (auto& arg : fun->args()) {
         auto i = arg.getArgNo();
         auto name = sub->parameters[i];
         arg.setName(name);
+        llvm::errs() << "Arg: " << name << "\n";
         auto addr = mBuilder.CreateAlloca(mBuilder.getDoubleTy(), nullptr, name + "_addr");
-        mBuilder.CreateStore(&arg, addr);
-        mAddresses.insert({&arg, addr});
+        auto st = mBuilder.CreateStore(&arg, addr);
+        llvm::errs() << *addr << "\n";
+        llvm::errs() << *st << "\n";
+        mAddresses.insert({name, addr});
     }
-
+    auto ret_addr = mBuilder.CreateAlloca(mBuilder.getDoubleTy(), nullptr, "ret_addr");
+    mAddresses.insert({sub->name, ret_addr});
+    
+    auto body = static_cast<Sequence*>(sub->body);
+    processSequence(body, fun, bb);
+    
     mEmittedNodes.insert({sub, fun});
 }
 
-llvm::BasicBlock* LLVMEmitter::processSequence(Sequence* seq, llvm::Function* parent, const std::string& name)
+llvm::BasicBlock* LLVMEmitter::processSequence(Sequence* seq, llvm::Function* parent, llvm::BasicBlock* bb)
 {
     if (! seq) { assert(0);return nullptr; }
 
     if (auto ret = getEmittedNode(seq)) { return llvm::cast<llvm::BasicBlock>(ret); }
-    auto bb = llvm::BasicBlock::Create(llvmContext, name, parent);
+    if (bb == nullptr) { //FIXME bb must not tobe nullptr
+        bb = llvm::BasicBlock::Create(llvmContext, "bb", parent);
+    }
     mBuilder.SetInsertPoint(bb);
     for (auto st : seq->items) {
         processStatement(st);
@@ -103,6 +112,7 @@ void LLVMEmitter::processStatement(Statement* stat)
         case NodeKind::Print:
             break;
         case NodeKind::Let:
+            processLet(static_cast<Let*>(stat));
             break;
         case NodeKind::If:
             processIf(static_cast<If*>(stat));
@@ -118,6 +128,19 @@ void LLVMEmitter::processStatement(Statement* stat)
     }
 }
 
+void LLVMEmitter::processLet(Let* letSt)
+{
+    if (! letSt) { assert(0);return; }
+    std::cout << "LEEEEEEEETTTT:  " << letSt->varname << "\n";
+    auto addr = getVariableAddress(letSt->varname);
+    assert(addr && "Unhandled variable");
+
+    auto val = processExpression(letSt->expr); 
+
+    auto st = mBuilder.CreateStore(val, addr);
+    llvm::errs() << *st << "\n";
+}
+
 void LLVMEmitter::processIf(If* ifSt)
 {
     if (! ifSt) { assert(0);return; }
@@ -126,11 +149,24 @@ void LLVMEmitter::processIf(If* ifSt)
     auto insertBB = mBuilder.GetInsertBlock();
     auto fun = insertBB->getParent();
     auto cnd = processExpression(ifSt->condition);
-    llvm::BasicBlock* decBB = processSequence(static_cast<Sequence*>(ifSt->decision), fun);
-    llvm::BasicBlock* altBB = processSequence(static_cast<Sequence*>(ifSt->alternative), fun);
+
+
+    llvm::BasicBlock* decBB = llvm::BasicBlock::Create(llvmContext, "bb", fun);
+    llvm::BasicBlock* altBB = llvm::BasicBlock::Create(llvmContext, "bb", fun);
+
+    llvm::BasicBlock* endif = llvm::BasicBlock::Create(llvmContext, "bb", fun);
+
+    processSequence(static_cast<Sequence*>(ifSt->decision), fun, decBB);
+    processSequence(static_cast<Sequence*>(ifSt->alternative), fun, altBB);
 
     mBuilder.SetInsertPoint(insertBB);
     auto br = mBuilder.CreateCondBr(cnd, decBB, altBB);
+
+    mBuilder.SetInsertPoint(decBB);
+    mBuilder.CreateBr(endif);
+
+    mBuilder.SetInsertPoint(altBB);
+    mBuilder.CreateBr(endif);
 
     mEmittedNodes.insert({ifSt, br});
 }
@@ -165,10 +201,9 @@ llvm::Value* LLVMEmitter::processExpression(Expression* expr)
     return nullptr;
 }
 
-llvm::Value* LLVMEmitter::getVariableAddress(Variable* var)
+llvm::Value* LLVMEmitter::getVariableAddress(const std::string& name)
 {
-    if (!var) { return nullptr; }
-    auto it = mAddresses.find(var);
+    auto it = mAddresses.find(name);
     if (it != mAddresses.end()) {
         return it->second;
     }
@@ -179,7 +214,7 @@ llvm::LoadInst* LLVMEmitter::emitLoad(Variable* var)
 {
     if (!var) { return nullptr; }
 
-    auto addr = getVariableAddress(var);
+    auto addr = getVariableAddress(var->name);
     llvm::LoadInst* load = nullptr;
     if (var->type == Type::Text) {
         //TODO
@@ -201,7 +236,7 @@ llvm::AllocaInst* LLVMEmitter::emitAlloca(Variable* var)
     } else {
         alloca = mBuilder.CreateAlloca(mBuilder.getDoubleTy(), nullptr, var->name + "_addr");
         llvm::errs() << *alloca << "\n";
-        mAddresses.insert({var, alloca});
+        mAddresses.insert({var->name, alloca});
     }
     
     return alloca;
@@ -244,8 +279,7 @@ llvm::Value* LLVMEmitter::processBinary(Binary* bin)
             ret = mBuilder.CreateFCmpONE(lhs, rhs, "ne");
             break;
         case Operation::Gt:
-            //ret = mBuilder.CreateFCmpOGT(lhs, rhs, "ne");
-            ret = mBuilder.CreateICmpSGT(lhs, rhs, "gt");
+            ret = mBuilder.CreateFCmpOGT(lhs, rhs, "ne");
             break;
         case Operation::Ge:
             ret = mBuilder.CreateFCmpOGE(lhs, rhs, "ge");

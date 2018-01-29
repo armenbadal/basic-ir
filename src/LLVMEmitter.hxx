@@ -6,6 +6,7 @@
 #include <iostream>
 #include <sstream>
 #include <unordered_map>
+#include <string>
 
 namespace basic {
 
@@ -20,9 +21,10 @@ public:
 
 ///@name internal functions
 private:
+    void processLet(Let* letSt);
     void processIf(If* ifSt);
     void processStatement(Statement* stat);
-    llvm::BasicBlock* processSequence(Sequence* seq, llvm::Function* parent = nullptr, const std::string& name = "");
+    llvm::BasicBlock* processSequence(Sequence* seq, llvm::Function* parent = nullptr, llvm::BasicBlock* bb = nullptr);
     llvm::Value* processExpression(Expression* expr);
     llvm::Value* processBinary(Binary* bin);
     llvm::Value* processUnary(Unary* un);
@@ -32,7 +34,7 @@ private:
     llvm::LoadInst* emitLoad(Variable* var);
 
     llvm::Value* getEmittedNode(AstNode* node);
-    llvm::Value* getVariableAddress(Variable* var);
+    llvm::Value* getVariableAddress(const std::string& name);
 
 ///@name 
 public:
@@ -51,7 +53,7 @@ private:
     llvm::IRBuilder<> mBuilder;
     llvm::Module* mModule = nullptr;
     std::unordered_map<AstNode*, llvm::Value*> mEmittedNodes;
-    std::unordered_map<AstNode*, llvm::Value*> mAddresses;
+    std::unordered_map<std::string, llvm::Value*> mAddresses;
 
 public:
     static llvm::LLVMContext llvmContext;
