@@ -63,46 +63,42 @@ void LLVMEmitter::emitFunction(Subroutine* sub)
     auto ret_addr = mBuilder.CreateAlloca(mBuilder.getDoubleTy(), nullptr, "ret_addr");
     mAddresses.insert({sub->name, ret_addr});
     
-    auto body = static_cast<Sequence*>(sub->body);
-    processSequence(body, fun, bb);
+    //
+    auto endBB = llvm::BasicBlock::Create(llvmContext, "end", fun);
+    mBuilder.SetInsertPoint(endBB);
+    auto ret = mBuilder.CreateLoad(mBuilder.getDoubleTy(), ret_addr, "ret_val");
+    mBuilder.CreateRet(ret);
+    
+    //auto body = static_cast<Sequence*>(sub->body);
+    //processSequence(body, bb, endBB);
+    //FIXME
+    processStatement(sub->body, bb, endBB);
     
     mEmittedNodes.insert({sub, fun});
 }
 
-llvm::BasicBlock* LLVMEmitter::processSequence(Sequence* seq, llvm::Function* parent, llvm::BasicBlock* bb)
+llvm::BasicBlock* LLVMEmitter::processSequence(Sequence* seq, llvm::BasicBlock* bb, llvm::BasicBlock* endBB)
 {
     if (! seq) { assert(0);return nullptr; }
 
     if (auto ret = getEmittedNode(seq)) { return llvm::cast<llvm::BasicBlock>(ret); }
-    if (bb == nullptr) { //FIXME bb must not tobe nullptr
-        bb = llvm::BasicBlock::Create(llvmContext, "bb", parent);
-    }
     mBuilder.SetInsertPoint(bb);
     for (auto st : seq->items) {
-        processStatement(st);
+        processStatement(st, endBB);
     }
     //FIXME terminator misssing
     mEmittedNodes.insert({seq, bb});
     return bb;
 }
 
-void LLVMEmitter::processStatement(Statement* stat)
+void LLVMEmitter::processStatement(Statement* stat, llvm::BasicBlock* endBB)
 {
     if (! stat) { assert(0);return; }
      
     if (getEmittedNode(stat)) { return ; }
+    llvm::errs() << "KIND: ";
     stat->printKind();
     switch (stat->kind) {
-        case NodeKind::Number:
-            break;
-        case NodeKind::Text:
-            break;
-        case NodeKind::Variable:
-            break;
-        case NodeKind::Unary:
-            break;
-        case NodeKind::Binary:
-            break;
         case NodeKind::Apply:
             break;
         case NodeKind::Sequence:
@@ -115,7 +111,7 @@ void LLVMEmitter::processStatement(Statement* stat)
             processLet(static_cast<Let*>(stat));
             break;
         case NodeKind::If:
-            processIf(static_cast<If*>(stat));
+            processIf(static_cast<If*>(stat), endBB);
             break;
         case NodeKind::While:
             break;
@@ -141,7 +137,7 @@ void LLVMEmitter::processLet(Let* letSt)
     llvm::errs() << *st << "\n";
 }
 
-void LLVMEmitter::processIf(If* ifSt)
+void LLVMEmitter::processIf(If* ifSt, llvm::BasicBlock* endBB)
 {
     if (! ifSt) { assert(0);return; }
 
@@ -151,22 +147,30 @@ void LLVMEmitter::processIf(If* ifSt)
     auto cnd = processExpression(ifSt->condition);
 
 
-    llvm::BasicBlock* decBB = llvm::BasicBlock::Create(llvmContext, "bb", fun);
-    llvm::BasicBlock* altBB = llvm::BasicBlock::Create(llvmContext, "bb", fun);
+    llvm::BasicBlock* decBB = llvm::BasicBlock::Create(llvmContext, "bb", fun, endBB);
+    llvm::BasicBlock* altBB = llvm::BasicBlock::Create(llvmContext, "bb", fun, endBB);
 
-    llvm::BasicBlock* endif = llvm::BasicBlock::Create(llvmContext, "bb", fun);
+    //llvm::BasicBlock* endif = llvm::BasicBlock::Create(llvmContext, "bb", fun);
 
-    processSequence(static_cast<Sequence*>(ifSt->decision), fun, decBB);
-    processSequence(static_cast<Sequence*>(ifSt->alternative), fun, altBB);
+    processSequence(static_cast<Sequence*>(ifSt->decision), decBB, endBB);
+    processSequence(static_cast<Sequence*>(ifSt->alternative), altBB, endBB);
 
     mBuilder.SetInsertPoint(insertBB);
     auto br = mBuilder.CreateCondBr(cnd, decBB, altBB);
 
-    mBuilder.SetInsertPoint(decBB);
-    mBuilder.CreateBr(endif);
+    if (! decBB->getTerminator()) {
+        mBuilder.SetInsertPoint(decBB);
+        mBuilder.CreateBr(endBB);
+    }
 
-    mBuilder.SetInsertPoint(altBB);
-    mBuilder.CreateBr(endif);
+    if (! altBB->getTerminator()) {
+        mBuilder.SetInsertPoint(altBB);
+        mBuilder.CreateBr(endBB);
+    }
+
+    //mBuilder.SetInsertPoint(endif);
+    //assert(endBB);
+    //mBuilder.CreateBr(endBB);
 
     mEmittedNodes.insert({ifSt, br});
 }
@@ -183,8 +187,7 @@ llvm::Value* LLVMEmitter::processExpression(Expression* expr)
         std::cout << __LINE__ << std::endl;
         //return emitString(num);
     } else if (auto var = dynamic_cast<Variable*>(expr)) {
-        std::cout << __LINE__ << "  VAR NAME:" << var->name << std::endl;
-        //return emitAlloca(var);
+        //std::cout << __LINE__ << "  VAR NAME:" << var->name << std::endl;
         return emitLoad(var);
     } else if (auto unary = dynamic_cast<Unary*>(expr)) {
         std::cout << __LINE__ << std::endl;

@@ -22,9 +22,9 @@ public:
 ///@name internal functions
 private:
     void processLet(Let* letSt);
-    void processIf(If* ifSt);
-    void processStatement(Statement* stat);
-    llvm::BasicBlock* processSequence(Sequence* seq, llvm::Function* parent = nullptr, llvm::BasicBlock* bb = nullptr);
+    void processIf(If* ifSt, llvm::BasicBlock* endBB = nullptr);
+    llvm::BasicBlock* processSequence(Sequence* seq, llvm::BasicBlock* bb, llvm::BasicBlock* endBB = nullptr);
+    void processStatement(Statement* stat, llvm::BasicBlock* endBB = nullptr);
     llvm::Value* processExpression(Expression* expr);
     llvm::Value* processBinary(Binary* bin);
     llvm::Value* processUnary(Unary* un);
