@@ -8,7 +8,7 @@
 namespace basic {
 
 ///
-void programAsLLVM( Program* node, std::ostringstream& ooo )
+void emitLLVM( Program* node, llvm::raw_fd_ostream& ooo )
 {
     LLVMEmitter llvm(node, ooo);
     llvm.emitModule(node);

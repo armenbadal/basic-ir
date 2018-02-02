@@ -79,6 +79,11 @@ namespace basic {
     allocated_nodes.push_front(this);
   }
   
+  Sequence::Sequence()
+  {
+    kind = NodeKind::Sequence;
+  }
+
   //
   Number::Number( double vl )
     : value{vl}

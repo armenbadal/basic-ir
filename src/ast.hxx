@@ -143,7 +143,7 @@ namespace basic {
     std::vector<Statement*> items;
     
   public:
-    Sequence() = default;
+    Sequence();
   };
   
   //
