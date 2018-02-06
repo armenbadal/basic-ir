@@ -223,6 +223,7 @@ namespace basic {
     std::string name = "";
     std::vector<std::string> parameters;
     Statement* body = nullptr;
+    Type rettype = Type::Void;
     
   public:
     Subroutine( const std::string& nm, const std::vector<std::string>& ps, Statement* bo );

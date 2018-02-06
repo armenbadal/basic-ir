@@ -12,6 +12,7 @@ namespace basic {
   private:
     Scanner scanner;
     Lexeme lookahead;
+    Subroutine* cursubroutine = nullptr;
     
   public:
     Parser( const std::string& filename );

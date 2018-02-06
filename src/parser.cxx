@@ -70,11 +70,13 @@ namespace basic {
           match(Token::RightPar);
       }
 
+      cursubroutine = new Subroutine(name, params, nullptr);
       auto body = parseStatements();
+      cursubroutine->body = body;
       match(Token::End);
       match(Token::Subroutine);
 
-      return new Subroutine(name, params, body);
+      return cursubroutine;
   }
 
   ///
@@ -120,6 +122,14 @@ namespace basic {
     match(Token::Identifier);
     match(Token::Eq);
     auto exo = parseExpression();
+
+    //Handling for return operation
+    if ( vnm == cursubroutine->name )
+        if ( cursubroutine->rettype == Type::Void )
+            cursubroutine->rettype = exo->type;
+        else if (cursubroutine->rettype != exo->type )
+            throw TypeError{"Incompatible types of return values."};
+
     return new Let(vnm, exo);
   }
   
