@@ -40,6 +40,7 @@ private:
 
     llvm::Value* getEmittedNode(AstNode* node);
     llvm::Value* getVariableAddress(const std::string& name);
+    llvm::Type* getLLVMType(Type type);
 
 ///@name 
 public:

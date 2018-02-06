@@ -23,6 +23,22 @@ llvm::Value* LLVMEmitter::getEmittedNode(AstNode* node)
     return nullptr;
 }
 
+llvm::Type* LLVMEmitter::getLLVMType(Type type)
+{
+    if (type == Type::Void) {
+        return mBuilder.getVoidTy();
+    } else if (type == Type::Number) {
+        return mBuilder.getDoubleTy();
+    } else if (type == Type::Text) {
+        return mBuilder.getInt8PtrTy();
+    } else {
+        assert(!"Undefined type");
+    }
+
+    return nullptr;
+
+}
+
 ///
 void LLVMEmitter::emitModule(Program* prog)
 {
@@ -42,7 +58,9 @@ void LLVMEmitter::emitFunction(Subroutine* sub)
     std::vector<llvm::Type*> paramTypes;
     paramTypes.insert(paramTypes.begin(), paramNum, mBuilder.getDoubleTy());
 
-    auto ft = llvm::FunctionType::get(mBuilder.getDoubleTy(), paramTypes, false);
+    auto retType = getLLVMType(sub->rettype);
+
+    auto ft = llvm::FunctionType::get(retType, paramTypes, false);
     auto fun = llvm::Function::Create(ft, llvm::GlobalValue::ExternalLinkage, sub->name, mModule);
     
     auto bb = llvm::BasicBlock::Create(llvmContext, "entry", fun);
@@ -56,19 +74,28 @@ void LLVMEmitter::emitFunction(Subroutine* sub)
         mAddresses.insert({name, addr});
     }
 
-    // Placeholder for return value
-    auto ret_addr = mBuilder.CreateAlloca(mBuilder.getDoubleTy(), nullptr, "ret_addr");
-    mAddresses.insert({sub->name, ret_addr});
-    
-    //
+    // Return value allocation
+    llvm::Value* retAddr = nullptr;
+    if (! retType->isVoidTy()) {
+        retAddr = mBuilder.CreateAlloca(mBuilder.getDoubleTy(), nullptr, "ret_addr");
+        mAddresses.insert({sub->name, retAddr});
+    }
+
+    //Last block
     auto endBB = llvm::BasicBlock::Create(llvmContext, "end", fun);
     
+    //Handle the function body
     mBuilder.SetInsertPoint(bb);
     processStatement(sub->body, endBB);
     
+    //Set return statement
     mBuilder.SetInsertPoint(endBB);
-    auto ret = mBuilder.CreateLoad(mBuilder.getDoubleTy(), ret_addr, "ret_val");
-    mBuilder.CreateRet(ret);
+    if (retAddr != nullptr) {
+        auto ret = mBuilder.CreateLoad(mBuilder.getDoubleTy(), retAddr, "ret_val");
+        mBuilder.CreateRet(ret);
+    } else {
+        mBuilder.CreateRetVoid();
+    }
     
     mEmittedNodes.insert({sub, fun});
 }
@@ -225,7 +252,7 @@ void LLVMEmitter::processFor(For* forSt, llvm::BasicBlock* endBB)
 
 llvm::Value* LLVMEmitter::processExpression(Expression* expr)
 {
-    if (! expr) {assert(0); return nullptr; }
+    if (! expr) { assert(0); return nullptr; }
 
     if (auto r = getEmittedNode(expr)) { return r; }
     if (auto num = dynamic_cast<Number*>(expr)) {
