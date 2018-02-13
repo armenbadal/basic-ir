@@ -14,7 +14,7 @@ If = 'IF' Expression 'THEN' StatementList
      {'ELSEIF' Expression 'THEN' StatementList }
      ['ELSE' StatementList] 'END' 'IF'.
 While = 'WHILE' Expression StatementList 'END' 'WHILE'.
-For = 'FOR' IDENT '=' Expression 'TO' Expression ['STEP' Expression]
+For = 'FOR' IDENT '=' Expression 'TO' Expression ['STEP' NUMBER]
       StatementList 'END' 'FOR'.
 Call = 'CALL' IDENT [ExpressionList].
 ExpressionList = Expression {',' Expression}.
@@ -22,7 +22,7 @@ Expression = Addition [('=' | '<>' | '>' | '>=' | '<' | '<=') Addition].
 Addition = Multiplication {('+' | '-' | '&' | 'OR') Multiplication}.
 Multiplication = Power {('*' | '/' | '\' | 'AND') Power}.
 Power = Factor ['^' Power].
-Factor = DOUBLE | STRING | IDENT | '(' Expression ')' 
+Factor = NUMBER | STRING | IDENT | '(' Expression ')' 
        | IDENT '(' [ExpressionList] ')'.
 ````
 
