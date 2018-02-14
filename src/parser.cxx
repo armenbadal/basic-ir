@@ -29,7 +29,9 @@ namespace basic {
     return prog;
   }
   
-  ///
+  /// 
+  /// Program [NewLines] { Subroutine NewLines }.
+  /// 
   Program* Parser::parseProgram()
   {
     scanner >> lookahead;
@@ -47,6 +49,8 @@ namespace basic {
     return prog;
   }
 
+  ///
+  /// Subroutine = 'SUB' IDENT ['(' [IdentList] ')'] Statements 'END' 'SUB'.
   ///
   Subroutine* Parser::parseSubroutine()
   {
@@ -80,6 +84,8 @@ namespace basic {
   }
 
   ///
+  /// Statements = NewLines { (Let | Input | Print | If | While | For | Call) NewLines }.
+  ///
   Statement* Parser::parseStatements()
   {
     parseNewLines();
@@ -104,7 +110,7 @@ namespace basic {
         else if( lookahead.is(Token::Call) )
             stat = parseCall();
         else {
-            std::cout << "LOOKAHEAD THROW: " << lookahead.value << std::endl;
+            /* DEBUG */std::cout << "LOOKAHEAD THROW: " << lookahead.value << std::endl;
             throw ParseError{"Unknown start of control statement."};
         }
         sequ->items.push_back(stat);
@@ -115,11 +121,14 @@ namespace basic {
   }
 
   ///
+  /// Let = 'LET' IDENT '=' Expression.
+  ///
   Statement* Parser::parseLet()
   {
     match(Token::Let);
     auto vnm = lookahead.value;
     match(Token::Identifier);
+	// TODO: 
     match(Token::Eq);
     auto exo = parseExpression();
 
@@ -134,6 +143,8 @@ namespace basic {
   }
   
   ///
+  /// Input = 'INPUT' IDENT.
+  ///
   Statement* Parser::parseInput()
   {
     match(Token::Input);
@@ -143,6 +154,8 @@ namespace basic {
   }
 
   ///
+  /// Print = 'PRINT' Expression.
+  ///
   Statement* Parser::parsePrint()
   {
     match(Token::Print);
@@ -150,6 +163,10 @@ namespace basic {
     return new Print(exo);
   }
 
+  ///
+  /// If = 'IF' Expression 'THEN' Statements
+  ///   {'ELSEIF' Expression 'THEN' Statements }
+  ///   ['ELSE' Statements] 'END' 'IF'.
   ///
   Statement* Parser::parseIf()
   {
@@ -188,6 +205,8 @@ namespace basic {
   }
 
   ///
+  /// While = 'WHILE' Expression Statements 'END' 'WHILE'.
+  ///
   Statement* Parser::parseWhile()
   {
     match(Token::While);
@@ -198,6 +217,9 @@ namespace basic {
     return new While(cond, body);
   }
 
+  ///
+  /// For = 'FOR' IDENT '=' Expression 'TO' Expression ['STEP' NUMBER]
+  ///    Statements 'END' 'FOR'.
   ///
   Statement* Parser::parseFor()
   {
@@ -213,8 +235,8 @@ namespace basic {
       match(Token::Step);
       bool neg = false;
       if( lookahead.is(Token::Sub) ) {
-	match(Token::Sub);
-	neg = true;
+        match(Token::Sub);
+        neg = true;
       }
       auto lex = lookahead.value;
       match(Token::Number);
@@ -227,11 +249,14 @@ namespace basic {
   }
 
   ///
+  /// Call = 'CALL' IDENT [ExpressionList].
+  ///
   Statement* Parser::parseCall()
   {
     match(Token::Call);
     auto nm = lookahead.value;
     match(Token::Identifier);
+	// TODO: ստուգել, որ name անունով ենթածրագիր սահմանված լինի
     std::vector<Expression*> args;
     if( lookahead.is({Token::Number, Token::Text, Token::Identifier,
 	    Token::Sub, Token::Not, Token::LeftPar}) ) {
@@ -239,11 +264,12 @@ namespace basic {
       args.push_back(exo);
       while( lookahead.is({Token::Number, Token::Text, Token::Identifier,
 	      Token::Sub, Token::Not, Token::LeftPar}) ) {
-	match(Token::Comma);
-	exo = parseExpression();
-	args.push_back(exo);
+        match(Token::Comma);
+        exo = parseExpression();
+        args.push_back(exo);
       }
-    }    
+    }
+	// TODO: ստուգել, որ name ենթածրագրի պարամետրերի քանակը հավասար լինի args.size()-ի
     return new Call(nm, args);
   }
 
@@ -266,11 +292,13 @@ namespace basic {
     {Token::Or, Operation::Or}
   };
   
-  //
+  ///
+  /// Expression = Addition [('=' | '<>' | '>' | '>=' | '<' | '<=') Addition].
+  ///
   Expression* Parser::parseExpression()
   {
     auto res = parseAddition();
-    if( lookahead.is({Token::Gt, Token::Ge, Token::Lt, Token::Le, Token::Eq, Token::Ne}) ) {
+    if( lookahead.is({Token::Eq, Token::Ne, Token::Gt, Token::Ge, Token::Lt, Token::Le}) ) {
       auto opc = mapopcode[lookahead.kind];
       match(lookahead.kind);
       auto exo = parseAddition();
@@ -279,7 +307,9 @@ namespace basic {
     return res;
   }
 
-  //
+  ///
+  /// Addition = Multiplication {('+' | '-' | '&' | 'OR') Multiplication}.
+  ///
   Expression* Parser::parseAddition()
   {
     auto res = parseMultiplication();
@@ -292,7 +322,9 @@ namespace basic {
     return res;
   }
 
-  //
+  ///
+  /// Multiplication = Power {('*' | '/' | '\' | 'AND') Power}.
+  ///
   Expression* Parser::parseMultiplication()
   {
     auto res = parsePower();
@@ -305,7 +337,9 @@ namespace basic {
     return res;
   }
 
-  //
+  ///
+  /// Power = Factor ['^' Power].
+  ///
   Expression* Parser::parsePower()
   {
     auto res = parseFactor();
@@ -318,61 +352,67 @@ namespace basic {
   }
   
   ///
+  /// Factor = NUMBER | TEXT | IDENT | '(' Expression ')' 
+  ///     | IDENT '(' [ExpressionList] ')'.
+  ///
   Expression* Parser::parseFactor()
   {
-    //
+    /// NUMBER
     if( lookahead.is(Token::Number) ) {
       auto lex = lookahead.value;
       match(Token::Number);
       return new Number(std::stod(lex));
     }
 
-    //
+    /// TEXT
     if( lookahead.is(Token::Text) ) {
       auto lex = lookahead.value;
       match(Token::Text);
       return new Text(lex);
     }
 
-    //
+    /// ('-' | 'NOT') Factor
     if( lookahead.is({Token::Sub, Token::Not}) ) {
       Operation opc = Operation::None;
       if( lookahead.is(Token::Sub) ) {
-	opc = Operation::Sub;
-	match(Token::Sub);
+        opc = Operation::Sub;
+        match(Token::Sub);
       }
       else if( lookahead.is(Token::Not) ) {
-	opc = Operation::Not;
-	match(Token::Not);
+        opc = Operation::Not;
+        match(Token::Not);
       }
       auto exo = parseFactor();
       if( exo->type != Type::Number )
-	throw TypeError{"Unary operation is applicable only for numbers."};
+        throw TypeError{"Unary operation is applicable only for numbers."};
       return new Unary(opc, exo);
     }
     
-    //
+    /// IDENT ['(' [ExpressionList] ')']
     if( lookahead.is(Token::Identifier) ) {
       auto name = lookahead.value;
       match(Token::Identifier);
       if( lookahead.is(Token::LeftPar) ) {
-	std::vector<Expression*> args;
-	match(Token::LeftPar);
-	auto exo = parseExpression();
-	args.push_back(exo);
-	while( lookahead.is({Token::Number, Token::Text, Token::Identifier,
-		Token::Sub, Token::Not, Token::LeftPar}) ) {
-	  match(Token::Comma);
-	  exo = parseExpression();
-	  args.push_back(exo);
-	}
-	match(Token::RightPar);
-	return new Apply(name, args);
+	    // TODO: ստուգել, որ name անունով ենթածրագիր սահմանված լինի
+        std::vector<Expression*> args;
+        match(Token::LeftPar);
+        auto exo = parseExpression();
+        args.push_back(exo);
+        while( lookahead.is({Token::Number, Token::Text, Token::Identifier,
+               Token::Sub, Token::Not, Token::LeftPar}) ) {
+          match(Token::Comma);
+          exo = parseExpression();
+          args.push_back(exo);
+        }
+        match(Token::RightPar);
+		// TODO: ստուգել, որ name ենթածրագրի պարամետրերի քանակը հավասար լինի args.size()-ի
+        return new Apply(name, args);
       }
+	  // TODO: ստուգել, որ name անունով փոփոխական սահմանված լինի
       return new Variable(name);
     }
 
-    //
+    /// '(' Expression ')'
     if( lookahead.is(Token::LeftPar) ) {
       match(Token::LeftPar);
       auto exo = parseExpression();
@@ -405,17 +445,17 @@ namespace basic {
   {
     if( left == Type::Number && right == Type::Number ) {
       if( op == Operation::Conc )
-	throw TypeError{"2"};
+        throw TypeError{"2"};
       
       return Type::Number;
     }
 
     if( left == Type::Text && right == Type::Text ) {
       if( op == Operation::Conc )
-	return Type::Text;
+        return Type::Text;
       
       if( op >= Operation::Eq && op <= Operation::Le )
-	return Type::Number;
+        return Type::Number;
       
       throw TypeError{"3"};
     }

@@ -27,13 +27,17 @@ llvm::Type* LLVMEmitter::getLLVMType(Type type)
 {
     if (type == Type::Void) {
         return mBuilder.getVoidTy();
-    } else if (type == Type::Number) {
-        return mBuilder.getDoubleTy();
-    } else if (type == Type::Text) {
-        return mBuilder.getInt8PtrTy();
-    } else {
-        assert(!"Undefined type");
     }
+	
+	if (type == Type::Number) {
+        return mBuilder.getDoubleTy();
+    }
+	
+	if (type == Type::Text) {
+        return mBuilder.getInt8PtrTy();
+    }
+
+	assert(!"Undefined type");
 
     return nullptr;
 
@@ -258,22 +262,28 @@ llvm::Value* LLVMEmitter::processExpression(Expression* expr)
     if (auto num = dynamic_cast<Number*>(expr)) {
         std::cout << __LINE__ << std::endl;
         return emitConstant(num);
-    } else if (auto text = dynamic_cast<Text*>(expr)) {
+    }
+	else if (auto text = dynamic_cast<Text*>(expr)) {
         std::cout << __LINE__ << std::endl;
         //return emitString(num);
-    } else if (auto var = dynamic_cast<Variable*>(expr)) {
+    }
+	else if (auto var = dynamic_cast<Variable*>(expr)) {
         //std::cout << __LINE__ << "  VAR NAME:" << var->name << std::endl;
         return emitLoad(var);
-    } else if (auto unary = dynamic_cast<Unary*>(expr)) {
+    }
+	else if (auto unary = dynamic_cast<Unary*>(expr)) {
         std::cout << __LINE__ << std::endl;
         return processUnary(unary);
-    } else if (auto binary = dynamic_cast<Binary*>(expr)) {
+    }
+	else if (auto binary = dynamic_cast<Binary*>(expr)) {
         std::cout << __LINE__ << std::endl;
         return processBinary(binary);
-    } else if (auto apply = dynamic_cast<Apply*>(expr)) {
+    }
+	else if (auto apply = dynamic_cast<Apply*>(expr)) {
         std::cout << __LINE__ << std::endl;
        // return emitCall(apply);
-    } else {
+    }
+	else {
         assert(!"Invalid expression");  
     }
     return nullptr;
@@ -298,7 +308,8 @@ llvm::LoadInst* LLVMEmitter::emitLoad(Variable* var)
     llvm::LoadInst* load = nullptr;
     if (var->type == Type::Text) {
         //TODO
-    } else {
+    }
+	else {
         load = mBuilder.CreateLoad(mBuilder.getDoubleTy(), addr, var->name);
     }
     llvm::errs() << *load << "\n";
