@@ -371,6 +371,14 @@ llvm::Value* LLVMEmitter::processBinary(Binary* bin)
             ret = mBuilder.CreateOr(lhs, rhs, "or");
             break;
         case Operation::Conc:
+// TODO: [18:02:36] Armen Badalian: դեռ չեմ պատկերացնում, թե տողերի կոնկատենացիայի համար ինչ կոդ ես գեներացնելու
+//[18:03:16] Tigran Sargsyan: ես էլ չեմ պատկերացնում
+//[18:03:21] Tigran Sargsyan: :)
+//[18:03:33] Tigran Sargsyan: բայց դե միբան կբստրենք
+//[18:03:44] Armen Badalian: միգուցե տողերը սարքենք հին Պասկալի պես, երկարությունը ֆիքսենք 255 նիշ, ու բոլոր գործողությունները դրանով անենք
+//[18:04:16 | Edited 18:04:20] Armen Badalian: հին Պասկալում տողի առաջին բայթում գրվում էր տողի երկարությունը
+//[18:04:30] Armen Badalian: ու դա կարող էր լինել 255
+//[18:05:14] Tigran Sargsyan: տարբերակ ա, կարելի ա մտածել
             assert("CONC operator is not handled yet");
             break;
         default: {

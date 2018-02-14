@@ -54,9 +54,12 @@ namespace basic {
   ///
   Subroutine* Parser::parseSubroutine()
   {
+      // վերնագիր
       match(Token::Subroutine);
       auto name = lookahead.value;
       match(Token::Identifier);
+      // TODO: ստուգել name անունով ենթածրագրի արդեն հայտարարված լինելը,
+      // ուշադրություն դարձնել անվան վերջի '$' նիշին (f և f$ անունները նույնն են)
       std::vector<std::string> params;
       if( lookahead.is(Token::LeftPar) ) {
           match(Token::LeftPar);
@@ -74,6 +77,7 @@ namespace basic {
           match(Token::RightPar);
       }
 
+      // մարմին
       cursubroutine = new Subroutine(name, params, nullptr);
       auto body = parseStatements();
       cursubroutine->body = body;
@@ -128,7 +132,6 @@ namespace basic {
     match(Token::Let);
     auto vnm = lookahead.value;
     match(Token::Identifier);
-	// TODO: 
     match(Token::Eq);
     auto exo = parseExpression();
 
@@ -138,6 +141,14 @@ namespace basic {
             cursubroutine->rettype = exo->type;
         else if (cursubroutine->rettype != exo->type )
             throw TypeError{"Incompatible types of return values."};
+
+    // TODO: եթե փոփոխականը արդեն կա և դրա տիպը exo-ի տիպն է,
+    // ապա ամեն ինչ նորմալ է, եթե տիպերը տարբերվում են, ապա
+    // հաղորդել սխալի մասին։ 
+    // Ի դեպ, ենթածրագրի անունը հենց սկզբից հայտնվելու է locals-ում, և
+    // վերը գրված տիպերի ստուգումը լինելու է ընդհանուր
+    
+    // Եթե փոփոխականը չկա, ապա ստեղծել այն ու ավելացնել locals ցուցակում
 
     return new Let(vnm, exo);
   }
@@ -256,20 +267,20 @@ namespace basic {
     match(Token::Call);
     auto nm = lookahead.value;
     match(Token::Identifier);
-	// TODO: ստուգել, որ name անունով ենթածրագիր սահմանված լինի
+    // TODO: ստուգել, որ name անունով ենթածրագիր սահմանված լինի
     std::vector<Expression*> args;
     if( lookahead.is({Token::Number, Token::Text, Token::Identifier,
-	    Token::Sub, Token::Not, Token::LeftPar}) ) {
+        Token::Sub, Token::Not, Token::LeftPar}) ) {
       auto exo = parseExpression();
       args.push_back(exo);
       while( lookahead.is({Token::Number, Token::Text, Token::Identifier,
-	      Token::Sub, Token::Not, Token::LeftPar}) ) {
+          Token::Sub, Token::Not, Token::LeftPar}) ) {
         match(Token::Comma);
         exo = parseExpression();
         args.push_back(exo);
       }
     }
-	// TODO: ստուգել, որ name ենթածրագրի պարամետրերի քանակը հավասար լինի args.size()-ի
+    // TODO: ստուգել, որ name ենթածրագրի պարամետրերի քանակը հավասար լինի args.size()-ի
     return new Call(nm, args);
   }
 
@@ -393,7 +404,7 @@ namespace basic {
       auto name = lookahead.value;
       match(Token::Identifier);
       if( lookahead.is(Token::LeftPar) ) {
-	    // TODO: ստուգել, որ name անունով ենթածրագիր սահմանված լինի
+        // TODO: ստուգել, որ name անունով ենթածրագիր սահմանված լինի
         std::vector<Expression*> args;
         match(Token::LeftPar);
         auto exo = parseExpression();
@@ -405,10 +416,10 @@ namespace basic {
           args.push_back(exo);
         }
         match(Token::RightPar);
-		// TODO: ստուգել, որ name ենթածրագրի պարամետրերի քանակը հավասար լինի args.size()-ի
+        // TODO: ստուգել, որ name ենթածրագրի պարամետրերի քանակը հավասար լինի args.size()-ի
         return new Apply(name, args);
       }
-	  // TODO: ստուգել, որ name անունով փոփոխական սահմանված լինի
+      // TODO: ստուգել, որ name անունով փոփոխական սահմանված լինի
       return new Variable(name);
     }
 

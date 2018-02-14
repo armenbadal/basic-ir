@@ -12,7 +12,9 @@ namespace basic {
   private:
     Scanner scanner;
     Lexeme lookahead;
-    Subroutine* cursubroutine = nullptr;
+
+    Program* module = nullptr;
+    Subroutine* cursubroutine = nullptr; // TODO: սա հեռացնել, պետք եղած դեպքում օգտագործել parseModule.back()-ը (?)
     
   public:
     Parser( const std::string& filename );
@@ -72,3 +74,4 @@ namespace basic {
     }
   };
 } // basic
+

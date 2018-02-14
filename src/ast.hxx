@@ -40,10 +40,11 @@ namespace basic {
     unsigned int line = 0;
 
   public:
-    void printKind();
     AstNode();
     virtual ~AstNode() = default;
 
+	void printKind();
+		
   private:
     static std::list<AstNode*> allocated_nodes;
     
@@ -167,7 +168,7 @@ namespace basic {
   //
   class Let : public Statement {
   public:
-    std::string varname = "";
+    std::string varname = ""; // TODO: սա դարձնել Variable*
     Expression* expr = nullptr;
     
   public:
@@ -222,6 +223,7 @@ namespace basic {
   public:
     std::string name = "";
     std::vector<std::string> parameters;
+	std::vector<Variable*> locals;
     Statement* body = nullptr;
     Type rettype = Type::Void;
     

@@ -184,6 +184,7 @@ namespace basic {
     : name{nm}, parameters{ps}, body{bo}
   {
     kind = NodeKind::Subroutine;
+    locals.push_back(new Variable(name));
   }
 
   //
