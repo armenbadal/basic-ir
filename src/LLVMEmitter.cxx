@@ -151,7 +151,7 @@ void LLVMEmitter::processStatement(Statement* stat, llvm::BasicBlock* endBB)
 void LLVMEmitter::processLet(Let* letSt)
 {
     if (! letSt) { assert(0);return; }
-    auto addr = getVariableAddress(letSt->varname);
+    auto addr = getVariableAddress(letSt->varptr->name);
     assert (addr && "Unallocated variable");
 
     auto val = processExpression(letSt->expr); 
@@ -225,7 +225,7 @@ void LLVMEmitter::processFor(For* forSt, llvm::BasicBlock* endBB)
     llvm::BasicBlock* head = llvm::BasicBlock::Create(llvmContext, "bb", endBB->getParent(), endBB);
     llvm::BasicBlock* body = llvm::BasicBlock::Create(llvmContext, "bb", endBB->getParent(), endBB);
     
-    auto param_addr = getVariableAddress(forSt->parameter);
+    auto param_addr = getVariableAddress(forSt->parameter->name);
     auto begin = processExpression(forSt->begin);
     mBuilder.CreateStore(begin, param_addr);
 

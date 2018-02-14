@@ -44,6 +44,7 @@ namespace basic {
     void match( Token tok );
 
     Type checkType( Operation op, Type left, Type right );
+	Variable* getVariable( const std::string& nm );
   };
 
   //

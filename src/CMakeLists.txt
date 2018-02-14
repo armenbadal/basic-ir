@@ -1,15 +1,16 @@
 cmake_minimum_required(VERSION 3.5)
 project(basic-ir)
-add_definitions(-std=c++14)
-add_definitions(-gdwarf-2 -g)
 
-#include_directories(../../llvm/build/include)
-include_directories(/usr/include/llvm-5.0)
-include_directories(/usr/include/llvm-c-5.0)
-#link_directories(../../llvm/build/lib)
-link_directories(/usr/lib/llvm-5.0/lib)
+find_package(LLVM REQUIRED CONFIG)
+
+add_definitions(-std=c++14)
+add_definitions(-gdwarf-2)
+
+include_directories(${LLVM_INCLUDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS})
 
 add_executable(basic-ir main.cxx ast.cxx lexeme.cxx scanner.cxx parser.cxx aslisp.cxx asllvm.cxx LLVMEmitter.cxx)
 
-#target_link_libraries(basic-ir pthread LLVMXCoreDisassembler LLVMXCoreCodeGen LLVMXCoreDesc LLVMXCoreInfo LLVMXCoreAsmPrinter LLVMSystemZDisassembler LLVMSystemZCodeGen LLVMSystemZAsmParser LLVMSystemZDesc LLVMSystemZInfo LLVMSystemZAsmPrinter LLVMSparcDisassembler LLVMSparcCodeGen LLVMSparcAsmParser LLVMSparcDesc LLVMSparcInfo LLVMSparcAsmPrinter LLVMPowerPCDisassembler LLVMPowerPCCodeGen LLVMPowerPCAsmParser LLVMPowerPCDesc LLVMPowerPCInfo LLVMPowerPCAsmPrinter LLVMNVPTXCodeGen LLVMNVPTXDesc LLVMNVPTXInfo LLVMNVPTXAsmPrinter LLVMMSP430CodeGen LLVMMSP430Desc LLVMMSP430Info LLVMMSP430AsmPrinter LLVMMipsDisassembler LLVMMipsCodeGen LLVMMipsAsmParser LLVMMipsDesc LLVMMipsInfo LLVMMipsAsmPrinter LLVMLanaiDisassembler LLVMLanaiCodeGen LLVMLanaiAsmParser LLVMLanaiDesc LLVMLanaiAsmPrinter LLVMLanaiInfo LLVMHexagonDisassembler LLVMHexagonCodeGen LLVMHexagonAsmParser LLVMHexagonDesc LLVMHexagonInfo LLVMBPFDisassembler LLVMBPFCodeGen LLVMBPFDesc LLVMBPFInfo LLVMBPFAsmPrinter LLVMARMDisassembler LLVMARMCodeGen LLVMARMAsmParser LLVMARMDesc LLVMARMInfo LLVMARMAsmPrinter LLVMAMDGPUDisassembler LLVMAMDGPUCodeGen LLVMAMDGPUAsmParser LLVMAMDGPUDesc LLVMAMDGPUInfo LLVMAMDGPUAsmPrinter LLVMAMDGPUUtils LLVMAArch64Disassembler LLVMAArch64CodeGen LLVMAArch64AsmParser LLVMAArch64Desc LLVMAArch64Info LLVMAArch64AsmPrinter LLVMAArch64Utils LLVMCoverage LLVMInterpreter LLVMLibDriver LLVMOrcJIT LLVMDlltoolDriver LLVMOption LLVMTableGen LLVMLineEditor LLVMCoroutines LLVMX86Disassembler LLVMX86AsmParser LLVMX86CodeGen LLVMGlobalISel LLVMSelectionDAG LLVMAsmPrinter LLVMX86Desc LLVMMCDisassembler LLVMX86Info LLVMX86AsmPrinter LLVMX86Utils LLVMMCJIT LLVMExecutionEngine LLVMRuntimeDyld LLVMLTO LLVMPasses LLVMObjCARCOpts LLVMipo LLVMInstrumentation LLVMVectorize LLVMLinker LLVMIRReader LLVMSymbolize LLVMDebugInfoPDB LLVMDebugInfoDWARF LLVMObjectYAML LLVMDebugInfoCodeView LLVMDebugInfoMSF LLVMMIRParser LLVMCodeGen LLVMTarget LLVMScalarOpts LLVMInstCombine LLVMTransformUtils LLVMBitWriter LLVMAnalysis LLVMProfileData LLVMObject LLVMMCParser LLVMMC LLVMBitReader LLVMAsmParser LLVMCore LLVMBinaryFormat LLVMSupport LLVMDemangle)
-target_link_libraries(basic-ir pthread LLVM-5.0) 
+llvm_map_components_to_libnames(llvm_libs support core irreader)
+
+target_link_libraries(basic-ir ${llvm_libs})

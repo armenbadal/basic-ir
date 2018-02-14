@@ -1,6 +1,7 @@
 
 #include <exception>
 #include <iostream>
+#include <algorithm>
 
 #include "parser.hxx"
 
@@ -148,9 +149,9 @@ namespace basic {
     // Ի դեպ, ենթածրագրի անունը հենց սկզբից հայտնվելու է locals-ում, և
     // վերը գրված տիպերի ստուգումը լինելու է ընդհանուր
     
-    // Եթե փոփոխականը չկա, ապա ստեղծել այն ու ավելացնել locals ցուցակում
+	auto varp = getVariable(vnm);
 
-    return new Let(vnm, exo);
+    return new Let(varp, exo);
   }
   
   ///
@@ -161,7 +162,9 @@ namespace basic {
     match(Token::Input);
     auto vnm = lookahead.value;
     match(Token::Identifier);
-    return new Input(vnm);
+
+	auto varp = getVariable(vnm);
+    return new Input(varp);
   }
 
   ///
@@ -256,7 +259,10 @@ namespace basic {
     auto dy = parseStatements();
     match(Token::End);
     match(Token::For);
-    return new For(par, be, en, sp, dy);
+
+
+	auto vp = getVariable(par);
+    return new For(vp, be, en, sp, dy);
   }
 
   ///
@@ -472,6 +478,23 @@ namespace basic {
     }
     
     throw TypeError{"1"};
+  }
+
+  ///
+  Variable* Parser::getVariable( const std::string& nm )
+  {
+	Subroutine* subr = module->members.back();
+	auto& locals = subr->locals;
+
+	auto vpi = std::find_if(locals.begin(), locals.end(),
+							[&nm](auto vp)->bool{ return nm == vp->name; }); 
+	if( locals.end() != vpi )
+	  return *vpi;
+
+	auto varp = new Variable(nm);
+	locals.push_back(varp);
+
+	return varp;
   }
 } // basic
 

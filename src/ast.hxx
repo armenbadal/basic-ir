@@ -10,7 +10,7 @@
 //
 namespace basic {
 
-  //
+  // Աբստրակտ քերականական ծառի հանգույցի տեսակը
   enum class NodeKind : int {
     Empty,
     Number,
@@ -31,7 +31,8 @@ namespace basic {
     Program
   };
   
-  //
+  // Քերականական ծառի հանգույցի բազային տիպը։
+  // Ծառի հանգույցների բոլոր տեսակներն այս տիպի ընդլայնում են։
   class AstNode {
   public:
     NodeKind kind = NodeKind::Empty;
@@ -46,6 +47,7 @@ namespace basic {
 	void printKind();
 		
   private:
+	// բոլոր դինամիկ ստեղծված հանգույցների հասցեները
     static std::list<AstNode*> allocated_nodes;
     
   public:
@@ -53,7 +55,8 @@ namespace basic {
   };
 
 
-  //
+  // Տվյալների տիպերը։ Void-ն օգտագործվում է
+  // արժեք չվերադարձնող ենթածրագրերի հետ աշխատելիս։
   enum class Type : char {
     Void   = 'V',
     Number = 'N',
@@ -61,13 +64,13 @@ namespace basic {
   };
 
 
-  //
+  // Արտահայտություն։
   class Expression : public AstNode {
   public:
     Type type = Type::Void;
   };
 
-  //
+  // Թիվ
   class Number : public Expression {
   public:
     double value = 0.0;
@@ -76,7 +79,7 @@ namespace basic {
     Number( double vl );
   };
 
-  //
+  // Տեքստ
   class Text : public Expression {
   public:
     std::string value = "";
@@ -85,7 +88,7 @@ namespace basic {
     Text( const std::string& vl );
   };
 
-  //
+  // Փոփոխական
   class Variable : public Expression {
   public:
     std::string name = "";
@@ -94,7 +97,7 @@ namespace basic {
     Variable( const std::string& nm );
   };
 
-  //
+  // Գործողությունների անունները
   enum class Operation {
     None,
     Add, Sub, Mul, Div, Mod, Pow,
@@ -103,7 +106,7 @@ namespace basic {
     Conc
   };
 
-  //
+  // Ունար գործողություն
   class Unary : public Expression {
   public:
     Operation opcode = Operation::None;
@@ -113,7 +116,7 @@ namespace basic {
     Unary( Operation op, Expression* ex );
   };
 
-  //
+  // Բինար գործողություն
   class Binary : public Expression {
   public:
     Operation opcode = Operation::None;
@@ -124,7 +127,7 @@ namespace basic {
     Binary( Operation op, Expression* exo, Expression* exi );
   };
 
-  //
+  // Ֆունկցիայի կանչ (կիրառում)
   class Apply : public Expression {
   public:
     std::string procname = "";
@@ -135,10 +138,10 @@ namespace basic {
   };
 
   
-  //
+  // Ղեկավարող կառուցվածք (հրաման)
   class Statement : public AstNode {};
 
-  //
+  // Հրամանների շարք (հաջորդականություն)
   class Sequence : public Statement {
   public:
     std::vector<Statement*> items;
@@ -147,16 +150,16 @@ namespace basic {
     Sequence();
   };
   
-  //
+  // Տվյալների ներմուծում
   class Input : public Statement {
   public:
-    std::string varname = "";
+    Variable* varptr = nullptr;
     
   public:
-    Input( const std::string& vn );
+    Input( Variable* vp );
   };
 
-  //
+  // Տվյալների արտածում
   class Print : public Statement {
   public:
     Expression* expr = nullptr;
@@ -165,17 +168,17 @@ namespace basic {
     Print( Expression* ex );
   };
   
-  //
+  // Վերագրում (միաժամանակ՝ փոփոխականի սահմանում)
   class Let : public Statement {
   public:
-    std::string varname = ""; // TODO: սա դարձնել Variable*
+    Variable* varptr = nullptr;
     Expression* expr = nullptr;
     
   public:
-    Let( const std::string& vn, Expression* ex );
+    Let( Variable* vp, Expression* ex );
   };
   
-  //
+  // Ճյուղավորում
   class If : public Statement {
   public:
     Expression* condition = nullptr;
@@ -186,7 +189,7 @@ namespace basic {
     If( Expression* co, Statement* de, Statement* al = nullptr );
   };
   
-  //
+  // Նախապայմանով ցիկլ
   class While : public Statement {
   public:
     Expression* condition = nullptr;
@@ -196,20 +199,20 @@ namespace basic {
     While( Expression* co, Statement* bo );
   };
   
-  //
+  // Պարամետրով ցիկլ
   class For : public Statement {
   public:
-    std::string parameter = "";
+    Variable* parameter = nullptr;
     Expression* begin = nullptr;
     Expression* end = nullptr;
     Expression* step = nullptr;
     Statement* body = nullptr;
     
   public:
-    For( const std::string& pr, Expression* be, Expression* en, Expression* st, Statement* bo );
+    For( Variable* pr, Expression* be, Expression* en, Expression* st, Statement* bo );
   };
 
-  //
+  // Ենթածրագրի կանչ
   class Call : public Statement {
   public:
     Apply* subrcall = nullptr;
@@ -218,20 +221,20 @@ namespace basic {
     Call( const std::string& sn, const std::vector<Expression*> as );
   };
 
-  //
+  // Ենթածրագիր
   class Subroutine : public AstNode {
   public:
-    std::string name = "";
-    std::vector<std::string> parameters;
-	std::vector<Variable*> locals;
-    Statement* body = nullptr;
-    Type rettype = Type::Void;
+    std::string name = ""; // անուն
+    std::vector<std::string> parameters; // պարամետրեր
+	std::vector<Variable*> locals; // լոկալ փոփոխականներ
+    Statement* body = nullptr; // մարմին
+    Type rettype = Type::Void; // վերադարձրած արժեքի տիպ
     
   public:
     Subroutine( const std::string& nm, const std::vector<std::string>& ps, Statement* bo );
   };
 
-  //
+  // Ծրագիր
   class Program : public AstNode {
   public:
     std::string filename = "";

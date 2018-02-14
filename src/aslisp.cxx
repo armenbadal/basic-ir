@@ -79,7 +79,7 @@ namespace basic {
   ///
   void letAsLisp( Let* node, std::ostringstream& ooo )
   {
-    ooo << "(basic-let :varname " << node->varname << " :expr ";
+    ooo << "(basic-let :varname " << node->varptr->name << " :expr ";
     lisp(node->expr, ooo);
     ooo << ")";
   }
@@ -87,7 +87,7 @@ namespace basic {
   ///
   void inputAsLisp( Input* node, std::ostringstream& ooo )
   {
-    ooo << "(basic-input :varname " << node->varname << ")";
+    ooo << "(basic-input :varname " << node->varptr->name << ")";
   }
 
   ///
