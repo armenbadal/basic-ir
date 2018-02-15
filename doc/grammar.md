@@ -13,7 +13,7 @@ If = 'IF' Expression 'THEN' Statements
      {'ELSEIF' Expression 'THEN' Statements }
      ['ELSE' Statements] 'END' 'IF'.
 While = 'WHILE' Expression Statements 'END' 'WHILE'.
-For = 'FOR' IDENT '=' Expression 'TO' Expression ['STEP' NUMBER]
+For = 'FOR' IDENT '=' Expression 'TO' Expression ['STEP' ['-'] NUMBER]
       Statements 'END' 'FOR'.
 Call = 'CALL' IDENT [ExpressionList].
 ExpressionList = Expression {',' Expression}.
