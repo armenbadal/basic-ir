@@ -67,7 +67,7 @@ namespace basic {
   ///
   void applyAsLisp( Apply* node, std::ostringstream& ooo )
   {
-    ooo << "(basic-apply :procname \"" << node->procname << "\"";
+    ooo << "(basic-apply :procname \"" << node->procptr->name << "\"";
     ooo << " :arguments (";
     for( auto e : node->arguments ) {
       lisp(e, ooo);
@@ -138,7 +138,7 @@ namespace basic {
   ///
   void callAsLisp( Call* node, std::ostringstream& ooo )
   {
-    ooo << "(basic-call :procname " << node->subrcall->procname;
+    ooo << "(basic-call :procname " << node->subrcall->procptr->name;
     ooo << " :arguments (";
     for( auto e : node->subrcall->arguments ) {
       lisp(e, ooo);
@@ -190,29 +190,29 @@ namespace basic {
         numberAsLisp(dynamic_cast<Number*>(node), ooo);
         break;
       case NodeKind::Text:
-	textAsLisp(dynamic_cast<Text*>(node), ooo);
-	break;
+        textAsLisp(dynamic_cast<Text*>(node), ooo);
+        break;
       case NodeKind::Variable:
-	variableAsLisp(dynamic_cast<Variable*>(node), ooo);
-	break;
+        variableAsLisp(dynamic_cast<Variable*>(node), ooo);
+        break;
       case NodeKind::Unary:
-	unaryAsLisp(dynamic_cast<Unary*>(node), ooo);
-	break;
+        unaryAsLisp(dynamic_cast<Unary*>(node), ooo);
+        break;
       case NodeKind::Binary:
-	binaryAsLisp(dynamic_cast<Binary*>(node), ooo);
-	break;
+        binaryAsLisp(dynamic_cast<Binary*>(node), ooo);
+        break;
       case NodeKind::Apply:
-	applyAsLisp(dynamic_cast<Apply*>(node), ooo);
-	break;
+        applyAsLisp(dynamic_cast<Apply*>(node), ooo);
+        break;
       case NodeKind::Sequence:
-	sequenceAsLisp(dynamic_cast<Sequence*>(node), ooo);
-	break;
+        sequenceAsLisp(dynamic_cast<Sequence*>(node), ooo);
+        break;
       case NodeKind::Input:
-	inputAsLisp(dynamic_cast<Input*>(node), ooo);
-	break;
+        inputAsLisp(dynamic_cast<Input*>(node), ooo);
+        break;
       case NodeKind::Print:
-	printAsLisp(dynamic_cast<Print*>(node), ooo);
-	break;
+        printAsLisp(dynamic_cast<Print*>(node), ooo);
+        break;
       case NodeKind::Let:
 	letAsLisp(dynamic_cast<Let*>(node), ooo);
 	break;

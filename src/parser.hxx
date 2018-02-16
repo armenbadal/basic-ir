@@ -10,19 +10,24 @@ namespace basic {
   //
   class Parser {
   private:
+    Program* module = nullptr;
+
     Scanner scanner;
     Lexeme lookahead;
 
-    Program* module = nullptr;
-    Subroutine* cursubroutine = nullptr; // TODO: սա հեռացնել, պետք եղած դեպքում օգտագործել parseModule.back()-ը (?)
-    
+    // անորոշ հղումներ. բանալին ենթածրագրի անունն է,
+    // իսկ արժեքը դրան հղվող Apply օբյեկտների ցուցակը
+    std::map<std::string, std::list<Apply*>> unresolved;
+
   public:
     Parser( const std::string& filename );
+    ~Parser();
+
     Program* parse();
-    
+
   private:
-    Program* parseProgram();
-    Subroutine* parseSubroutine();
+    void parseProgram();
+    void parseSubroutine();
 
     Statement* parseStatements();
     Statement* parseInput();
@@ -44,7 +49,8 @@ namespace basic {
     void match( Token tok );
 
     Type checkType( Operation op, Type left, Type right );
-	Variable* getVariable( const std::string& nm );
+
+    Variable* getVariable( const std::string& nm );
   };
 
   //
@@ -74,5 +80,10 @@ namespace basic {
       return message.c_str();
     }
   };
+
+  //
+  Type typeOf( const std::string& nm );
+  bool equalNames( const std::string& no, const std::string& ni );
+  bool equalTypes( const std::string& no, const std::string& ni );
 } // basic
 

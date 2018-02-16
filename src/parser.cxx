@@ -8,59 +8,65 @@
 namespace basic {
   ///
   Parser::Parser( const std::string& filename )
-    : scanner{ filename }
-  {}
+      : scanner{filename}
+  {
+      module = new Program(filename);
+  }
+
+  ///
+  Parser::~Parser()
+  {
+      AstNode::deleteAllocatedNodes();
+  }
 
   ///
   Program* Parser::parse()
   {
-    Program* prog = nullptr;
-    try {
-      prog = parseProgram();
-    }
-    catch( ParseError& e ) {
-      std::cerr << e.what() << std::endl;
-      AstNode::delete_allocated_nodes();
-    }
-    catch( TypeError& e ) {
-      std::cerr << e.what() << std::endl;
-      AstNode::delete_allocated_nodes();
-    }
+      // TODO: try-catch-ը տեղափոխել parse-ի կանչվելու տեղը
+      try {
+          parseProgram();
+      }
+      catch( std::exception& e ) {
+          std::cerr << e.what() << std::endl;
+          AstNode::deleteAllocatedNodes();
+      }
 
-    return prog;
+      return module;
   }
   
   /// 
   /// Program [NewLines] { Subroutine NewLines }.
   /// 
-  Program* Parser::parseProgram()
+  void Parser::parseProgram()
   {
-    scanner >> lookahead;
-    
-    while( lookahead.is(Token::NewLine) )
-      match(Token::NewLine);      
+      scanner >> lookahead;
 
-    auto prog = new Program("FILENAME");
-    while( lookahead.is(Token::Subroutine) ) {
-      auto subr = parseSubroutine();
-      prog->members.push_back(subr);
-      parseNewLines();
-    }
+      while( lookahead.is(Token::NewLine) )
+          match(Token::NewLine);
 
-    return prog;
+      while( lookahead.is(Token::Subroutine) ) {
+          parseSubroutine();
+          parseNewLines();
+      }
   }
 
   ///
   /// Subroutine = 'SUB' IDENT ['(' [IdentList] ')'] Statements 'END' 'SUB'.
   ///
-  Subroutine* Parser::parseSubroutine()
+  void Parser::parseSubroutine()
   {
       // վերնագիր
       match(Token::Subroutine);
       auto name = lookahead.value;
       match(Token::Identifier);
-      // TODO: ստուգել name անունով ենթածրագրի արդեն հայտարարված լինելը,
+
+      // ստուգել name անունով ենթածրագրի արդեն հայտարարված լինելը,
       // ուշադրություն դարձնել անվան վերջի '$' նիշին (f և f$ անունները նույնն են)
+      auto sbit = find_if(module->members.begin(), module->members.end(),
+          [&name](auto sp)->bool { return equalNames(name, sp->name); });
+      if( sbit != module->members.end() )
+          throw ParseError{name + " անունով ենթածրագիրն արդեն սահմանված է։"};
+
       std::vector<std::string> params;
       if( lookahead.is(Token::LeftPar) ) {
           match(Token::LeftPar);
@@ -78,14 +84,23 @@ namespace basic {
           match(Token::RightPar);
       }
 
+      auto subr = new Subroutine(name, params, nullptr);
+      module->members.push_back(subr);
+
       // մարմին
-      cursubroutine = new Subroutine(name, params, nullptr);
-      auto body = parseStatements();
-      cursubroutine->body = body;
+      subr->body = parseStatements();
+
       match(Token::End);
       match(Token::Subroutine);
 
-      return cursubroutine;
+      // անորոշ հղումների ցուցակում ճշտել, թե որ Apply օբյեկտներն են
+      // հղվում այս ենթածրագրին, և ուղղել լրացնել պակասող տվյալները
+      auto apit = unresolved.find(name);
+      if( apit != unresolved.end() ) {
+          for( Apply* ap : apit->second )
+              ap->procptr = subr;
+          unresolved.erase(apit);
+      }
   }
 
   ///
@@ -136,20 +151,20 @@ namespace basic {
     match(Token::Eq);
     auto exo = parseExpression();
 
-    //Handling for return operation
-    if ( vnm == cursubroutine->name )
-        if ( cursubroutine->rettype == Type::Void )
-            cursubroutine->rettype = exo->type;
-        else if (cursubroutine->rettype != exo->type )
-            throw TypeError{"Incompatible types of return values."};
+    ////Handling for return operation
+    //if ( vnm == cursubroutine->name )
+    //    if ( cursubroutine->rettype == Type::Void )
+    //        cursubroutine->rettype = exo->type;
+    //    else if (cursubroutine->rettype != exo->type )
+    //        throw TypeError{"Incompatible types of return values."};
 
     // TODO: եթե փոփոխականը արդեն կա և դրա տիպը exo-ի տիպն է,
     // ապա ամեն ինչ նորմալ է, եթե տիպերը տարբերվում են, ապա
     // հաղորդել սխալի մասին։ 
     // Ի դեպ, ենթածրագրի անունը հենց սկզբից հայտնվելու է locals-ում, և
     // վերը գրված տիպերի ստուգումը լինելու է ընդհանուր
-    
-	auto varp = getVariable(vnm);
+
+   auto varp = getVariable(vnm);
 
     return new Let(varp, exo);
   }
@@ -159,12 +174,12 @@ namespace basic {
   ///
   Statement* Parser::parseInput()
   {
-    match(Token::Input);
-    auto vnm = lookahead.value;
-    match(Token::Identifier);
+      match(Token::Input);
+      auto vnm = lookahead.value;
+      match(Token::Identifier);
 
-	auto varp = getVariable(vnm);
-    return new Input(varp);
+      auto varp = getVariable(vnm);
+      return new Input(varp);
   }
 
   ///
@@ -172,9 +187,9 @@ namespace basic {
   ///
   Statement* Parser::parsePrint()
   {
-    match(Token::Print);
-    auto exo = parseExpression();
-    return new Print(exo);
+      match(Token::Print);
+      auto exo = parseExpression();
+      return new Print(exo);
   }
 
   ///
@@ -184,38 +199,38 @@ namespace basic {
   ///
   Statement* Parser::parseIf()
   {
-    //std::cout << __LINE__ << lookahead.value << std::endl;
-    match( Token::If );
-    auto cond = parseExpression();
-    //std::cout <<  __LINE__ << lookahead.value << std::endl;
-    match(Token::Then);
-    //std::cout <<  __LINE__ << lookahead.value << std::endl;
-    auto deci = parseStatements();
-    auto sif = new If(cond, deci);
-    
-    auto it = sif;
-    while( lookahead.is(Token::ElseIf) ) {
-      match(Token::ElseIf);
-      auto cone = parseExpression();
+      //std::cout << __LINE__ << lookahead.value << std::endl;
+      match(Token::If);
+      auto cond = parseExpression();
+      //std::cout <<  __LINE__ << lookahead.value << std::endl;
       match(Token::Then);
-      auto dece = parseStatements();
-      auto eif = new If(cone, dece);
-      it->alternative = eif;
-      it = eif;
-    }
+      //std::cout <<  __LINE__ << lookahead.value << std::endl;
+      auto deci = parseStatements();
+      auto sif = new If(cond, deci);
 
-    //std::cout <<  __LINE__ << lookahead.value << std::endl;
-    if( lookahead.is(Token::Else) ) {
-      match(Token::Else);
-      auto alte = parseStatements();
-      it->alternative = alte;
-    }
-    //std::cout <<  __LINE__ << lookahead.value << std::endl;
-    match(Token::End);
-    //std::cout <<  __LINE__ << lookahead.value << std::endl;
-    match(Token::If);
+      auto it = sif;
+      while( lookahead.is(Token::ElseIf) ) {
+          match(Token::ElseIf);
+          auto cone = parseExpression();
+          match(Token::Then);
+          auto dece = parseStatements();
+          auto eif = new If(cone, dece);
+          it->alternative = eif;
+          it = eif;
+      }
 
-    return sif;
+      //std::cout <<  __LINE__ << lookahead.value << std::endl;
+      if( lookahead.is(Token::Else) ) {
+          match(Token::Else);
+          auto alte = parseStatements();
+          it->alternative = alte;
+      }
+      //std::cout <<  __LINE__ << lookahead.value << std::endl;
+      match(Token::End);
+      //std::cout <<  __LINE__ << lookahead.value << std::endl;
+      match(Token::If);
+
+      return sif;
   }
 
   ///
@@ -271,9 +286,8 @@ namespace basic {
   Statement* Parser::parseCall()
   {
     match(Token::Call);
-    auto nm = lookahead.value;
+    auto name = lookahead.value;
     match(Token::Identifier);
-    // TODO: ստուգել, որ name անունով ենթածրագիր սահմանված լինի
     std::vector<Expression*> args;
     if( lookahead.is({Token::Number, Token::Text, Token::Identifier,
         Token::Sub, Token::Not, Token::LeftPar}) ) {
@@ -286,8 +300,27 @@ namespace basic {
         args.push_back(exo);
       }
     }
-    // TODO: ստուգել, որ name ենթածրագրի պարամետրերի քանակը հավասար լինի args.size()-ի
-    return new Call(nm, args);
+
+    Call* cal = new Call(nullptr, args);
+
+    // ստուգել, որ name անունով ենթածրագիր սահմանված լինի
+    auto srit = std::find_if(module->members.begin(), module->members.end(),
+        [&name](auto sp)->bool { return equalNames(name, sp->name); });
+
+    // եթե ենթածրագիրն արդեն սահմանված է...
+    if (module->members.end() != srit) {
+        // ենթածրագրի պարամետրերի քանակը պետք է հավասար լինի args.size()-ին
+        if ((*srit)->parameters.size() == args.size())
+            // հավասարության դեպքում ստուգել նաև տիպերը
+            for (int i = 0; i < args.size(); ++i)
+                if (typeOf((*srit)->parameters[i]) != args[i]->type)
+                    throw TypeError{ "99" };
+        cal->subrcall->procptr = *srit;
+    }
+    else
+        unresolved[name].push_back(cal->subrcall);
+
+    return cal;
   }
 
   //
@@ -410,7 +443,6 @@ namespace basic {
       auto name = lookahead.value;
       match(Token::Identifier);
       if( lookahead.is(Token::LeftPar) ) {
-        // TODO: ստուգել, որ name անունով ենթածրագիր սահմանված լինի
         std::vector<Expression*> args;
         match(Token::LeftPar);
         auto exo = parseExpression();
@@ -422,8 +454,27 @@ namespace basic {
           args.push_back(exo);
         }
         match(Token::RightPar);
-        // TODO: ստուգել, որ name ենթածրագրի պարամետրերի քանակը հավասար լինի args.size()-ի
-        return new Apply(name, args);
+
+        Apply* aly = new Apply(nullptr, args);
+
+        // որոնում է name անունով ենթածրագիրը արդեն վերլուծվածների մեջ
+        auto spit = std::find_if(module->members.begin(), module->members.end(),
+            [&name](auto sp)->bool { return sp->name == name; });
+
+        // եթե ենթածրագիրն արդեն սահմանված է...
+        if (module->members.end() != spit) {
+            // ենթածրագրի պարամետրերի քանակը պետք է հավասար լինի args.size()-ին
+            if ((*spit)->parameters.size() == args.size())
+                // հավասարության դեպքում ստուգել նաև տիպերը
+                for (int i = 0; i < args.size(); ++i)
+                    if (typeOf((*spit)->parameters[i]) != args[i]->type)
+                        throw TypeError{ "99" };
+            aly->procptr = *spit;
+        }
+        else
+            unresolved[name].push_back(aly);
+
+        return aly;
       }
       // TODO: ստուգել, որ name անունով փոփոխական սահմանված լինի
       return new Variable(name);
@@ -483,18 +534,41 @@ namespace basic {
   ///
   Variable* Parser::getVariable( const std::string& nm )
   {
-	Subroutine* subr = module->members.back();
-	auto& locals = subr->locals;
+    Subroutine* subr = module->members.back();
+    auto& locals = subr->locals;
 
-	auto vpi = std::find_if(locals.begin(), locals.end(),
-							[&nm](auto vp)->bool{ return nm == vp->name; }); 
-	if( locals.end() != vpi )
-	  return *vpi;
+    auto vpi = std::find_if(locals.begin(), locals.end(),
+        [&nm](auto vp)->bool{ return nm == vp->name; }); 
+    if( locals.end() != vpi )
+      return *vpi;
 
-	auto varp = new Variable(nm);
-	locals.push_back(varp);
+    auto varp = new Variable(nm);
+    locals.push_back(varp);
 
-	return varp;
+    return varp;
+  }
+
+  //
+  Type typeOf(const std::string& nm)
+  {
+      return nm.back() == '$' ? Type::Text : Type::Number;
+  }
+
+  //
+  bool equalNames( const std::string& no, const std::string& ni )
+  {
+      std::string so = no, si = ni;
+      if( '$' == so.back() )
+          so.pop_back();
+      if( '$' == si.back() )
+          si.pop_back();
+      return so == si;
+  }
+
+  //
+  bool equalTypes( const std::string& no, const std::string& ni )
+  {
+      return typeOf(no) == typeOf(ni);
   }
 } // basic
 

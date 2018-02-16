@@ -4,12 +4,12 @@
 
 namespace basic {
   //
-  std::list<AstNode*> AstNode::allocated_nodes;
+  std::list<AstNode*> AstNode::allocatedNodes;
   
   //
-  void AstNode::delete_allocated_nodes()
+  void AstNode::deleteAllocatedNodes()
   {
-    for( auto e : allocated_nodes )
+    for( auto e : allocatedNodes )
       delete e;
   }
 
@@ -76,7 +76,7 @@ namespace basic {
   //
   AstNode::AstNode()
   {
-    allocated_nodes.push_front(this);
+    allocatedNodes.push_front(this);
   }
   
   Sequence::Sequence()
@@ -124,8 +124,8 @@ namespace basic {
   }
 
   //
-  Apply::Apply( const std::string& pn, const std::vector<Expression*>& ags )
-    : procname{pn}, arguments{ags}
+  Apply::Apply( Subroutine* sp, const std::vector<Expression*>& ags )
+    : procptr{sp}, arguments{ags}
   {
     kind = NodeKind::Apply;
   }
@@ -173,8 +173,8 @@ namespace basic {
   }
   
   //
-  Call::Call( const std::string& sn, const std::vector<Expression*> as )
-    : subrcall{new Apply{sn, as}}
+  Call::Call( Subroutine* sp, const std::vector<Expression*> as )
+    : subrcall{new Apply{sp, as}}
   {
     kind = NodeKind::Call;
   }

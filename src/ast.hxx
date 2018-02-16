@@ -44,14 +44,14 @@ namespace basic {
     AstNode();
     virtual ~AstNode() = default;
 
-	void printKind();
-		
+    void printKind();
+
   private:
-	// բոլոր դինամիկ ստեղծված հանգույցների հասցեները
-    static std::list<AstNode*> allocated_nodes;
+    // բոլոր դինամիկ ստեղծված հանգույցների հասցեները
+    static std::list<AstNode*> allocatedNodes;
     
   public:
-    static void delete_allocated_nodes();
+    static void deleteAllocatedNodes();
   };
 
 
@@ -127,14 +127,16 @@ namespace basic {
     Binary( Operation op, Expression* exo, Expression* exi );
   };
 
+  class Subroutine;
+
   // Ֆունկցիայի կանչ (կիրառում)
   class Apply : public Expression {
   public:
-    std::string procname = "";
+    Subroutine* procptr = nullptr;
     std::vector<Expression*> arguments;
 
   public:
-    Apply( const std::string& pn, const std::vector<Expression*>& ags );
+    Apply( Subroutine* sp, const std::vector<Expression*>& ags );
   };
 
   
@@ -218,17 +220,17 @@ namespace basic {
     Apply* subrcall = nullptr;
     
   public:
-    Call( const std::string& sn, const std::vector<Expression*> as );
+    Call( Subroutine* sp, const std::vector<Expression*> as );
   };
 
   // Ենթածրագիր
   class Subroutine : public AstNode {
   public:
-    std::string name = ""; // անուն
-    std::vector<std::string> parameters; // պարամետրեր
-	std::vector<Variable*> locals; // լոկալ փոփոխականներ
-    Statement* body = nullptr; // մարմին
-    Type rettype = Type::Void; // վերադարձրած արժեքի տիպ
+    std::string name = "";                // անուն
+    std::vector<std::string> parameters;  // պարամետրեր
+    std::vector<Variable*> locals;        // լոկալ փոփոխականներ
+    Statement* body = nullptr;            // մարմին
+    Type rettype = Type::Void;            // վերադարձրած արժեքի տիպ
     
   public:
     Subroutine( const std::string& nm, const std::vector<std::string>& ps, Statement* bo );
