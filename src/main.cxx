@@ -1,26 +1,26 @@
 
+#include <fstream>
 #include <iostream>
 #include <sstream>
-#include <fstream>
 
 #include "llvm/Support/FileSystem.h"
 
 #include "parser.hxx"
 #include "scanner.hxx"
 
-
 namespace basic {
-  void lisp( AstNode* node, std::ostringstream& ooo );
-  void emitLLVM( Program* node, llvm::raw_fd_ostream& ooo );
+void lisp(AstNode* node, std::ostringstream& ooo);
+void emitLLVM(Program* node, llvm::raw_fd_ostream& ooo);
 }
 
 //
 int main()
 {
-  std::cout << "Parsing ..." << std::endl;
-  basic::Parser parser("../cases/case05.bas");
-  auto prog = parser.parse();
+    std::cout << "Parsing ..." << std::endl;
+    basic::Parser parser("../cases/case05.bas");
+    auto prog = parser.parse();
 
+    /*
   std::cout << "End Parsing ..." << std::endl;
   if( nullptr != prog ) {
     std::ostringstream out;
@@ -31,8 +31,7 @@ int main()
     std::cout << out.str() << std::endl;
     basic::AstNode::delete_allocated_nodes();
   }
-  
-  return 0;
+  */
+
+    return 0;
 }
-
-

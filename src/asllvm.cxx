@@ -1,6 +1,6 @@
 
-#include "ast.hxx"
 #include "LLVMEmitter.hxx"
+#include "ast.hxx"
 
 #include <iostream>
 #include <sstream>
@@ -8,13 +8,11 @@
 namespace basic {
 
 ///
-void emitLLVM( Program* node, llvm::raw_fd_ostream& ooo )
+void emitLLVM(Program* node, llvm::raw_fd_ostream& ooo)
 {
     LLVMEmitter llvm(node, ooo);
     llvm.emitModule(node);
-     
-    
-    
+
     //ooo << "(basic-program :filename " << node->filename;
     //ooo << " :members (";
     //for( Subroutine* si : node->members ) {

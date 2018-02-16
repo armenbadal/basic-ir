@@ -13,16 +13,15 @@
 
 namespace basic {
 
-/// 
-class LLVMEmitter
-{
+///
+class LLVMEmitter {
 
-///@name Public interface    
+    ///@name Public interface
 public:
-    void emitModule (Program* prog);
+    void emitModule(Program* prog);
     void emitFunction(Subroutine* sub);
 
-///@name internal functions
+    ///@name internal functions
 private:
     void processStatement(Statement* stat, llvm::BasicBlock* endBB = nullptr);
     void processSequence(Sequence* seq, llvm::BasicBlock* endBB);
@@ -42,18 +41,17 @@ private:
     llvm::Value* getVariableAddress(const std::string& name);
     llvm::Type* getLLVMType(Type type);
 
-///@name 
+    ///@name
 public:
-    LLVMEmitter(AstNode* node, llvm::raw_fd_ostream& out) 
-        : mAst(node)
-        , mOut(out)
-        , mBuilder(llvmContext) 
-    {}
+    LLVMEmitter(AstNode* node, llvm::raw_fd_ostream& out)
+        : mAst(node), mOut(out), mBuilder(llvmContext)
+    {
+    }
     ~LLVMEmitter() { delete mModule; }
 
-///@name private members
+    ///@name private members
 private:
-    AstNode* mAst = nullptr;    
+    AstNode* mAst = nullptr;
     //std::ostringstream& mOut;
     llvm::raw_fd_ostream& mOut;
 
