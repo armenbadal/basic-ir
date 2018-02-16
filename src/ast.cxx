@@ -4,12 +4,12 @@
 
 namespace basic {
   //
-  std::list<AstNode*> AstNode::allocated_nodes;
+  std::list<AstNode*> AstNode::allocatedNodes;
   
   //
-  void AstNode::delete_allocated_nodes()
+  void AstNode::deleteAllocatedNodes()
   {
-    for( auto e : allocated_nodes )
+    for( auto e : allocatedNodes )
       delete e;
   }
 
@@ -76,7 +76,7 @@ namespace basic {
   //
   AstNode::AstNode()
   {
-    allocated_nodes.push_front(this);
+    allocatedNodes.push_front(this);
   }
   
   Sequence::Sequence()
@@ -124,15 +124,15 @@ namespace basic {
   }
 
   //
-  Apply::Apply( const std::string& pn, const std::vector<Expression*>& ags )
-    : procname{pn}, arguments{ags}
+  Apply::Apply( Subroutine* sp, const std::vector<Expression*>& ags )
+    : procptr{sp}, arguments{ags}
   {
     kind = NodeKind::Apply;
   }
 
   //
-  Input::Input( const std::string& vn )
-    : varname{vn}
+  Input::Input( Variable* vp )
+    : varptr{vp}
   {
     kind = NodeKind::Input;
   }
@@ -145,8 +145,8 @@ namespace basic {
   }
 
   //
-  Let::Let( const std::string& vn, Expression* ex )
-    : varname{vn}, expr{ex}
+  Let::Let( Variable* vp, Expression* ex )
+    : varptr{vp}, expr{ex}
   {
     kind = NodeKind::Let;
   }
@@ -166,15 +166,15 @@ namespace basic {
   }
 
   //
-  For::For( const std::string& pr, Expression* be, Expression* en, Expression* st, Statement* bo )
+  For::For( Variable* pr, Expression* be, Expression* en, Expression* st, Statement* bo )
     : parameter{pr}, begin{be}, end{en}, step{st}, body{bo}
   {
     kind = NodeKind::For;
   }
   
   //
-  Call::Call( const std::string& sn, const std::vector<Expression*> as )
-    : subrcall{new Apply{sn, as}}
+  Call::Call( Subroutine* sp, const std::vector<Expression*> as )
+    : subrcall{new Apply{sp, as}}
   {
     kind = NodeKind::Call;
   }
@@ -184,6 +184,7 @@ namespace basic {
     : name{nm}, parameters{ps}, body{bo}
   {
     kind = NodeKind::Subroutine;
+    locals.push_back(new Variable(name));
   }
 
   //

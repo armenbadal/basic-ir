@@ -27,13 +27,17 @@ llvm::Type* LLVMEmitter::getLLVMType(Type type)
 {
     if (type == Type::Void) {
         return mBuilder.getVoidTy();
-    } else if (type == Type::Number) {
-        return mBuilder.getDoubleTy();
-    } else if (type == Type::Text) {
-        return mBuilder.getInt8PtrTy();
-    } else {
-        assert(!"Undefined type");
     }
+	
+	if (type == Type::Number) {
+        return mBuilder.getDoubleTy();
+    }
+	
+	if (type == Type::Text) {
+        return mBuilder.getInt8PtrTy();
+    }
+
+	assert(!"Undefined type");
 
     return nullptr;
 
@@ -147,7 +151,7 @@ void LLVMEmitter::processStatement(Statement* stat, llvm::BasicBlock* endBB)
 void LLVMEmitter::processLet(Let* letSt)
 {
     if (! letSt) { assert(0);return; }
-    auto addr = getVariableAddress(letSt->varname);
+    auto addr = getVariableAddress(letSt->varptr->name);
     assert (addr && "Unallocated variable");
 
     auto val = processExpression(letSt->expr); 
@@ -222,7 +226,7 @@ void LLVMEmitter::processFor(For* forSt, llvm::BasicBlock* endBB)
     llvm::BasicBlock* body = llvm::BasicBlock::Create(llvmContext, "bb", endBB->getParent(), endBB);
     llvm::BasicBlock* exit = llvm::BasicBlock::Create(llvmContext, "bb", endBB->getParent(), endBB);
     
-    auto param_addr = getVariableAddress(forSt->parameter);
+    auto param_addr = getVariableAddress(forSt->parameter->name);
     auto begin = processExpression(forSt->begin);
     mBuilder.CreateStore(begin, param_addr);
 
@@ -266,22 +270,28 @@ llvm::Value* LLVMEmitter::processExpression(Expression* expr)
     if (auto num = dynamic_cast<Number*>(expr)) {
         std::cout << __LINE__ << std::endl;
         return emitConstant(num);
-    } else if (auto text = dynamic_cast<Text*>(expr)) {
+    }
+	else if (auto text = dynamic_cast<Text*>(expr)) {
         std::cout << __LINE__ << std::endl;
         //return emitString(num);
-    } else if (auto var = dynamic_cast<Variable*>(expr)) {
+    }
+	else if (auto var = dynamic_cast<Variable*>(expr)) {
         //std::cout << __LINE__ << "  VAR NAME:" << var->name << std::endl;
         return emitLoad(var);
-    } else if (auto unary = dynamic_cast<Unary*>(expr)) {
+    }
+	else if (auto unary = dynamic_cast<Unary*>(expr)) {
         std::cout << __LINE__ << std::endl;
         return processUnary(unary);
-    } else if (auto binary = dynamic_cast<Binary*>(expr)) {
+    }
+	else if (auto binary = dynamic_cast<Binary*>(expr)) {
         std::cout << __LINE__ << std::endl;
         return processBinary(binary);
-    } else if (auto apply = dynamic_cast<Apply*>(expr)) {
+    }
+	else if (auto apply = dynamic_cast<Apply*>(expr)) {
         std::cout << __LINE__ << std::endl;
        // return emitCall(apply);
-    } else {
+    }
+	else {
         assert(!"Invalid expression");  
     }
     return nullptr;
@@ -306,7 +316,8 @@ llvm::LoadInst* LLVMEmitter::emitLoad(Variable* var)
     llvm::LoadInst* load = nullptr;
     if (var->type == Type::Text) {
         //TODO
-    } else {
+    }
+	else {
         load = mBuilder.CreateLoad(mBuilder.getDoubleTy(), addr, var->name);
     }
     llvm::errs() << *load << "\n";
@@ -368,6 +379,14 @@ llvm::Value* LLVMEmitter::processBinary(Binary* bin)
             ret = mBuilder.CreateOr(lhs, rhs, "or");
             break;
         case Operation::Conc:
+// TODO: [18:02:36] Armen Badalian: դեռ չեմ պատկերացնում, թե տողերի կոնկատենացիայի համար ինչ կոդ ես գեներացնելու
+//[18:03:16] Tigran Sargsyan: ես էլ չեմ պատկերացնում
+//[18:03:21] Tigran Sargsyan: :)
+//[18:03:33] Tigran Sargsyan: բայց դե միբան կբստրենք
+//[18:03:44] Armen Badalian: միգուցե տողերը սարքենք հին Պասկալի պես, երկարությունը ֆիքսենք 255 նիշ, ու բոլոր գործողությունները դրանով անենք
+//[18:04:16 | Edited 18:04:20] Armen Badalian: հին Պասկալում տողի առաջին բայթում գրվում էր տողի երկարությունը
+//[18:04:30] Armen Badalian: ու դա կարող էր լինել 255
+//[18:05:14] Tigran Sargsyan: տարբերակ ա, կարելի ա մտածել
             assert("CONC operator is not handled yet");
             break;
         default: {

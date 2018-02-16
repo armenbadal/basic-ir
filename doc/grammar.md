@@ -1,28 +1,27 @@
 # BASIC-IR լեզվի քերականությունը (EBNF)
 
 ````
-Program = { Subroutine NewLines }.
+Program = [NewLines] { Subroutine NewLines }.
 NewLines = EOL { EOL }.
-Subroutine = 'SUB' IDENT ['(' [IdentList] ')'] StatementList 'END' 'SUB'.
-StatementList = NewLines { Statement NewLines }.
+Subroutine = 'SUB' IDENT ['(' [IdentList] ')'] Statements 'END' 'SUB'.
+Statements = NewLines { (Let | Input | Print | If | While | For | Call) NewLines }.
 IdentList = IDENT {',' IDENT}.
-Statement = Let | Input | Print | If | While | For | Call.
+Let = 'LET' IDENT '=' Expression.
 Input = 'INPUT' IDENT.
 Print = 'PRINT' Expression.
-Let = 'LET' IDENT '=' Expression.
-If = 'IF' Expression 'THEN' StatementList
-     {'ELSEIF' Expression 'THEN' StatementList }
-     ['ELSE' StatementList] 'END' 'IF'.
-While = 'WHILE' Expression StatementList 'END' 'WHILE'.
-For = 'FOR' IDENT '=' Expression 'TO' Expression ['STEP' Expression]
-      StatementList 'END' 'FOR'.
+If = 'IF' Expression 'THEN' Statements
+     {'ELSEIF' Expression 'THEN' Statements }
+     ['ELSE' Statements] 'END' 'IF'.
+While = 'WHILE' Expression Statements 'END' 'WHILE'.
+For = 'FOR' IDENT '=' Expression 'TO' Expression ['STEP' ['-'] NUMBER]
+      Statements 'END' 'FOR'.
 Call = 'CALL' IDENT [ExpressionList].
 ExpressionList = Expression {',' Expression}.
 Expression = Addition [('=' | '<>' | '>' | '>=' | '<' | '<=') Addition].
 Addition = Multiplication {('+' | '-' | '&' | 'OR') Multiplication}.
 Multiplication = Power {('*' | '/' | '\' | 'AND') Power}.
 Power = Factor ['^' Power].
-Factor = DOUBLE | STRING | IDENT | '(' Expression ')' 
+Factor = NUMBER | TEXT | IDENT | '(' Expression ')' 
        | IDENT '(' [ExpressionList] ')'.
 ````
 
