@@ -220,25 +220,33 @@ void LLVMEmitter::processFor(For* forSt, llvm::BasicBlock* endBB)
 
     llvm::BasicBlock* head = llvm::BasicBlock::Create(llvmContext, "bb", endBB->getParent(), endBB);
     llvm::BasicBlock* body = llvm::BasicBlock::Create(llvmContext, "bb", endBB->getParent(), endBB);
+    llvm::BasicBlock* exit = llvm::BasicBlock::Create(llvmContext, "bb", endBB->getParent(), endBB);
     
     auto param_addr = getVariableAddress(forSt->parameter);
     auto begin = processExpression(forSt->begin);
     mBuilder.CreateStore(begin, param_addr);
 
-    mBuilder.CreateBr(head);
+    //Setting step 1 by default
+	llvm::Value* step = mBuilder.getInt32(1);
 
-    auto step = processExpression(forSt->step);
+    //Looking if step is given
+	if (forSt->step) {
+		step = processExpression(forSt->step);
+	}
+
     auto end = processExpression(forSt->end);
-    //end->dump();
+    mBuilder.CreateBr(head);
 
     mBuilder.SetInsertPoint(head);
     auto param = mBuilder.CreateLoad(param_addr);
     auto cnd = mBuilder.CreateFCmpOLE(param, end, "le");
     mBuilder.CreateCondBr(cnd, body, endBB);
 
+    //Handling the body
     mBuilder.SetInsertPoint(body);
-    processStatement(forSt->body, endBB);
+    processStatement(forSt->body, exit);
 
+    //Incrementing the index
     auto inc_param = mBuilder.CreateFAdd(param, step);
     mBuilder.CreateStore(inc_param, param_addr);
 

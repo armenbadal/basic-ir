@@ -18,7 +18,7 @@ namespace basic {
 int main()
 {
   std::cout << "Parsing ..." << std::endl;
-  basic::Parser parser("../cases/case02.bas");
+  basic::Parser parser("../cases/case05.bas");
   auto prog = parser.parse();
 
   std::cout << "End Parsing ..." << std::endl;
