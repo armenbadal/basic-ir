@@ -54,7 +54,7 @@ bool Scanner::next(Lexeme& lex)
     lex.line = line;
 
     // skip spaces
-    while (ch == ' ' || ch == '\t')
+    while (ch == ' ' || ch == '\t' || ch == '\r')
         source >> ch;
 
     // detect EOF
@@ -150,6 +150,9 @@ bool Scanner::next(Lexeme& lex)
             break;
         case '^':
             lex.kind = Token::Pow;
+            break;
+        case '&':
+            lex.kind = Token::Amp;
             break;
         case '=':
             lex.kind = Token::Eq;

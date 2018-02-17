@@ -6,7 +6,7 @@
 #include "converter.hxx"
 
 namespace basic {
-class Dot : public Converter {
+class Doter : public Converter {
 private:
     int convertProgram(Program* node, std::ostream& ooo) override;
     int convertSubroutine(Subroutine* node, std::ostream& ooo) override;

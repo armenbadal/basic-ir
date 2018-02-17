@@ -1,5 +1,5 @@
 
-#include "ast.hxx"
+#include "aslisp.hxx"
 
 #include <map>
 #include <sstream>
@@ -26,217 +26,197 @@ std::map<Operation, std::string> mnemonic{
 };
 
 ///
-void lisp(AstNode* node, std::ostringstream& ooo);
-
-///
-void numberAsLisp(Number* node, std::ostringstream& ooo)
+int Lisper::convertNumber(Number* node, std::ostream& ooo)
 {
     ooo << "(basic-number :value " << node->value << ")";
+	return 0;
 }
 
 ///
-void textAsLisp(Text* node, std::ostringstream& ooo)
+int Lisper::convertText(Text* node, std::ostream& ooo)
 {
     ooo << "(basic-text :value \"" << node->value << "\")";
+	return 0;
 }
 
 ///
-void variableAsLisp(Variable* node, std::ostringstream& ooo)
+int Lisper::convertVariable(Variable* node, std::ostream& ooo)
 {
     ooo << "(basic-variable :name \"" << node->name << "\")";
+	return 0;
 }
 
 ///
-void unaryAsLisp(Unary* node, std::ostringstream& ooo)
+int Lisper::convertUnary(Unary* node, std::ostream& ooo)
 {
     ooo << "(basic-unary :opcode \"" << mnemonic[node->opcode] << "\" :subexpr ";
-    lisp(node->subexpr, ooo);
+    convertAstNode(node->subexpr, ooo);
     ooo << ")";
+	return 0;
 }
 
 ///
-void binaryAsLisp(Binary* node, std::ostringstream& ooo)
+int Lisper::convertBinary(Binary* node, std::ostream& ooo)
 {
     ooo << "(basic-binary :opcode \"" << mnemonic[node->opcode] << "\"";
-    ooo << " :subexpro ";
-    lisp(node->subexpro, ooo);
-    ooo << " :subexpri ";
-    lisp(node->subexpri, ooo);
+    ++indent; space(ooo);
+	ooo << ":subexpro ";
+    convertAstNode(node->subexpro, ooo);
+	space(ooo);
+    ooo << ":subexpri ";
+    convertAstNode(node->subexpri, ooo);
     ooo << ")";
+	return 0;
 }
 
 ///
-void applyAsLisp(Apply* node, std::ostringstream& ooo)
+  int Lisper::convertApply(Apply* node, std::ostream& ooo)
 {
     ooo << "(basic-apply :procname \"" << node->procptr->name << "\"";
     ooo << " :arguments (";
     for (auto e : node->arguments) {
-        lisp(e, ooo);
+        convertAstNode(e, ooo);
         ooo << " ";
     }
     ooo << "))";
+	return 0;
 }
 
 ///
-void letAsLisp(Let* node, std::ostringstream& ooo)
+int Lisper::convertLet(Let* node, std::ostream& ooo)
 {
-    ooo << "(basic-let :varname " << node->varptr->name << " :expr ";
-    lisp(node->expr, ooo);
-    ooo << ")";
+  ooo << "(basic-let :varname " << node->varptr->name;
+  ++indent; space(ooo);
+  ooo << ":expr ";
+  convertAstNode(node->expr, ooo);
+  ooo << ")";
+  return 0;
 }
 
 ///
-void inputAsLisp(Input* node, std::ostringstream& ooo)
+int Lisper::convertInput(Input* node, std::ostream& ooo)
 {
     ooo << "(basic-input :varname " << node->varptr->name << ")";
+	return 0;
 }
 
 ///
-void printAsLisp(Print* node, std::ostringstream& ooo)
+int Lisper::convertPrint(Print* node, std::ostream& ooo)
 {
     ooo << "(basic-print :expr ";
-    lisp(node->expr, ooo);
+    convertAstNode(node->expr, ooo);
     ooo << ")";
+	return 0;
 }
 
 ///
-void ifAsLisp(If* node, std::ostringstream& ooo)
+int Lisper::convertIf(If* node, std::ostream& ooo)
 {
     ooo << "(basic-if :condition ";
-    lisp(node->condition, ooo);
+    convertAstNode(node->condition, ooo);
     ooo << " :decision ";
-    lisp(node->decision, ooo);
+    convertAstNode(node->decision, ooo);
     ooo << " :alternative ";
-    lisp(node->alternative, ooo);
+    convertAstNode(node->alternative, ooo);
     ooo << ")";
+	return 0;
 }
 
 ///
-void whileAsLisp(While* node, std::ostringstream& ooo)
+int Lisper::convertWhile(While* node, std::ostream& ooo)
 {
     ooo << "(basic-while :condition ";
-    lisp(node->condition, ooo);
+    convertAstNode(node->condition, ooo);
     ooo << " :body ";
-    lisp(node->body, ooo);
+    convertAstNode(node->body, ooo);
     ooo << ")";
+	return 0;
 }
 
 ///
-void forAsLisp(For* node, std::ostringstream& ooo)
+int Lisper::convertFor(For* node, std::ostream& ooo)
 {
     ooo << "(basic-for :parameter " << node->parameter;
     ooo << " :begin ";
-    lisp(node->begin, ooo);
+    convertAstNode(node->begin, ooo);
     ooo << " :end ";
-    lisp(node->end, ooo);
+    convertAstNode(node->end, ooo);
     ooo << " :step ";
-    lisp(node->step, ooo);
+    convertAstNode(node->step, ooo);
     ooo << " :body ";
-    lisp(node->body, ooo);
+    convertAstNode(node->body, ooo);
     ooo << ")";
+	return 0;
 }
 
 ///
-void callAsLisp(Call* node, std::ostringstream& ooo)
+int Lisper::convertCall(Call* node, std::ostream& ooo)
 {
     ooo << "(basic-call :procname " << node->subrcall->procptr->name;
     ooo << " :arguments (";
     for (auto e : node->subrcall->arguments) {
-        lisp(e, ooo);
+        convertAstNode(e, ooo);
         ooo << " ";
     }
     ooo << "))";
+	return 0;
 }
 
 ///
-void sequenceAsLisp(Sequence* node, std::ostringstream& ooo)
+int Lisper::convertSequence(Sequence* node, std::ostream& ooo)
 {
-    ooo << "(basic-sequence :items (";
+  ooo << "(basic-sequence";
+  ++indent; space(ooo);
+  ooo << ":items (";
+  ++indent;
     for (auto ei : node->items) {
-        lisp(ei, ooo);
+	  space(ooo);
+        convertAstNode(ei, ooo);
         ooo << " ";
     }
+	--indent;
+	--indent; space(ooo);
     ooo << "))";
+	return 0;
 }
 
 ///
-void subroutineAsLisp(Subroutine* node, std::ostringstream& ooo)
+int Lisper::convertSubroutine(Subroutine* node, std::ostream& ooo)
 {
-    ooo << "(basic-subroutine :name " << node->name;
-    ooo << " :parameters (";
+  ooo << "(basic-subroutine :name " << node->name;
+  ++indent; space(ooo);
+  ooo << ":parameters (";
     for (auto& ip : node->parameters)
         ooo << ip << " ";
-    ooo << ") :body ";
-    lisp(node->body, ooo);
     ooo << ")";
+	space(ooo);
+	ooo << ":body ";
+    convertAstNode(node->body, ooo);
+    --indent; space(ooo);
+	ooo << ")";
+	--indent;
+	return 0;
 }
 
 ///
-void programAsLisp(Program* node, std::ostringstream& ooo)
+int Lisper::convertProgram(Program* node, std::ostream& ooo)
 {
     ooo << "(basic-program :filename " << node->filename;
-    ooo << " :members (";
+	++indent; space(ooo);
+    ooo << ":members (";
     for (auto si : node->members) {
-        ooo << "\n";
-        lisp(si, ooo);
+	  space(ooo);
+        convertAstNode(si, ooo);
     }
-    ooo << "))\n";
+	--indent; space(ooo);
+    ooo << ")";
+	space(ooo);
+	ooo << ")" << std::endl;
+	return 0;
 }
 
-///
-void lisp(AstNode* node, std::ostringstream& ooo)
-{
-    switch (node->kind) {
-        case NodeKind::Number:
-            numberAsLisp(dynamic_cast<Number*>(node), ooo);
-            break;
-        case NodeKind::Text:
-            textAsLisp(dynamic_cast<Text*>(node), ooo);
-            break;
-        case NodeKind::Variable:
-            variableAsLisp(dynamic_cast<Variable*>(node), ooo);
-            break;
-        case NodeKind::Unary:
-            unaryAsLisp(dynamic_cast<Unary*>(node), ooo);
-            break;
-        case NodeKind::Binary:
-            binaryAsLisp(dynamic_cast<Binary*>(node), ooo);
-            break;
-        case NodeKind::Apply:
-            applyAsLisp(dynamic_cast<Apply*>(node), ooo);
-            break;
-        case NodeKind::Sequence:
-            sequenceAsLisp(dynamic_cast<Sequence*>(node), ooo);
-            break;
-        case NodeKind::Input:
-            inputAsLisp(dynamic_cast<Input*>(node), ooo);
-            break;
-        case NodeKind::Print:
-            printAsLisp(dynamic_cast<Print*>(node), ooo);
-            break;
-        case NodeKind::Let:
-            letAsLisp(dynamic_cast<Let*>(node), ooo);
-            break;
-        case NodeKind::If:
-            ifAsLisp(dynamic_cast<If*>(node), ooo);
-            break;
-        case NodeKind::While:
-            whileAsLisp(dynamic_cast<While*>(node), ooo);
-            break;
-        case NodeKind::For:
-            forAsLisp(dynamic_cast<For*>(node), ooo);
-            break;
-        case NodeKind::Call:
-            callAsLisp(dynamic_cast<Call*>(node), ooo);
-            break;
-        case NodeKind::Subroutine:
-            subroutineAsLisp(dynamic_cast<Subroutine*>(node), ooo);
-            break;
-        case NodeKind::Program:
-            programAsLisp(dynamic_cast<Program*>(node), ooo);
-            break;
-        default: {
-        }
-    }
-}
+  void Lisper::space(std::ostream& ooo)
+  {
+	ooo << std::endl << std::string(indent, '\t');
+  }
 } // basic

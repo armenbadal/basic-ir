@@ -132,7 +132,6 @@ void LLVMEmitter::processStatement(Statement* stat, llvm::BasicBlock* endBB)
         return;
     }
 
-    stat->printKind();
     switch (stat->kind) {
         case NodeKind::Apply:
             break;

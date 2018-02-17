@@ -1,9 +1,10 @@
 
+#include "parser.hxx"
+#include "errors.hxx"
+
 #include <algorithm>
 #include <exception>
 #include <iostream>
-
-#include "parser.hxx"
 
 namespace basic {
 ///
@@ -22,21 +23,20 @@ Parser::~Parser()
 ///
 Program* Parser::parse()
 {
-    // TODO: try-catch-ը տեղափոխել parse-ի կանչվելու տեղը
-    try {
-        parseProgram();
-    }
-    catch (std::exception& e) {
-        std::cerr << e.what() << std::endl;
-        AstNode::deleteAllocatedNodes();
-    }
+    parseProgram();
 
+	// տուգել, որ unresolved ցուցակը դատարկ լինի, այսինքն՝
+	// ծրագրում ոչ մի տեղ չսահմանված ֆունկցիայի հղում չմնա
+	for(auto& e : unresolved) {
+	  // TODO: 
+	}
+	
     return module;
 }
 
-///
-/// Program [NewLines] { Subroutine NewLines }.
-///
+//
+// Program [NewLines] { Subroutine NewLines }.
+//
 void Parser::parseProgram()
 {
     scanner >> lookahead;
@@ -50,9 +50,9 @@ void Parser::parseProgram()
     }
 }
 
-///
-/// Subroutine = 'SUB' IDENT ['(' [IdentList] ')'] Statements 'END' 'SUB'.
-///
+//
+// Subroutine = 'SUB' IDENT ['(' [IdentList] ')'] Statements 'END' 'SUB'.
+//
 void Parser::parseSubroutine()
 {
     // վերնագիր
@@ -103,17 +103,15 @@ void Parser::parseSubroutine()
     }
 }
 
-///
-/// Statements = NewLines { (Let | Input | Print | If | While | For | Call) NewLines }.
-///
+//
+// Statements = NewLines { (Let | Input | Print | If | While | For | Call) NewLines }.
+//
 Statement* Parser::parseStatements()
 {
     parseNewLines();
 
-    std::cout << "Parsing Statment: " << lookahead.value << std::endl;
     auto sequ = new Sequence();
     while (!lookahead.is(Token::End) && !lookahead.is(Token::Else)) {
-        std::cout << "LOOKAHEAD: " << lookahead.value << std::endl;
         Statement* stat = nullptr;
         if (lookahead.is(Token::Let))
             stat = parseLet();
@@ -140,11 +138,13 @@ Statement* Parser::parseStatements()
     return sequ;
 }
 
-///
-/// Let = 'LET' IDENT '=' Expression.
-///
+//
+// Let = 'LET' IDENT '=' Expression.
+//
 Statement* Parser::parseLet()
 {
+    unsigned int pos = lookahead.line;
+	
     match(Token::Let);
     auto vnm = lookahead.value;
     match(Token::Identifier);
@@ -161,17 +161,16 @@ Statement* Parser::parseLet()
     // TODO: եթե փոփոխականը արդեն կա և դրա տիպը exo-ի տիպն է,
     // ապա ամեն ինչ նորմալ է, եթե տիպերը տարբերվում են, ապա
     // հաղորդել սխալի մասին։
-    // Ի դեպ, ենթածրագրի անունը հենց սկզբից հայտնվելու է locals-ում, և
-    // վերը գրված տիպերի ստուգումը լինելու է ընդհանուր
+    // Ի դեպ, ենթածրագրի անունը և պարամետրերը հենց սկզբից հայտնվելու
+	// են locals-ում, և վերը գրված տիպերի ստուգումը լինելու է ընդհանուր
 
-    auto varp = getVariable(vnm);
-
+    auto varp = getVariable(vnm);	
     return new Let(varp, exo);
 }
 
-///
-/// Input = 'INPUT' IDENT.
-///
+//
+// Input = 'INPUT' IDENT.
+//
 Statement* Parser::parseInput()
 {
     match(Token::Input);
@@ -182,9 +181,9 @@ Statement* Parser::parseInput()
     return new Input(varp);
 }
 
-///
-/// Print = 'PRINT' Expression.
-///
+//
+// Print = 'PRINT' Expression.
+//
 Statement* Parser::parsePrint()
 {
     match(Token::Print);
@@ -192,19 +191,16 @@ Statement* Parser::parsePrint()
     return new Print(exo);
 }
 
-///
-/// If = 'IF' Expression 'THEN' Statements
-///   {'ELSEIF' Expression 'THEN' Statements }
-///   ['ELSE' Statements] 'END' 'IF'.
-///
+//
+// If = 'IF' Expression 'THEN' Statements
+//   {'ELSEIF' Expression 'THEN' Statements }
+//   ['ELSE' Statements] 'END' 'IF'.
+//
 Statement* Parser::parseIf()
 {
-    //std::cout << __LINE__ << lookahead.value << std::endl;
     match(Token::If);
     auto cond = parseExpression();
-    //std::cout <<  __LINE__ << lookahead.value << std::endl;
     match(Token::Then);
-    //std::cout <<  __LINE__ << lookahead.value << std::endl;
     auto deci = parseStatements();
     auto sif = new If(cond, deci);
 
@@ -219,23 +215,21 @@ Statement* Parser::parseIf()
         it = eif;
     }
 
-    //std::cout <<  __LINE__ << lookahead.value << std::endl;
     if (lookahead.is(Token::Else)) {
         match(Token::Else);
         auto alte = parseStatements();
         it->alternative = alte;
     }
-    //std::cout <<  __LINE__ << lookahead.value << std::endl;
+
     match(Token::End);
-    //std::cout <<  __LINE__ << lookahead.value << std::endl;
     match(Token::If);
 
     return sif;
 }
 
-///
-/// While = 'WHILE' Expression Statements 'END' 'WHILE'.
-///
+//
+// While = 'WHILE' Expression Statements 'END' 'WHILE'.
+//
 Statement* Parser::parseWhile()
 {
     match(Token::While);
@@ -246,10 +240,10 @@ Statement* Parser::parseWhile()
     return new While(cond, body);
 }
 
-///
-/// For = 'FOR' IDENT '=' Expression 'TO' Expression ['STEP' NUMBER]
-///    Statements 'END' 'FOR'.
-///
+//
+// For = 'FOR' IDENT '=' Expression 'TO' Expression ['STEP' NUMBER]
+//    Statements 'END' 'FOR'.
+//
 Statement* Parser::parseFor()
 {
     match(Token::For);
@@ -279,9 +273,9 @@ Statement* Parser::parseFor()
     return new For(vp, be, en, sp, dy);
 }
 
-///
-/// Call = 'CALL' IDENT [ExpressionList].
-///
+//
+// Call = 'CALL' IDENT [ExpressionList].
+//
 Statement* Parser::parseCall()
 {
     match(Token::Call);
@@ -323,7 +317,7 @@ Statement* Parser::parseCall()
 }
 
 //
-std::map<Token, Operation> mapopcode{
+std::map<Token,Operation> mapopcode{
     { Token::Add, Operation::Add },
     { Token::Sub, Operation::Sub },
     { Token::Amp, Operation::Conc },
@@ -341,9 +335,9 @@ std::map<Token, Operation> mapopcode{
     { Token::Or, Operation::Or }
 };
 
-///
-/// Expression = Addition [('=' | '<>' | '>' | '>=' | '<' | '<=') Addition].
-///
+//
+// Expression = Addition [('=' | '<>' | '>' | '>=' | '<' | '<=') Addition].
+//
 Expression* Parser::parseExpression()
 {
     auto res = parseAddition();
@@ -352,13 +346,14 @@ Expression* Parser::parseExpression()
         match(lookahead.kind);
         auto exo = parseAddition();
         res = new Binary(opc, res, exo);
+		checkTypes(dynamic_cast<Binary*>(res));
     }
     return res;
 }
 
-///
-/// Addition = Multiplication {('+' | '-' | '&' | 'OR') Multiplication}.
-///
+//
+// Addition = Multiplication {('+' | '-' | '&' | 'OR') Multiplication}.
+//
 Expression* Parser::parseAddition()
 {
     auto res = parseMultiplication();
@@ -367,13 +362,14 @@ Expression* Parser::parseAddition()
         match(lookahead.kind);
         auto exo = parseMultiplication();
         res = new Binary(opc, res, exo);
+		checkTypes(dynamic_cast<Binary*>(res));
     }
     return res;
 }
 
-///
-/// Multiplication = Power {('*' | '/' | '\' | 'AND') Power}.
-///
+//
+// Multiplication = Power {('*' | '/' | '\' | 'AND') Power}.
+//
 Expression* Parser::parseMultiplication()
 {
     auto res = parsePower();
@@ -382,13 +378,14 @@ Expression* Parser::parseMultiplication()
         match(lookahead.kind);
         auto exo = parsePower();
         res = new Binary(opc, res, exo);
+		checkTypes(dynamic_cast<Binary*>(res));
     }
     return res;
 }
 
-///
-/// Power = Factor ['^' Power].
-///
+//
+// Power = Factor ['^' Power].
+//
 Expression* Parser::parsePower()
 {
     auto res = parseFactor();
@@ -396,31 +393,32 @@ Expression* Parser::parsePower()
         match(Token::Pow);
         auto exo = parseFactor();
         res = new Binary(Operation::Pow, res, exo);
+		checkTypes(dynamic_cast<Binary*>(res));
     }
     return res;
 }
 
-///
-/// Factor = NUMBER | TEXT | IDENT | '(' Expression ')'
-///     | IDENT '(' [ExpressionList] ')'.
-///
+//
+// Factor = NUMBER | TEXT | IDENT | '(' Expression ')'
+//     | IDENT '(' [ExpressionList] ')'.
+//
 Expression* Parser::parseFactor()
 {
-    /// NUMBER
+    // NUMBER
     if (lookahead.is(Token::Number)) {
         auto lex = lookahead.value;
         match(Token::Number);
         return new Number(std::stod(lex));
     }
 
-    /// TEXT
+    // TEXT
     if (lookahead.is(Token::Text)) {
         auto lex = lookahead.value;
         match(Token::Text);
         return new Text(lex);
     }
 
-    /// ('-' | 'NOT') Factor
+    // ('-' | 'NOT') Factor
     if (lookahead.is({ Token::Sub, Token::Not })) {
         Operation opc = Operation::None;
         if (lookahead.is(Token::Sub)) {
@@ -433,11 +431,12 @@ Expression* Parser::parseFactor()
         }
         auto exo = parseFactor();
         if (exo->type != Type::Number)
-            throw TypeError{ "Unary operation is applicable only for numbers." };
+            throw TypeError{ "Բացասումն ու ժխտումը կիրառելի է միայն թվերին։" };
+		
         return new Unary(opc, exo);
     }
 
-    /// IDENT ['(' [ExpressionList] ')']
+    // IDENT ['(' [ExpressionList] ')']
     if (lookahead.is(Token::Identifier)) {
         auto name = lookahead.value;
         match(Token::Identifier);
@@ -469,6 +468,7 @@ Expression* Parser::parseFactor()
                         if (typeOf((*spit)->parameters[i]) != args[i]->type)
                             throw TypeError{ "99" };
                 aly->procptr = *spit;
+				// TODO: լրացնել տիպը
             }
             else
                 unresolved[name].push_back(aly);
@@ -490,7 +490,7 @@ Expression* Parser::parseFactor()
     return nullptr;
 }
 
-///
+//
 void Parser::parseNewLines()
 {
     match(Token::NewLine);
@@ -498,7 +498,7 @@ void Parser::parseNewLines()
         match(Token::NewLine);
 }
 
-///
+//
 void Parser::match(Token exp)
 {
     if (!lookahead.is(exp))
@@ -507,37 +507,14 @@ void Parser::match(Token exp)
     scanner >> lookahead;
 }
 
-///
-Type Parser::checkType(Operation op, Type left, Type right)
-{
-    if (left == Type::Number && right == Type::Number) {
-        if (op == Operation::Conc)
-            throw TypeError{ "2" };
-
-        return Type::Number;
-    }
-
-    if (left == Type::Text && right == Type::Text) {
-        if (op == Operation::Conc)
-            return Type::Text;
-
-        if (op >= Operation::Eq && op <= Operation::Le)
-            return Type::Number;
-
-        throw TypeError{ "3" };
-    }
-
-    throw TypeError{ "1" };
-}
-
-///
+//
 Variable* Parser::getVariable(const std::string& nm)
 {
     Subroutine* subr = module->members.back();
     auto& locals = subr->locals;
 
     auto vpi = std::find_if(locals.begin(), locals.end(),
-        [&nm](auto vp) -> bool { return nm == vp->name; });
+		[&nm](auto vp) -> bool { return equalNames(nm, vp->name); });
     if (locals.end() != vpi)
         return *vpi;
 
@@ -548,11 +525,31 @@ Variable* Parser::getVariable(const std::string& nm)
 }
 
 //
-Type typeOf(const std::string& nm)
+void checkTypes(Binary* nodebi)
 {
-    return nm.back() == '$' ? Type::Text : Type::Number;
+  Type tyo = nodebi->subexpro->type;
+  Type tyi = nodebi->subexpri->type;
+  Operation opc = nodebi->opcode;
+  
+  // տիպերի ստուգում և որոշում
+  if (tyo == Type::Number && tyo == Type::Number) {
+	if (opc == Operation::Conc)
+	  throw TypeError("'&' գործողությունը կիրառելի չէ թվերին։");
+	else
+	  nodebi->type = Type::Number;
+  }
+  else if (tyo == Type::Text && tyo == Type::Text) {
+	if (opc == Operation::Conc)
+	  nodebi->type = Type::Text;
+	else if (opc >= Operation::Eq && opc <= Operation::Le)
+	  nodebi->type = Type::Number;
+	else
+	  throw TypeError("'" + operationName(opc) + "' գործողությունը կիրառելի չէ տեքստերին։");
+  }
+  else
+	throw TypeError("'" + operationName(opc) + "' գործողության երկու կողմերում տարբեր տիպեր են։");
 }
-
+  
 //
 bool equalNames(const std::string& no, const std::string& ni)
 {

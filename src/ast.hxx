@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "usings.hxx"
+
 //
 namespace basic {
 
@@ -34,23 +36,18 @@ enum class NodeKind : int {
 // Ծառի հանգույցների բոլոր տեսակներն այս տիպի ընդլայնում են։
 class AstNode {
 public:
-    NodeKind kind = NodeKind::Empty;
-
-private:
-    unsigned int line = 0;
-
-public:
     AstNode();
     virtual ~AstNode() = default;
 
-    void printKind();
+    static void deleteAllocatedNodes();
+
+public:
+    NodeKind kind = NodeKind::Empty;
+    unsigned int line = 0;
 
 private:
     // բոլոր դինամիկ ստեղծված հանգույցների հասցեները
-    static std::list<AstNode*> allocatedNodes;
-
-public:
-    static void deleteAllocatedNodes();
+    static list<AstNode*> allocatedNodes;
 };
 
 // Տվյալների տիպերը։ Void-ն օգտագործվում է
@@ -60,6 +57,9 @@ enum class Type : char {
     Number = 'N',
     Text = 'T'
 };
+
+//
+Type typeOf(const string& nm);
 
 // Արտահայտություն։
 class Expression : public AstNode {
@@ -79,19 +79,19 @@ public:
 // Տեքստ
 class Text : public Expression {
 public:
-    std::string value = "";
+    string value = "";
 
 public:
-    Text(const std::string& vl);
+    Text(const string& vl);
 };
 
 // Փոփոխական
 class Variable : public Expression {
 public:
-    std::string name = "";
+    string name = "";
 
 public:
-    Variable(const std::string& nm);
+    Variable(const string& nm);
 };
 
 // Գործողությունների անունները
@@ -115,6 +115,9 @@ enum class Operation {
     Conc
 };
 
+// Գործողության տեքստային անունը
+string operationName(Operation opc);
+  
 // Ունար գործողություն
 class Unary : public Expression {
 public:
@@ -142,10 +145,10 @@ class Subroutine;
 class Apply : public Expression {
 public:
     Subroutine* procptr = nullptr;
-    std::vector<Expression*> arguments;
+    vector<Expression*> arguments;
 
 public:
-    Apply(Subroutine* sp, const std::vector<Expression*>& ags);
+    Apply(Subroutine* sp, const vector<Expression*>& ags);
 };
 
 // Ղեկավարող կառուցվածք (հրաման)
@@ -155,7 +158,7 @@ class Statement : public AstNode {
 // Հրամանների շարք (հաջորդականություն)
 class Sequence : public Statement {
 public:
-    std::vector<Statement*> items;
+    vector<Statement*> items;
 
 public:
     Sequence();
@@ -229,30 +232,30 @@ public:
     Apply* subrcall = nullptr;
 
 public:
-    Call(Subroutine* sp, const std::vector<Expression*> as);
+    Call(Subroutine* sp, const vector<Expression*> as);
 };
 
 // Ենթածրագիր
 class Subroutine : public AstNode {
 public:
-    std::string name = ""; // անուն
-    std::vector<std::string> parameters; // պարամետրեր
-    std::vector<Variable*> locals; // լոկալ փոփոխականներ
+    string name = ""; // անուն
+    vector<string> parameters; // պարամետրեր
+    vector<Variable*> locals; // լոկալ փոփոխականներ
     Statement* body = nullptr; // մարմին
     Type rettype = Type::Void; // վերադարձրած արժեքի տիպ
 
 public:
-    Subroutine(const std::string& nm, const std::vector<std::string>& ps, Statement* bo);
+    Subroutine(const string& nm, const vector<string>& ps, Statement* bo);
 };
 
 // Ծրագիր
 class Program : public AstNode {
 public:
-    std::string filename = "";
-    std::vector<Subroutine*> members;
+    string filename = "";
+    vector<Subroutine*> members;
 
 public:
-    Program(const std::string& fn);
+    Program(const string& fn);
 };
 
 } // basic
