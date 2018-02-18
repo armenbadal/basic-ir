@@ -38,4 +38,3 @@ protected:
 } // basic
 
 #endif // CONVERTER_HXX
-

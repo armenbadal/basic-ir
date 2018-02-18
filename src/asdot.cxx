@@ -5,43 +5,52 @@ namespace basic {
 //
 int Doter::convertProgram(Program* node, std::ostream& ooo)
 {
+    int cnum = index++;
     ooo << "\ndigraph G {\n";
-    ooo << "\tastnode_0[label=\"PROGRAM\"];\n";
+    ooo << "\tastnode_" << cnum << "[label=\"PROGRAM\"];\n";
     for (Subroutine* si : node->members) {
         int sn = convertSubroutine(si, ooo);
-        ooo << "astnode_0 -> astnode_" << sn << ";\n";
+        ooo << "\tastnode_" << cnum << " -> astnode_" << sn << ";\n";
     }
     ooo << "}\n\n";
-    return 0;
+    return cnum;
 }
 
 //
 int Doter::convertSubroutine(Subroutine* node, std::ostream& ooo)
 {
     int cnum = index++;
-    ooo << "\nastnode_" << cnum << "[shape=record,";
-    ooo << "label=\"{SUBROUTINE|" << node->name << "}\"];";
-	int bnum = convertAstNode(node->body, ooo);
-	ooo << "astnode_" << cnum << " -> astnode_" << bnum << ";\n";
+    ooo << "\tastnode_" << cnum << "[shape=record,";
+    ooo << "label=\"{SUBROUTINE|" << node->name << "}\"];\n";
+    int bnum = convertAstNode(node->body, ooo);
+    ooo << "\tastnode_" << cnum << " -> astnode_" << bnum << ";\n";
     return cnum;
 }
 
 //
 int Doter::convertSequence(Sequence* node, std::ostream& ooo)
 {
-  int cnum = index++;
-  ooo << "astnode_" << cnum << "[label=\"SEQUENCE\"];\n";
-  for(AstNode* ni : node->items) {
-	int ix = convertAstNode(ni, ooo);
-	ooo << "astnode_" << cnum << " -> astnode_" << ix << ";\n";
-  }
-  return cnum;
+    int cnum = index++;
+    ooo << "\tastnode_" << cnum << "[label=\"SEQUENCE\"];\n";
+    for (AstNode* ni : node->items) {
+        int ix = convertAstNode(ni, ooo);
+        ooo << "\tastnode_" << cnum << " -> astnode_" << ix << ";\n";
+    }
+    return cnum;
 }
 
 //
 int Doter::convertLet(Let* node, std::ostream& ooo)
 {
-    return 0;
+    int cnum = index++;
+    ooo << "\tastnode_" << cnum << "[label=\"LET\"];\n";
+    int il = convertVariable(node->varptr, ooo);
+    ooo << "\tastnode_" << cnum << " -> "
+        << "astnode_" << il << ";\n";
+    int ir = convertAstNode(node->expr, ooo);
+    ooo << "\tastnode_" << cnum << " -> "
+        << "astnode_" << ir << ";\n";
+    return cnum;
 }
 
 //
@@ -101,7 +110,9 @@ int Doter::convertUnary(Unary* node, std::ostream& ooo)
 //
 int Doter::convertVariable(Variable* node, std::ostream& ooo)
 {
-    return 0;
+    int cnum = index++;
+    ooo << "\tastnode_" << cnum << "[label=\"VARIABLE: " << node->name << "\"];\n";
+    return cnum;
 }
 
 //
@@ -113,6 +124,8 @@ int Doter::convertText(Text* node, std::ostream& ooo)
 //
 int Doter::convertNumber(Number* node, std::ostream& ooo)
 {
-    return 0;
+    int cnum = index++;
+    ooo << "\tastnode_" << cnum << "[label=\"NUMBER: " << node->value << "\"];\n";
+    return cnum;
 }
 } // basic

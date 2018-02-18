@@ -1,6 +1,5 @@
 
 #include "parser.hxx"
-#include "errors.hxx"
 
 #include <algorithm>
 #include <exception>
@@ -25,12 +24,12 @@ Program* Parser::parse()
 {
     parseProgram();
 
-	// տուգել, որ unresolved ցուցակը դատարկ լինի, այսինքն՝
-	// ծրագրում ոչ մի տեղ չսահմանված ֆունկցիայի հղում չմնա
-	for(auto& e : unresolved) {
-	  // TODO: 
-	}
-	
+    // տուգել, որ unresolved ցուցակը դատարկ լինի, այսինքն՝
+    // ծրագրում ոչ մի տեղ չսահմանված ֆունկցիայի հղում չմնա
+    for (auto& e : unresolved) {
+        // TODO:
+    }
+
     return module;
 }
 
@@ -144,7 +143,7 @@ Statement* Parser::parseStatements()
 Statement* Parser::parseLet()
 {
     unsigned int pos = lookahead.line;
-	
+
     match(Token::Let);
     auto vnm = lookahead.value;
     match(Token::Identifier);
@@ -162,9 +161,13 @@ Statement* Parser::parseLet()
     // ապա ամեն ինչ նորմալ է, եթե տիպերը տարբերվում են, ապա
     // հաղորդել սխալի մասին։
     // Ի դեպ, ենթածրագրի անունը և պարամետրերը հենց սկզբից հայտնվելու
-	// են locals-ում, և վերը գրված տիպերի ստուգումը լինելու է ընդհանուր
+    // են locals-ում, և վերը գրված տիպերի ստուգումը լինելու է ընդհանուր
 
-    auto varp = getVariable(vnm);	
+    auto varp = getVariable(vnm);
+
+    if (varp->type != exo->type)
+        throw TypeError("Տիպերի անհամապատասխանություն " + std::to_string(pos) + " տողում։");
+
     return new Let(varp, exo);
 }
 
@@ -317,7 +320,7 @@ Statement* Parser::parseCall()
 }
 
 //
-std::map<Token,Operation> mapopcode{
+std::map<Token, Operation> mapopcode{
     { Token::Add, Operation::Add },
     { Token::Sub, Operation::Sub },
     { Token::Amp, Operation::Conc },
@@ -346,7 +349,7 @@ Expression* Parser::parseExpression()
         match(lookahead.kind);
         auto exo = parseAddition();
         res = new Binary(opc, res, exo);
-		checkTypes(dynamic_cast<Binary*>(res));
+        checkTypes(dynamic_cast<Binary*>(res));
     }
     return res;
 }
@@ -362,7 +365,7 @@ Expression* Parser::parseAddition()
         match(lookahead.kind);
         auto exo = parseMultiplication();
         res = new Binary(opc, res, exo);
-		checkTypes(dynamic_cast<Binary*>(res));
+        checkTypes(dynamic_cast<Binary*>(res));
     }
     return res;
 }
@@ -378,7 +381,7 @@ Expression* Parser::parseMultiplication()
         match(lookahead.kind);
         auto exo = parsePower();
         res = new Binary(opc, res, exo);
-		checkTypes(dynamic_cast<Binary*>(res));
+        checkTypes(dynamic_cast<Binary*>(res));
     }
     return res;
 }
@@ -393,7 +396,7 @@ Expression* Parser::parsePower()
         match(Token::Pow);
         auto exo = parseFactor();
         res = new Binary(Operation::Pow, res, exo);
-		checkTypes(dynamic_cast<Binary*>(res));
+        checkTypes(dynamic_cast<Binary*>(res));
     }
     return res;
 }
@@ -432,7 +435,7 @@ Expression* Parser::parseFactor()
         auto exo = parseFactor();
         if (exo->type != Type::Number)
             throw TypeError{ "Բացասումն ու ժխտումը կիրառելի է միայն թվերին։" };
-		
+
         return new Unary(opc, exo);
     }
 
@@ -468,7 +471,7 @@ Expression* Parser::parseFactor()
                         if (typeOf((*spit)->parameters[i]) != args[i]->type)
                             throw TypeError{ "99" };
                 aly->procptr = *spit;
-				// TODO: լրացնել տիպը
+                // TODO: լրացնել տիպը
             }
             else
                 unresolved[name].push_back(aly);
@@ -514,7 +517,7 @@ Variable* Parser::getVariable(const std::string& nm)
     auto& locals = subr->locals;
 
     auto vpi = std::find_if(locals.begin(), locals.end(),
-		[&nm](auto vp) -> bool { return equalNames(nm, vp->name); });
+        [&nm](auto vp) -> bool { return equalNames(nm, vp->name); });
     if (locals.end() != vpi)
         return *vpi;
 
@@ -527,29 +530,29 @@ Variable* Parser::getVariable(const std::string& nm)
 //
 void checkTypes(Binary* nodebi)
 {
-  Type tyo = nodebi->subexpro->type;
-  Type tyi = nodebi->subexpri->type;
-  Operation opc = nodebi->opcode;
-  
-  // տիպերի ստուգում և որոշում
-  if (tyo == Type::Number && tyo == Type::Number) {
-	if (opc == Operation::Conc)
-	  throw TypeError("'&' գործողությունը կիրառելի չէ թվերին։");
-	else
-	  nodebi->type = Type::Number;
-  }
-  else if (tyo == Type::Text && tyo == Type::Text) {
-	if (opc == Operation::Conc)
-	  nodebi->type = Type::Text;
-	else if (opc >= Operation::Eq && opc <= Operation::Le)
-	  nodebi->type = Type::Number;
-	else
-	  throw TypeError("'" + operationName(opc) + "' գործողությունը կիրառելի չէ տեքստերին։");
-  }
-  else
-	throw TypeError("'" + operationName(opc) + "' գործողության երկու կողմերում տարբեր տիպեր են։");
+    Type tyo = nodebi->subexpro->type;
+    Type tyi = nodebi->subexpri->type;
+    Operation opc = nodebi->opcode;
+
+    // տիպերի ստուգում և որոշում
+    if (tyo == Type::Number && tyo == Type::Number) {
+        if (opc == Operation::Conc)
+            throw TypeError("'&' գործողությունը կիրառելի չէ թվերին։");
+        else
+            nodebi->type = Type::Number;
+    }
+    else if (tyo == Type::Text && tyo == Type::Text) {
+        if (opc == Operation::Conc)
+            nodebi->type = Type::Text;
+        else if (opc >= Operation::Eq && opc <= Operation::Le)
+            nodebi->type = Type::Number;
+        else
+            throw TypeError("'" + operationName(opc) + "' գործողությունը կիրառելի չէ տեքստերին։");
+    }
+    else
+        throw TypeError("'" + operationName(opc) + "' գործողության երկու կողմերում տարբեր տիպեր են։");
 }
-  
+
 //
 bool equalNames(const std::string& no, const std::string& ni)
 {

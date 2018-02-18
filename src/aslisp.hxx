@@ -8,8 +8,8 @@
 #include <ostream>
 
 namespace basic {
-  class Lisper : public Converter {
-  private:
+class Lisper : public Converter {
+private:
     int convertProgram(Program* node, std::ostream& ooo) override;
     int convertSubroutine(Subroutine* node, std::ostream& ooo) override;
 
@@ -29,12 +29,11 @@ namespace basic {
     int convertText(Text* node, std::ostream& ooo) override;
     int convertNumber(Number* node, std::ostream& ooo) override;
 
-  private:
-	int indent = 0;
+private:
+    int indent = 0;
 
-	void space(std::ostream& ooo); 
-  };
+    void space(std::ostream& ooo);
+};
 } // basic
 
 #endif // ASLISP_HXX
-

@@ -53,6 +53,39 @@ private:
     Variable* getVariable(const std::string& nm);
 };
 
+// TODO: վերանայել այս դասերը
+//
+class ParseError : std::exception {
+private:
+    std::string message = "";
+
+public:
+    ParseError(const std::string& mes)
+        : message(mes)
+    {
+    }
+    const char* what() const noexcept
+    {
+        return message.c_str();
+    }
+};
+
+//
+class TypeError : std::exception {
+private:
+    std::string message = "";
+
+public:
+    TypeError(const std::string& mes)
+        : message(mes)
+    {
+    }
+    const char* what() const noexcept
+    {
+        return message.c_str();
+    }
+};
+
 //
 void checkTypes(Binary* nodebi);
 bool equalNames(const std::string& no, const std::string& ni);

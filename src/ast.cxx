@@ -1,10 +1,8 @@
 
 #include "ast.hxx"
-#include "errors.hxx"
 
 #include <iostream>
 #include <map>
-
 
 namespace basic {
 //
@@ -20,26 +18,26 @@ void AstNode::deleteAllocatedNodes()
 //
 std::string operationName(Operation opc)
 {
-  static std::map<Operation,std::string> names{
-	{Operation::None,"None"},
-	{Operation::Add,"+"},
-	{Operation::Sub,"-"},
-	{Operation::Mul,"*"},
-	{Operation::Div,"/"},
-	{Operation::Mod,"\\"},
-	{Operation::Pow,"^"},
-	{Operation::Eq,"="},
-	{Operation::Ne,"<>"},
-	{Operation::Gt,">"},
-	{Operation::Ge,">="},
-	{Operation::Lt,"<"},
-	{Operation::Le,"<="},
-	{Operation::And,"AND"},
-	{Operation::Or,"OR"},
-	{Operation::Not,"NOT"},
-	{Operation::Conc,"&"}
-  };
-  return std::string(names[opc]);
+    static std::map<Operation, std::string> names{
+        { Operation::None, "None" },
+        { Operation::Add, "+" },
+        { Operation::Sub, "-" },
+        { Operation::Mul, "*" },
+        { Operation::Div, "/" },
+        { Operation::Mod, "\\" },
+        { Operation::Pow, "^" },
+        { Operation::Eq, "=" },
+        { Operation::Ne, "<>" },
+        { Operation::Gt, ">" },
+        { Operation::Ge, ">=" },
+        { Operation::Lt, "<" },
+        { Operation::Le, "<=" },
+        { Operation::And, "AND" },
+        { Operation::Or, "OR" },
+        { Operation::Not, "NOT" },
+        { Operation::Conc, "&" }
+    };
+    return std::string(names[opc]);
 }
 
 //
@@ -56,7 +54,7 @@ AstNode::AstNode()
 
 //
 Number::Number(double vl)
-  : value(vl)
+    : value(vl)
 {
     kind = NodeKind::Number;
     type = Type::Number;
@@ -64,7 +62,7 @@ Number::Number(double vl)
 
 //
 Text::Text(const std::string& vl)
-  : value(vl)
+    : value(vl)
 {
     kind = NodeKind::Text;
     type = Type::Text;
@@ -72,7 +70,7 @@ Text::Text(const std::string& vl)
 
 //
 Variable::Variable(const std::string& nm)
-  : name(nm)
+    : name(nm)
 {
     kind = NodeKind::Variable;
     type = typeOf(name);
@@ -80,7 +78,7 @@ Variable::Variable(const std::string& nm)
 
 //
 Unary::Unary(Operation op, Expression* ex)
-  : opcode(op), subexpr(ex)
+    : opcode(op), subexpr(ex)
 {
     kind = NodeKind::Unary;
     type = Type::Number;
@@ -88,14 +86,14 @@ Unary::Unary(Operation op, Expression* ex)
 
 //
 Binary::Binary(Operation op, Expression* exo, Expression* exi)
-  : opcode(op), subexpro(exo), subexpri(exi)
+    : opcode(op), subexpro(exo), subexpri(exi)
 {
     kind = NodeKind::Binary;
 }
 
 //
 Apply::Apply(Subroutine* sp, const std::vector<Expression*>& ags)
-  : procptr(sp), arguments(ags)
+    : procptr(sp), arguments(ags)
 {
     kind = NodeKind::Apply;
 }
@@ -108,59 +106,56 @@ Sequence::Sequence()
 
 //
 Input::Input(Variable* vp)
-  : varptr(vp)
+    : varptr(vp)
 {
     kind = NodeKind::Input;
 }
 
 //
 Print::Print(Expression* ex)
-  : expr(ex)
+    : expr(ex)
 {
     kind = NodeKind::Print;
 }
 
 //
 Let::Let(Variable* vp, Expression* ex)
-  : varptr(vp), expr(ex)
+    : varptr(vp), expr(ex)
 {
     kind = NodeKind::Let;
-
-	if( vp->type != ex->type )
-	  throw TypeError("Տիպերի անհամապատասխանություն " + std::to_string(line) + " տողում։");
 }
 
 //
 If::If(Expression* co, Statement* de, Statement* al)
-  : condition(co), decision(de), alternative(al)
+    : condition(co), decision(de), alternative(al)
 {
     kind = NodeKind::If;
 }
 
 //
 While::While(Expression* co, Statement* bo)
-  : condition(co), body(bo)
+    : condition(co), body(bo)
 {
     kind = NodeKind::While;
 }
 
 //
 For::For(Variable* pr, Expression* be, Expression* en, Expression* st, Statement* bo)
-  : parameter(pr), begin(be), end(en), step(st), body(bo)
+    : parameter(pr), begin(be), end(en), step(st), body(bo)
 {
     kind = NodeKind::For;
 }
 
 //
 Call::Call(Subroutine* sp, const std::vector<Expression*> as)
-  : subrcall(new Apply(sp, as))
+    : subrcall(new Apply(sp, as))
 {
     kind = NodeKind::Call;
 }
 
 //
 Subroutine::Subroutine(const std::string& nm, const std::vector<std::string>& ps, Statement* bo)
-  : name(nm), parameters(ps), body(bo)
+    : name(nm), parameters(ps), body(bo)
 {
     kind = NodeKind::Subroutine;
     locals.push_back(new Variable(name));
@@ -170,7 +165,7 @@ Subroutine::Subroutine(const std::string& nm, const std::vector<std::string>& ps
 
 //
 Program::Program(const std::string& fn)
-  : filename(fn)
+    : filename(fn)
 {
     kind = NodeKind::Program;
 }

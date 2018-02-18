@@ -5,10 +5,10 @@
 
 #include "llvm/Support/FileSystem.h"
 
+#include "asdot.hxx"
+#include "aslisp.hxx"
 #include "parser.hxx"
 #include "scanner.hxx"
-#include "aslisp.hxx"
-#include "errors.hxx"
 
 namespace basic {
 void lisp(AstNode* node, std::ostringstream& ooo);
@@ -20,10 +20,10 @@ int main()
 {
     std::cout << "Parsing ..." << std::endl;
 
-	basic::Parser parser("../cases/case04.bas");
-	basic::Program* prog = nullptr;
-	try {
-	  prog = parser.parse();
+    basic::Parser parser("../cases/case04.bas");
+    basic::Program* prog = nullptr;
+    try {
+        prog = parser.parse();
     }
     catch (basic::ParseError& e) {
         std::cerr << e.what() << std::endl;
@@ -32,12 +32,16 @@ int main()
         std::cerr << e.what() << std::endl;
     }
 
-	if( nullptr != prog ) {
-	  std::cout << "Lisp output..." << std::endl;
-	  basic::Lisper().convert(prog, std::cout);
-	}
-	
-	
+    if (nullptr != prog) {
+        std::cout << "Lisp output..." << std::endl;
+        basic::Lisper().convert(prog, std::cout);
+        std::cout << std::endl
+                  << std::endl;
+
+        std::cout << "DOT output..." << std::endl;
+        basic::Doter().convert(prog, std::cout);
+    }
+
     /*
   std::cout << "End Parsing ..." << std::endl;
   if( nullptr != prog ) {

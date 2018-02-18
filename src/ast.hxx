@@ -6,8 +6,6 @@
 #include <string>
 #include <vector>
 
-#include "usings.hxx"
-
 //
 namespace basic {
 
@@ -47,7 +45,7 @@ public:
 
 private:
     // բոլոր դինամիկ ստեղծված հանգույցների հասցեները
-    static list<AstNode*> allocatedNodes;
+    static std::list<AstNode*> allocatedNodes;
 };
 
 // Տվյալների տիպերը։ Void-ն օգտագործվում է
@@ -59,7 +57,7 @@ enum class Type : char {
 };
 
 //
-Type typeOf(const string& nm);
+Type typeOf(const std::string& nm);
 
 // Արտահայտություն։
 class Expression : public AstNode {
@@ -79,19 +77,19 @@ public:
 // Տեքստ
 class Text : public Expression {
 public:
-    string value = "";
+    std::string value = "";
 
 public:
-    Text(const string& vl);
+    Text(const std::string& vl);
 };
 
 // Փոփոխական
 class Variable : public Expression {
 public:
-    string name = "";
+    std::string name = "";
 
 public:
-    Variable(const string& nm);
+    Variable(const std::string& nm);
 };
 
 // Գործողությունների անունները
@@ -116,8 +114,8 @@ enum class Operation {
 };
 
 // Գործողության տեքստային անունը
-string operationName(Operation opc);
-  
+std::string operationName(Operation opc);
+
 // Ունար գործողություն
 class Unary : public Expression {
 public:
@@ -145,10 +143,10 @@ class Subroutine;
 class Apply : public Expression {
 public:
     Subroutine* procptr = nullptr;
-    vector<Expression*> arguments;
+    std::vector<Expression*> arguments;
 
 public:
-    Apply(Subroutine* sp, const vector<Expression*>& ags);
+    Apply(Subroutine* sp, const std::vector<Expression*>& ags);
 };
 
 // Ղեկավարող կառուցվածք (հրաման)
@@ -158,7 +156,7 @@ class Statement : public AstNode {
 // Հրամանների շարք (հաջորդականություն)
 class Sequence : public Statement {
 public:
-    vector<Statement*> items;
+    std::vector<Statement*> items;
 
 public:
     Sequence();
@@ -232,30 +230,30 @@ public:
     Apply* subrcall = nullptr;
 
 public:
-    Call(Subroutine* sp, const vector<Expression*> as);
+    Call(Subroutine* sp, const std::vector<Expression*> as);
 };
 
 // Ենթածրագիր
 class Subroutine : public AstNode {
 public:
-    string name = ""; // անուն
-    vector<string> parameters; // պարամետրեր
-    vector<Variable*> locals; // լոկալ փոփոխականներ
+    std::string name = ""; // անուն
+    std::vector<std::string> parameters; // պարամետրեր
+    std::vector<Variable*> locals; // լոկալ փոփոխականներ
     Statement* body = nullptr; // մարմին
     Type rettype = Type::Void; // վերադարձրած արժեքի տիպ
 
 public:
-    Subroutine(const string& nm, const vector<string>& ps, Statement* bo);
+    Subroutine(const std::string& nm, const std::vector<std::string>& ps, Statement* bo);
 };
 
 // Ծրագիր
 class Program : public AstNode {
 public:
-    string filename = "";
-    vector<Subroutine*> members;
+    std::string filename = "";
+    std::vector<Subroutine*> members;
 
 public:
-    Program(const string& fn);
+    Program(const std::string& fn);
 };
 
 } // basic
