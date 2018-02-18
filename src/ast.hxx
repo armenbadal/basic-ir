@@ -51,9 +51,9 @@ private:
 // Տվյալների տիպերը։ Void-ն օգտագործվում է
 // արժեք չվերադարձնող ենթածրագրերի հետ աշխատելիս։
 enum class Type : char {
-    Void = 'V',
-    Number = 'N',
-    Text = 'T'
+    Void = 'V',   // արժեքի բացակայություն
+    Number = 'N', // թվային արժեք
+    Text = 'T'    // տեքստային արժեք
 };
 
 //
@@ -65,7 +65,7 @@ public:
     Type type = Type::Void;
 };
 
-// Թիվ
+// @brief Թվային հաստատուն
 class Number : public Expression {
 public:
     double value = 0.0;
@@ -74,7 +74,7 @@ public:
     Number(double vl);
 };
 
-// Տեքստ
+// @brief Տեքստային հաստատուն
 class Text : public Expression {
 public:
     std::string value = "";
@@ -83,7 +83,11 @@ public:
     Text(const std::string& vl);
 };
 
-// Փոփոխական
+// @brief Փոփոխական
+//
+// Փոփոխականի տիպը որոշվում է նրա անվան կառուցվածքով։
+// Եթե այն ավարտվում է '$' նիշով, ապա փոփոխականի տիպը
+// @c TEXT է, հակառակ դեպքում՝ @c REAL է։
 class Variable : public Expression {
 public:
     std::string name = "";
@@ -94,23 +98,23 @@ public:
 
 // Գործողությունների անունները
 enum class Operation {
-    None,
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Mod,
-    Pow,
-    Eq,
-    Ne,
-    Gt,
-    Ge,
-    Lt,
-    Le,
-    And,
-    Or,
-    Not,
-    Conc
+    None, // անորոշ
+    Add,  // գումարում
+    Sub,  // հանում
+    Mul,  // բազմապատկում
+    Div,  // բաժանում
+    Mod,  // ամբողջ բաժանում
+    Pow,  // աստիճան
+    Eq,   // հավասար է
+    Ne,   // հավասար չէ
+    Gt,   // մեծ է
+    Ge,   // մեծ է կամ հավասար
+    Lt,   // փոքր է
+    Le,   // փոքր է կամ հավասար
+    And,  // ԵՎ (կոնյունկցիա)
+    Or,   // ԿԱՄ (դիզյունկցիա)
+    Not,  // ՈՉ (ժխտում)
+    Conc  // տեքստերի կցում
 };
 
 // Գործողության տեքստային անունը
@@ -234,13 +238,20 @@ public:
 };
 
 // Ենթածրագիր
+//
+// Ենթածրագիրը օգտագործվում է և՛ որպես պրոցեդուրա, և՛ որպես
+// ֆունկցիա։ Դրա վերադարձրած արժեքի տիպը որոշվում է անվան
+// կառուցվածքով, ինչպես փոփոխականներինը։ Ենթածրագիրը 
+// ֆունկցիա է, եթե նրա մարմնում է անվանը արժեք վերագրող
+// LET հրաման։ Այդ դեպքում @c hasvalue անդամի արժեքը
+// դրվում է @c true ։
 class Subroutine : public AstNode {
 public:
     std::string name = ""; // անուն
     std::vector<std::string> parameters; // պարամետրեր
     std::vector<Variable*> locals; // լոկալ փոփոխականներ
     Statement* body = nullptr; // մարմին
-    Type rettype = Type::Void; // վերադարձրած արժեքի տիպ
+    bool hasValue = false; // վերադարձնո՞ւմ է արժեքի
 
 public:
     Subroutine(const std::string& nm, const std::vector<std::string>& ps, Statement* bo);
