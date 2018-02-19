@@ -51,7 +51,7 @@ int main()
     std::cout << "Compiling ..." << std::endl;
     basic::emitLLVM(prog, ef);
     std::cout << out.str() << std::endl;
-    basic::AstNode::delete_allocated_nodes();
+    basic::AstNode::deleteAllocatedNodes();
   }
   */
 

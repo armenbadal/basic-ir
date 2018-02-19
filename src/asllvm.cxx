@@ -27,4 +27,4 @@ void emitLLVM(Program* node, llvm::raw_fd_ostream& ooo)
     //ooo << "))\n";
 }
 
-} // namespace llvm
+} // namespace basic
