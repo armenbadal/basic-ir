@@ -150,23 +150,13 @@ Statement* Parser::parseLet()
     match(Token::Eq);
     auto exo = parseExpression();
 
-    ////Handling for return operation
-    //if ( vnm == cursubroutine->name )
-    //    if ( cursubroutine->rettype == Type::Void )
-    //        cursubroutine->rettype = exo->type;
-    //    else if (cursubroutine->rettype != exo->type )
-    //        throw TypeError{"Incompatible types of return values."};
-
-    // TODO: եթե փոփոխականը արդեն կա և դրա տիպը exo-ի տիպն է,
-    // ապա ամեն ինչ նորմալ է, եթե տիպերը տարբերվում են, ապա
-    // հաղորդել սխալի մասին։
-    // Ի դեպ, ենթածրագրի անունը և պարամետրերը հենց սկզբից հայտնվելու
-    // են locals-ում, և վերը գրված տիպերի ստուգումը լինելու է ընդհանուր
-
     auto varp = getVariable(vnm);
 
     if (varp->type != exo->type)
         throw TypeError("Տիպերի անհամապատասխանություն " + std::to_string(pos) + " տողում։");
+
+    // TODO: եթե vnm-ն համընկնում է ընթացիկ ենթածրագրի անվան հետ, ապա
+    // վերջինիս hasValue-ն դնել true
 
     return new Let(varp, exo);
 }
@@ -464,14 +454,19 @@ Expression* Parser::parseFactor()
 
             // եթե ենթածրագիրն արդեն սահմանված է...
             if (module->members.end() != spit) {
+                Subroutine* subr = *spit;
+                // ... և սահմանված է որպես ֆունկցիա
+                if( !subr->hasValue )
+                    throw TypeError(name + "ենթածրագիրը արժեք չի վերադարձնում։");
+
                 // ենթածրագրի պարամետրերի քանակը պետք է հավասար լինի args.size()-ին
-                if ((*spit)->parameters.size() == args.size())
+                if (subr->parameters.size() == args.size())
                     // հավասարության դեպքում ստուգել նաև տիպերը
                     for (int i = 0; i < args.size(); ++i)
-                        if (typeOf((*spit)->parameters[i]) != args[i]->type)
+                        if (typeOf(subr->parameters[i]) != args[i]->type)
                             throw TypeError{ "99" };
-                aly->procptr = *spit;
-                // TODO: լրացնել տիպը
+                aly->procptr = subr;
+                aly->type = typeOf(name);
             }
             else
                 unresolved[name].push_back(aly);
@@ -535,13 +530,13 @@ void checkTypes(Binary* nodebi)
     Operation opc = nodebi->opcode;
 
     // տիպերի ստուգում և որոշում
-    if (tyo == Type::Number && tyo == Type::Number) {
+    if (tyo == Type::Number && tyi == Type::Number) {
         if (opc == Operation::Conc)
             throw TypeError("'&' գործողությունը կիրառելի չէ թվերին։");
         else
             nodebi->type = Type::Number;
     }
-    else if (tyo == Type::Text && tyo == Type::Text) {
+    else if (tyo == Type::Text && tyi == Type::Text) {
         if (opc == Operation::Conc)
             nodebi->type = Type::Text;
         else if (opc >= Operation::Eq && opc <= Operation::Le)

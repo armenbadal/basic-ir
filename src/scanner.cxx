@@ -173,10 +173,11 @@ bool Scanner::scanNumber(Lexeme& lex)
     if (ch == '.') {
         source >> ch;
         lex.value.push_back('.');
-    }
-    while (isdigit(ch)) {
-        lex.value.push_back(ch);
-        source >> ch;
+
+        while (isdigit(ch)) {
+            lex.value.push_back(ch);
+            source >> ch;
+        }
     }
     lex.kind = Token::Number;
     return true;
