@@ -118,7 +118,7 @@ enum class Operation {
 };
 
 // Գործողության տեքստային անունը
-std::string operationName(Operation opc);
+std::string toString(Operation opc);
 
 // Ունար գործողություն
 class Unary : public Expression {

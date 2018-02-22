@@ -47,12 +47,13 @@ void Parser::parseProgram()
     if (lookahead.is(Token::NewLine))
         parseNewLines();
 
-    // քանի դեռ ընթացիկ սիմվոլը @c SUB է, ...
-    while (lookahead.is(Token::Subroutine)) {
-        // վերլուծել ենթածրագրի սահմանումը
+    // վերլուծել ենթածրագրերի հաջորդականությունը
+    while (!lookahead.is(Token::Eof)) {
         parseSubroutine();
         parseNewLines();
     }
+
+    match(Token::Eof);
 }
 
 //
@@ -162,8 +163,10 @@ Statement* Parser::parseLet()
     if (varp->type != exo->type)
         throw TypeError("Տիպերի անհամապատասխանություն " + std::to_string(pos) + " տողում։");
 
-    // TODO: եթե vnm-ն համընկնում է ընթացիկ ենթածրագրի անվան հետ, ապա
-    // վերջինիս hasValue-ն դնել true
+    // TODO: եթե vnm-ն համընկնում է ընթացիկ ենթածրագրի անվան հետ, ապա վերջինիս hasValue-ն դնել true
+    Subroutine* current = module->members.back();
+    if (vnm == current->name)
+        current->hasValue = true;
 
     return new Let(varp, exo);
 }
@@ -282,12 +285,11 @@ Statement* Parser::parseCall()
     auto name = lookahead.value;
     match(Token::Identifier);
     std::vector<Expression*> args;
-    if (lookahead.is({ Token::Number, Token::Text, Token::Identifier,
-            Token::Sub, Token::Not, Token::LeftPar })) {
+    if (lookahead.is({ Token::Number, Token::Text, Token::Identifier, 
+        Token::Sub, Token::Not, Token::LeftPar })) {
         auto exo = parseExpression();
         args.push_back(exo);
-        while (lookahead.is({ Token::Number, Token::Text, Token::Identifier,
-            Token::Sub, Token::Not, Token::LeftPar })) {
+        while (lookahead.is(Token::Comma)) {
             match(Token::Comma);
             exo = parseExpression();
             args.push_back(exo);
@@ -434,8 +436,7 @@ Expression* Parser::parseFactor()
             match(Token::LeftPar);
             auto exo = parseExpression();
             args.push_back(exo);
-            while (lookahead.is({ Token::Number, Token::Text, Token::Identifier,
-                Token::Sub, Token::Not, Token::LeftPar })) {
+            while (lookahead.is(Token::Comma)) {
                 match(Token::Comma);
                 exo = parseExpression();
                 args.push_back(exo);
@@ -480,7 +481,7 @@ void Parser::parseNewLines()
 void Parser::match(Token exp)
 {
     if (!lookahead.is(exp))
-        throw ParseError{ "Syntax error" };
+        throw ParseError("Սպասվում է " + toString(exp) + ", բայց հանդիպել է " + lookahead.value + "։");
 
     scanner >> lookahead;
 }
@@ -531,7 +532,7 @@ Subroutine* Parser::getSubroutine(const std::string& nm, const std::vector<Expre
     Subroutine* subr = *subrit;
 
     // ... ստուգել անունների տիպերի համընկնելը
-    if (equalTypes(subr->name, nm))
+    if (!equalTypes(subr->name, nm))
         throw TypeError("Ենթածրագրի անունը տարբերվում է կանչի անունից։");
 
     // ... ստուգել պարամետրերի և արգումենտների քանակների հավասար լինելը
@@ -570,10 +571,10 @@ void checkTypes(Binary* nodebi)
         else if (opc >= Operation::Eq && opc <= Operation::Le)
             nodebi->type = Type::Number;
         else
-            throw TypeError("'" + operationName(opc) + "' գործողությունը կիրառելի չէ տեքստերին։");
+            throw TypeError("'" + toString(opc) + "' գործողությունը կիրառելի չէ տեքստերին։");
     }
     else
-        throw TypeError("'" + operationName(opc) + "' գործողության երկու կողմերում տարբեր տիպեր են։");
+        throw TypeError("'" + toString(opc) + "' գործողության երկու կողմերում տարբեր տիպեր են։");
 }
 
 //

@@ -39,6 +39,7 @@ private:
     int index = 0;
 
     void connectNodes(int from, int to);
+    void labeledNode(int num, const std::string& label);
 };
 } // basic
 

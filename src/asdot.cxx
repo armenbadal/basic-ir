@@ -8,6 +8,7 @@ int Doter::convertProgram(Program* node)
     int cnum = index++;
     ooo << "\ndigraph G {\n";
     ooo << "\tastnode_" << cnum << "[label=\"PROGRAM\"];\n";
+    ooo << "\tnode[shape=box];\n";
     for (Subroutine* si : node->members) {
         int sn = convertSubroutine(si);
         connectNodes(cnum, sn);
@@ -20,10 +21,11 @@ int Doter::convertProgram(Program* node)
 int Doter::convertSubroutine(Subroutine* node)
 {
     int cnum = index++;
-    ooo << "\tastnode_" << cnum << "[shape=record,";
-    ooo << "label=\"{SUBROUTINE|" << node->name << "}\"];\n";
+    ooo << "\n\tsubgraph cluster_" << node->name << "{\n";
+    ooo << "\t\tastnode_" << cnum << "[shape=record,label=\"{SUBROUTINE|" << node->name << "}\"];\n";
     int bnum = convertAstNode(node->body);
     connectNodes(cnum, bnum);
+    ooo << "\t}\n";
     return cnum;
 }
 
@@ -31,7 +33,7 @@ int Doter::convertSubroutine(Subroutine* node)
 int Doter::convertSequence(Sequence* node)
 {
     int cnum = index++;
-    ooo << "\tastnode_" << cnum << "[label=\"SEQUENCE\"];\n";
+    ooo << "\t\tastnode_" << cnum << "[label=\"SEQUENCE\"];\n";
     for (AstNode* ni : node->items) {
         int ix = convertAstNode(ni);
         connectNodes(cnum, ix);
@@ -43,7 +45,7 @@ int Doter::convertSequence(Sequence* node)
 int Doter::convertLet(Let* node)
 {
     int cnum = index++;
-    ooo << "\tastnode_" << cnum << "[label=\"LET\"];\n";
+    labeledNode(cnum, "LET");
     int il = convertVariable(node->varptr);
     connectNodes(cnum, il);
     int ir = convertAstNode(node->expr);
@@ -60,7 +62,11 @@ int Doter::convertInput(Input* node)
 //
 int Doter::convertPrint(Print* node)
 {
-    return 0;
+    int cnum = index++;
+    labeledNode(cnum, "PRINT");
+    int anum = convertAstNode(node->expr);
+    connectNodes(cnum, anum);
+    return cnum;
 }
 
 //
@@ -91,11 +97,14 @@ int Doter::convertCall(Call* node)
 int Doter::convertApply(Apply* node)
 {
     int cnum = index++;
-    ooo << "\tastnode_" << cnum << "[label=\"" << "APPLY" << "\"];\n";
+    labeledNode(cnum, "APPLY");
     int pnum = index++;
-    ooo << "\tastnode_" << pnum << "[label=\"" << node->procptr->name << "\"];\n";
+    labeledNode(pnum, node->procptr->name);
     connectNodes(cnum, pnum);
-    //
+    for (auto ai : node->arguments) {
+        int anum = convertAstNode(ai);
+        connectNodes(pnum, anum);
+    }
     return cnum;
 }
 
@@ -103,7 +112,7 @@ int Doter::convertApply(Apply* node)
 int Doter::convertBinary(Binary* node)
 {
     int cnum = index++;
-    ooo << "\tastnode_" << cnum << "[label=\"" << operationName(node->opcode) << "\"];\n";
+    labeledNode(cnum, toString(node->opcode));
     int il = convertAstNode(node->subexpro);
     connectNodes(cnum, il);
     int ir = convertAstNode(node->subexpri);
@@ -115,7 +124,7 @@ int Doter::convertBinary(Binary* node)
 int Doter::convertUnary(Unary* node)
 {
     int cnum = index++;
-    ooo << "\tastnode_" << cnum << "[label=\"" << operationName(node->opcode) << "\"];\n";
+    labeledNode(cnum, toString(node->opcode));
     int ic = convertAstNode(node->subexpr);
     connectNodes(cnum, ic);
     return cnum;
@@ -125,7 +134,7 @@ int Doter::convertUnary(Unary* node)
 int Doter::convertVariable(Variable* node)
 {
     int cnum = index++;
-    ooo << "\tastnode_" << cnum << "[label=\"VARIABLE: " << node->name << "\"];\n";
+    labeledNode(cnum, "VARIABLE: " + node->name);
     return cnum;
 }
 
@@ -133,7 +142,7 @@ int Doter::convertVariable(Variable* node)
 int Doter::convertText(Text* node)
 {
     int cnum = index++;
-    ooo << "\tastnode_" << cnum << "[label=\"TEXT: " << node->value << "\"];\n";
+    labeledNode(cnum, "TEXT: " + node->value);
     return cnum;
 }
 
@@ -141,13 +150,19 @@ int Doter::convertText(Text* node)
 int Doter::convertNumber(Number* node)
 {
     int cnum = index++;
-    ooo << "\tastnode_" << cnum << "[label=\"NUMBER: " << node->value << "\"];\n";
+    labeledNode(cnum, "NUMBER: " + std::to_string(node->value));
     return cnum;
 }
 
 //
 void Doter::connectNodes(int from, int to)
 {
-    ooo << "\tastnode_" << from << " -> " << "astnode_" << to << ";\n";
+    ooo << "\t\tastnode_" << from << " -> " << "astnode_" << to << ";\n";
+}
+
+//
+void Doter::labeledNode(int num, const std::string& label)
+{
+    ooo << "\t\tastnode_" << num << "[label=\"" << label << "\"];\n";
 }
 } // basic

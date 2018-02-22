@@ -56,6 +56,8 @@ enum class Token : int {
     Eof
 };
 
+std::string toString(Token sym);
+
 ///
 class Lexeme {
 public:

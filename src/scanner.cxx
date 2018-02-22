@@ -19,9 +19,10 @@ std::map<const std::string, Token> Scanner::keywords{
     { "STEP", Token::Step },
     { "CALL", Token::Call },
     { "END", Token::End },
+    { "MOD", Token::Mod },
     { "AND", Token::And },
     { "OR", Token::Or },
-    { "NOT", Token::Not },
+    { "NOT", Token::Not }
 };
 
 ///
@@ -144,9 +145,6 @@ bool Scanner::next(Lexeme& lex)
             break;
         case '/':
             lex.kind = Token::Div;
-            break;
-        case '\\':
-            lex.kind = Token::Mod;
             break;
         case '^':
             lex.kind = Token::Pow;

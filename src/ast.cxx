@@ -16,7 +16,7 @@ void AstNode::deleteAllocatedNodes()
 }
 
 //
-std::string operationName(Operation opc)
+std::string toString(Operation opc)
 {
     static std::map<Operation, std::string> names{
         { Operation::None, "None" },
@@ -37,7 +37,7 @@ std::string operationName(Operation opc)
         { Operation::Not, "NOT" },
         { Operation::Conc, "&" }
     };
-    return std::string(names[opc]);
+    return names[opc];
 }
 
 //
