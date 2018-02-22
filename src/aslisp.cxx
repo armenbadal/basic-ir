@@ -1,4 +1,4 @@
-
+﻿
 #include "aslisp.hxx"
 
 #include <map>
@@ -8,21 +8,23 @@
 namespace basic {
 ///
 std::map<Operation, std::string> mnemonic{
-    { Operation::Add, "ADD" },
-    { Operation::Sub, "SUB" },
-    { Operation::Conc, "CONC" },
-    { Operation::Mul, "MUL" },
-    { Operation::Div, "DIV" },
-    { Operation::Mod, "MOD" },
-    { Operation::Pow, "POW" },
-    { Operation::Eq, "EQ" },
-    { Operation::Ne, "NE" },
-    { Operation::Gt, "GT" },
-    { Operation::Ge, "GE" },
-    { Operation::Lt, "LT" },
-    { Operation::Le, "LE" },
-    { Operation::And, "AND" },
-    { Operation::Or, "OR" }
+    { Operation::None, "?" },
+    { Operation::Add,  "ADD" },
+    { Operation::Sub,  "SUB" },
+    { Operation::Mul,  "MUL" },
+    { Operation::Div,  "DIV" },
+    { Operation::Mod,  "MOD" },
+    { Operation::Pow,  "POW" },
+    { Operation::Eq,   "EQ" },
+    { Operation::Ne,   "NE" },
+    { Operation::Gt,   "GT" },
+    { Operation::Ge,   "GE" },
+    { Operation::Lt,   "LT" },
+    { Operation::Le,   "LE" },
+    { Operation::And,  "AND" },
+    { Operation::Or,   "OR" },
+    { Operation::Not,  "NOT" },
+    { Operation::Conc, "CONC" }
 };
 
 ///

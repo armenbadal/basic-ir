@@ -27,7 +27,9 @@ Program* Parser::parse()
     // տուգել, որ unresolved ցուցակը դատարկ լինի, այսինքն՝
     // ծրագրում ոչ մի տեղ չսահմանված ֆունկցիայի հղում չմնա
     for (auto& e : unresolved) {
-        // TODO:
+        std::string mes = e.first + " անունով ենթածրագիրը սահմանված չէ։";
+        // TODO: նշել կանչերի տեղերը
+        throw ParseError(mes);
     }
 
     return module;
@@ -38,12 +40,16 @@ Program* Parser::parse()
 //
 void Parser::parseProgram()
 {
+    // կարդալ ամենաառաջին լեքսեմը
     scanner >> lookahead;
 
-    while (lookahead.is(Token::NewLine))
-        match(Token::NewLine);
+    // կարդալ ու դեն նետել ծրագրի սկզբի դատարկ տողերը
+    if (lookahead.is(Token::NewLine))
+        parseNewLines();
 
+    // քանի դեռ ընթացիկ սիմվոլը @c SUB է, ...
     while (lookahead.is(Token::Subroutine)) {
+        // վերլուծել ենթածրագրի սահմանումը
         parseSubroutine();
         parseNewLines();
     }
@@ -66,6 +72,7 @@ void Parser::parseSubroutine()
     if (sbit != module->members.end())
         throw ParseError{ name + " անունով ենթածրագիրն արդեն սահմանված է։" };
 
+    // պարամետրերի ցուցակ
     std::vector<std::string> params;
     if (lookahead.is(Token::LeftPar)) {
         match(Token::LeftPar);
@@ -93,7 +100,7 @@ void Parser::parseSubroutine()
     match(Token::Subroutine);
 
     // անորոշ հղումների ցուցակում ճշտել, թե որ Apply օբյեկտներն են
-    // հղվում այս ենթածրագրին, և ուղղել լրացնել պակասող տվյալները
+    // հղվում այս ենթածրագրին, և ուղղել/լրացնել պակասող տվյալները
     auto apit = unresolved.find(name);
     if (apit != unresolved.end()) {
         for (Apply* ap : apit->second)
@@ -128,7 +135,7 @@ Statement* Parser::parseStatements()
             stat = parseCall();
         else {
             /* DEBUG */ std::cout << "LOOKAHEAD THROW: " << lookahead.value << std::endl;
-            throw ParseError{ "Unknown start of control statement." };
+            throw ParseError("Սպասվում է LET, INPUT, PRINT, IF, WHILE, FOR կամ CALL, բայց հանդիպել է " + lookahead.value + "։");
         }
         sequ->items.push_back(stat);
         parseNewLines();
@@ -150,7 +157,7 @@ Statement* Parser::parseLet()
     match(Token::Eq);
     auto exo = parseExpression();
 
-    auto varp = getVariable(vnm);
+    auto varp = getVariable(vnm, false);
 
     if (varp->type != exo->type)
         throw TypeError("Տիպերի անհամապատասխանություն " + std::to_string(pos) + " տողում։");
@@ -170,7 +177,7 @@ Statement* Parser::parseInput()
     auto vnm = lookahead.value;
     match(Token::Identifier);
 
-    auto varp = getVariable(vnm);
+    auto varp = getVariable(vnm, false);
     return new Input(varp);
 }
 
@@ -262,7 +269,7 @@ Statement* Parser::parseFor()
     match(Token::End);
     match(Token::For);
 
-    auto vp = getVariable(par);
+    auto vp = getVariable(par, false);
     return new For(vp, be, en, sp, dy);
 }
 
@@ -287,26 +294,15 @@ Statement* Parser::parseCall()
         }
     }
 
-    Call* cal = new Call(nullptr, args);
+    Call* caller = new Call(nullptr, args);
 
-    // ստուգել, որ name անունով ենթածրագիր սահմանված լինի
-    auto srit = std::find_if(module->members.begin(), module->members.end(),
-        [&name](auto sp) -> bool { return equalNames(name, sp->name); });
+    auto callee = getSubroutine(name, args, false);
+    if (nullptr == callee)
+        unresolved[name].push_back(caller->subrcall);
 
-    // եթե ենթածրագիրն արդեն սահմանված է...
-    if (module->members.end() != srit) {
-        // ենթածրագրի պարամետրերի քանակը պետք է հավասար լինի args.size()-ին
-        if ((*srit)->parameters.size() == args.size())
-            // հավասարության դեպքում ստուգել նաև տիպերը
-            for (int i = 0; i < args.size(); ++i)
-                if (typeOf((*srit)->parameters[i]) != args[i]->type)
-                    throw TypeError{ "99" };
-        cal->subrcall->procptr = *srit;
-    }
-    else
-        unresolved[name].push_back(cal->subrcall);
+    caller->subrcall->procptr = callee;
 
-    return cal;
+    return caller;
 }
 
 //
@@ -446,35 +442,19 @@ Expression* Parser::parseFactor()
             }
             match(Token::RightPar);
 
-            Apply* aly = new Apply(nullptr, args);
+            Apply* applyer = new Apply(nullptr, args);
+            applyer->type = typeOf(name);
 
-            // որոնում է name անունով ենթածրագիրը արդեն վերլուծվածների մեջ
-            auto spit = std::find_if(module->members.begin(), module->members.end(),
-                [&name](auto sp) -> bool { return sp->name == name; });
+            auto callee = getSubroutine(name, args, true);
+            if (nullptr == callee)
+                unresolved[name].push_back(applyer);
 
-            // եթե ենթածրագիրն արդեն սահմանված է...
-            if (module->members.end() != spit) {
-                Subroutine* subr = *spit;
-                // ... և սահմանված է որպես ֆունկցիա
-                if( !subr->hasValue )
-                    throw TypeError(name + "ենթածրագիրը արժեք չի վերադարձնում։");
+            applyer->procptr = callee;
 
-                // ենթածրագրի պարամետրերի քանակը պետք է հավասար լինի args.size()-ին
-                if (subr->parameters.size() == args.size())
-                    // հավասարության դեպքում ստուգել նաև տիպերը
-                    for (int i = 0; i < args.size(); ++i)
-                        if (typeOf(subr->parameters[i]) != args[i]->type)
-                            throw TypeError{ "99" };
-                aly->procptr = subr;
-                aly->type = typeOf(name);
-            }
-            else
-                unresolved[name].push_back(aly);
-
-            return aly;
+            return applyer;
         }
-        // TODO: ստուգել, որ name անունով փոփոխական սահմանված լինի
-        return new Variable(name);
+        // ստուգել, որ name անունով փոփոխական սահմանված լինի
+        return getVariable(name, true);
     }
 
     /// '(' Expression ')'
@@ -506,20 +486,68 @@ void Parser::match(Token exp)
 }
 
 //
-Variable* Parser::getVariable(const std::string& nm)
+// Եթե լոկալ տիրույթում արդեն սահմանված է @c nm անունով փոփոխական,
+// ապա վերադարձնում է դրա ցուցիչը։
+// Եթե դեռ սահմանված չէ, ապա ստեղծել նոր @c Variable օբյեկտ, և 
+// վերադարձնել դրա ցուցիչը։
+// Եթե հարցումն արվում է rval-ի համար, ապա նոր օբյեկտ չստեղծել։
+// Եթե հարցումը կատարվում է rval-ի համար, ապա ընթացիկ ենթածրագրի
+// անունը փոփոխական չհամարել։
+//
+Variable* Parser::getVariable(const std::string& nm, bool rval)
 {
     Subroutine* subr = module->members.back();
     auto& locals = subr->locals;
+
+    if (rval && equalNames(subr->name, nm))
+        throw ParseError("Ենթածրագրի անունը օգտագործված է որպես փոփոխական։");
 
     auto vpi = std::find_if(locals.begin(), locals.end(),
         [&nm](auto vp) -> bool { return equalNames(nm, vp->name); });
     if (locals.end() != vpi)
         return *vpi;
 
+    if (rval)
+        throw ParseError(nm + " փոփոխականը դեռ սահմանված չէ։");
+
     auto varp = new Variable(nm);
     locals.push_back(varp);
 
     return varp;
+}
+
+//
+Subroutine* Parser::getSubroutine(const std::string& nm, const std::vector<Expression*>& ags, bool func)
+{
+    // որոնել տրված անունով ենթածրագիրը արդեն սահմանվածների մեջ
+    auto subrit = std::find_if(module->members.begin(), module->members.end(),
+        [&nm](auto sp)->bool { return equalNames(sp->name, nm); });
+
+    // եթե դեռ սահմանված չէ, պարզապես վերադաձնել @c nullptr
+    if (subrit == module->members.end())
+        return nullptr;
+
+    // եթե օբյեկտը գտնվել է, ... 
+    Subroutine* subr = *subrit;
+
+    // ... ստուգել անունների տիպերի համընկնելը
+    if (equalTypes(subr->name, nm))
+        throw TypeError("Ենթածրագրի անունը տարբերվում է կանչի անունից։");
+
+    // ... ստուգել պարամետրերի և արգումենտների քանակների հավասար լինելը
+    if (subr->parameters.size() != ags.size())
+        throw ParseError("Ենթածրագրերի պարամետրերի և փոխանցված արգումենտների քանակները տարբեր են։");
+
+    // ... ապա ստուգել պարամետրերի ու արգումենտների տիպրտի համապատասխանությունը
+    for (int i = 0; i < subr->parameters.size(); ++i)
+        if (typeOf(subr->parameters[i]) != ags[i]->type)
+            throw TypeError(std::to_string(i)+ "-րդ պարամետրի ու արգումնտի տիպերը նույնը չեն։");
+
+    // եթե հարցումը ֆունկցիայի կանչի համար է, բայց ենթածրագիրն արժեք չի վերադարձնում
+    if (func && !subr->hasValue)
+        throw ParseError(nm + " պրոցեդուրան արժեք չի վերադարձնում։");
+
+    return subr;
 }
 
 //

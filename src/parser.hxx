@@ -48,22 +48,26 @@ private:
 
     void match(Token tok);
 
-    Type checkType(Operation op, Type left, Type right);
-
-    Variable* getVariable(const std::string& nm);
+    Variable* getVariable(const std::string& nm, bool rval);
+    Subroutine* getSubroutine(const std::string& nm, const std::vector<Expression*>& ags, bool func);
 };
 
 // TODO: վերանայել այս դասերը
 //
-class ParseError : std::exception {
+class ParseError : public std::exception {
 private:
     std::string message = "";
 
 public:
     ParseError(const std::string& mes)
         : message(mes)
+    {}
+
+    ParseError(Token exp, Token got)
     {
+        message = "սպասվում էր ..., բայց հանդիպել է ...";
     }
+
     const char* what() const noexcept
     {
         return message.c_str();
@@ -71,7 +75,7 @@ public:
 };
 
 //
-class TypeError : std::exception {
+class TypeError : public std::exception {
 private:
     std::string message = "";
 
