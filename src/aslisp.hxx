@@ -38,7 +38,7 @@ private:
     std::ostream& ooo;
     int indent = 0;
 
-    void space(std::ostream& ooo);
+    void space();
 };
 } // basic
 

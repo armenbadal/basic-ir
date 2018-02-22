@@ -30,29 +30,31 @@ std::map<Operation, std::string> mnemonic{
 ///
 int Lisper::convertNumber(Number* node)
 {
-    ooo << "(basic-number :value " << node->value << ")";
+    ooo << "(basic-number " << node->value << ")";
     return 0;
 }
 
 ///
 int Lisper::convertText(Text* node)
 {
-    ooo << "(basic-text :value \"" << node->value << "\")";
+    ooo << "(basic-text \"" << node->value << "\")";
     return 0;
 }
 
 ///
 int Lisper::convertVariable(Variable* node)
 {
-    ooo << "(basic-variable :name \"" << node->name << "\")";
+    ooo << "(basic-variable \"" << node->name << "\")";
     return 0;
 }
 
 ///
 int Lisper::convertUnary(Unary* node)
 {
-    ooo << "(basic-unary :opcode \"" << mnemonic[node->opcode] << "\" :subexpr ";
+    ooo << "(basic-unary \"" << mnemonic[node->opcode] << "\" ";
+    //++indent; space();
     convertAstNode(node->subexpr);
+    //--indent;
     ooo << ")";
     return 0;
 }
@@ -60,14 +62,13 @@ int Lisper::convertUnary(Unary* node)
 ///
 int Lisper::convertBinary(Binary* node)
 {
-    ooo << "(basic-binary :opcode \"" << mnemonic[node->opcode] << "\"";
+    ooo << "(basic-binary \"" << mnemonic[node->opcode] << "\"";
     ++indent;
-    space(ooo);
-    ooo << ":subexpro ";
+    space();
     convertAstNode(node->subexpro);
-    space(ooo);
-    ooo << ":subexpri ";
+    space();
     convertAstNode(node->subexpri);
+    --indent;
     ooo << ")";
     return 0;
 }
@@ -75,24 +76,24 @@ int Lisper::convertBinary(Binary* node)
 ///
 int Lisper::convertApply(Apply* node)
 {
-    ooo << "(basic-apply :procname \"" << node->procptr->name << "\"";
-    ooo << " :arguments (";
+    ooo << "(basic-apply \"" << node->procptr->name << "\"";
+    ++indent;
     for (auto e : node->arguments) {
+        space();
         convertAstNode(e);
-        ooo << " ";
     }
-    ooo << "))";
+    --indent;
+    ooo << ")";
     return 0;
 }
 
 ///
 int Lisper::convertLet(Let* node)
 {
-    ooo << "(basic-let :varname " << node->varptr->name;
-    ++indent;
-    space(ooo);
-    ooo << ":expr ";
+    ooo << "(basic-let (variable \"" << node->varptr->name << "\") ";
+    ++indent; space();
     convertAstNode(node->expr);
+    --indent;
     ooo << ")";
     return 0;
 }
@@ -100,15 +101,17 @@ int Lisper::convertLet(Let* node)
 ///
 int Lisper::convertInput(Input* node)
 {
-    ooo << "(basic-input :varname " << node->varptr->name << ")";
+    ooo << "(basic-input \"" << node->varptr->name << "\")";
     return 0;
 }
 
 ///
 int Lisper::convertPrint(Print* node)
 {
-    ooo << "(basic-print :expr ";
+    ooo << "(basic-print";
+    ++indent; space();
     convertAstNode(node->expr);
+    --indent;
     ooo << ")";
     return 0;
 }
@@ -116,11 +119,9 @@ int Lisper::convertPrint(Print* node)
 ///
 int Lisper::convertIf(If* node)
 {
-    ooo << "(basic-if :condition ";
+    ooo << "(basic-if ";
     convertAstNode(node->condition);
-    ooo << " :decision ";
     convertAstNode(node->decision);
-    ooo << " :alternative ";
     convertAstNode(node->alternative);
     ooo << ")";
     return 0;
@@ -129,9 +130,8 @@ int Lisper::convertIf(If* node)
 ///
 int Lisper::convertWhile(While* node)
 {
-    ooo << "(basic-while :condition ";
+    ooo << "(basic-while ";
     convertAstNode(node->condition);
-    ooo << " :body ";
     convertAstNode(node->body);
     ooo << ")";
     return 0;
@@ -140,14 +140,10 @@ int Lisper::convertWhile(While* node)
 ///
 int Lisper::convertFor(For* node)
 {
-    ooo << "(basic-for :parameter " << node->parameter;
-    ooo << " :begin ";
+    ooo << "(basic-for \"" << node->parameter << "\"";
     convertAstNode(node->begin);
-    ooo << " :end ";
     convertAstNode(node->end);
-    ooo << " :step ";
     convertAstNode(node->step);
-    ooo << " :body ";
     convertAstNode(node->body);
     ooo << ")";
     return 0;
@@ -156,13 +152,10 @@ int Lisper::convertFor(For* node)
 ///
 int Lisper::convertCall(Call* node)
 {
-    ooo << "(basic-call :procname " << node->subrcall->procptr->name;
-    ooo << " :arguments (";
-    for (auto e : node->subrcall->arguments) {
+    ooo << "(basic-call \"" << node->subrcall->procptr->name << "\"";
+    for (auto e : node->subrcall->arguments)
         convertAstNode(e);
-        ooo << " ";
-    }
-    ooo << "))";
+    ooo << ")";
     return 0;
 }
 
@@ -171,36 +164,33 @@ int Lisper::convertSequence(Sequence* node)
 {
     ooo << "(basic-sequence";
     ++indent;
-    space(ooo);
-    ooo << ":items (";
-    ++indent;
     for (auto ei : node->items) {
-        space(ooo);
+        space();
         convertAstNode(ei);
-        ooo << " ";
     }
+    ooo << ")";
     --indent;
-    --indent;
-    space(ooo);
-    ooo << "))";
     return 0;
 }
 
 ///
 int Lisper::convertSubroutine(Subroutine* node)
 {
-    ooo << "(basic-subroutine :name " << node->name;
+    space();
+    ooo << "(basic-subroutine \"" << node->name << "\"";
     ++indent;
-    space(ooo);
-    ooo << ":parameters (";
-    for (auto& ip : node->parameters)
-        ooo << ip << " ";
-    ooo << ")";
-    space(ooo);
-    ooo << ":body ";
+    space();
+    std::string parlis = "";
+    for (auto& ip : node->parameters) {
+        parlis.append("\"");
+        parlis.append(ip);
+        parlis.append("\" ");
+    }
+    if (!parlis.empty())
+        parlis.pop_back();
+    ooo << "'(" << parlis << ")";
+    space();
     convertAstNode(node->body);
-    --indent;
-    space(ooo);
     ooo << ")";
     --indent;
     return 0;
@@ -209,25 +199,17 @@ int Lisper::convertSubroutine(Subroutine* node)
 ///
 int Lisper::convertProgram(Program* node)
 {
-    ooo << "(basic-program :filename " << node->filename;
+    ooo << "(basic-program \"" << node->filename << "\"";
     ++indent;
-    space(ooo);
-    ooo << ":members (";
-    for (auto si : node->members) {
-        space(ooo);
-        convertAstNode(si);
-    }
+    for (auto si : node->members)
+        convertSubroutine(si);
     --indent;
-    space(ooo);
-    ooo << ")";
-    space(ooo);
     ooo << ")" << std::endl;
     return 0;
 }
 
-void Lisper::space(std::ostream& ooo)
+void Lisper::space()
 {
-    ooo << std::endl
-        << std::string(indent, '\t');
+    ooo << std::endl << std::string(indent, '\t');
 }
 } // basic
