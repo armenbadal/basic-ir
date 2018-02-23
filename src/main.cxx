@@ -34,12 +34,12 @@ int main()
 
     if (nullptr != prog) {
         std::cout << "Lisp output..." << std::endl;
-        basic::Lisper().convert(prog, std::cout);
+        basic::Lisper(std::cout).convert(prog);
         std::cout << std::endl
                   << std::endl;
 
         std::cout << "DOT output..." << std::endl;
-        basic::Doter().convert(prog, std::cout);
+        basic::Doter(std::cout).convert(prog);
     }
 
     /*
