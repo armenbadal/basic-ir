@@ -25,10 +25,10 @@ public:
 private:
     void processStatement(Statement* stat, llvm::BasicBlock* endBB = nullptr);
     void processSequence(Sequence* seq, llvm::BasicBlock* endBB);
-    void processLet(Let* letSt);
     void processIf(If* ifSt, llvm::BasicBlock* endBB = nullptr);
     void processWhile(While* whileSt, llvm::BasicBlock* endBB);
     void processFor(For* forSt, llvm::BasicBlock* endBB);
+    void processLet(Let* letSt);
 
     llvm::Value* processExpression(Expression* expr);
     llvm::Value* processBinary(Binary* bin);
