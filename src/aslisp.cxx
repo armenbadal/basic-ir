@@ -1,242 +1,215 @@
-
-#include "ast.hxx"
+﻿
+#include "aslisp.hxx"
 
 #include <map>
+#include <sstream>
 #include <string>
 
 namespace basic {
-  ///
-  std::map<Operation,std::string> mnemonic{
-    {Operation::Add, "ADD"},
-    {Operation::Sub, "SUB"},
-    {Operation::Conc, "CONC"},
-    {Operation::Mul, "MUL"},
-    {Operation::Div, "DIV"},
-    {Operation::Mod, "MOD"},
-    {Operation::Pow, "POW"},
-    {Operation::Eq, "EQ"},
-    {Operation::Ne, "NE"},
-    {Operation::Gt, "GT"},
-    {Operation::Ge, "GE"},
-    {Operation::Lt, "LT"},
-    {Operation::Le, "LE"},
-    {Operation::And, "AND"},
-    {Operation::Or, "OR"}
-  };
+///
+std::map<Operation, std::string> mnemonic{
+    { Operation::None, "?" },
+    { Operation::Add,  "ADD" },
+    { Operation::Sub,  "SUB" },
+    { Operation::Mul,  "MUL" },
+    { Operation::Div,  "DIV" },
+    { Operation::Mod,  "MOD" },
+    { Operation::Pow,  "POW" },
+    { Operation::Eq,   "EQ" },
+    { Operation::Ne,   "NE" },
+    { Operation::Gt,   "GT" },
+    { Operation::Ge,   "GE" },
+    { Operation::Lt,   "LT" },
+    { Operation::Le,   "LE" },
+    { Operation::And,  "AND" },
+    { Operation::Or,   "OR" },
+    { Operation::Not,  "NOT" },
+    { Operation::Conc, "CONC" }
+};
 
-  ///
-  void lisp( AstNode* node, std::ostringstream& ooo );
-  
-  ///
-  void numberAsLisp( Number* node, std::ostringstream& ooo )
-  {
-    ooo << "(basic-number :value " << node->value << ")";
-  }
-  
-  ///
-  void textAsLisp( Text* node, std::ostringstream& ooo )
-  {
-    ooo << "(basic-text :value \"" << node->value << "\")";
-  }
-  
-  ///
-  void variableAsLisp( Variable* node, std::ostringstream& ooo )
-  {
-    ooo << "(basic-variable :name \"" << node->name << "\")";
-  }
+///
+int Lisper::convertNumber(Number* node)
+{
+    ooo << "(basic-number " << node->value << ")";
+    return 0;
+}
 
-  ///
-  void unaryAsLisp( Unary* node, std::ostringstream& ooo )
-  {
-    ooo << "(basic-unary :opcode \"" << mnemonic[node->opcode] << "\" :subexpr ";
-    lisp(node->subexpr, ooo);
+///
+int Lisper::convertText(Text* node)
+{
+    ooo << "(basic-text \"" << node->value << "\")";
+    return 0;
+}
+
+///
+int Lisper::convertVariable(Variable* node)
+{
+    ooo << "(basic-variable \"" << node->name << "\")";
+    return 0;
+}
+
+///
+int Lisper::convertUnary(Unary* node)
+{
+    ooo << "(basic-unary \"" << mnemonic[node->opcode] << "\" ";
+    //++indent; space();
+    convertAstNode(node->subexpr);
+    //--indent;
     ooo << ")";
-  }
+    return 0;
+}
 
-  ///
-  void binaryAsLisp( Binary* node, std::ostringstream& ooo )
-  {
-    ooo << "(basic-binary :opcode \"" << mnemonic[node->opcode] << "\"";
-    ooo << " :subexpro ";
-    lisp(node->subexpro, ooo);
-    ooo << " :subexpri ";
-    lisp(node->subexpri, ooo);
+///
+int Lisper::convertBinary(Binary* node)
+{
+    ooo << "(basic-binary \"" << mnemonic[node->opcode] << "\"";
+    ++indent;
+    space();
+    convertAstNode(node->subexpro);
+    space();
+    convertAstNode(node->subexpri);
+    --indent;
     ooo << ")";
-  }
+    return 0;
+}
 
-  ///
-  void applyAsLisp( Apply* node, std::ostringstream& ooo )
-  {
-    ooo << "(basic-apply :procname \"" << node->procname << "\"";
-    ooo << " :arguments (";
-    for( auto e : node->arguments ) {
-      lisp(e, ooo);
-      ooo << " ";
+///
+int Lisper::convertApply(Apply* node)
+{
+    ooo << "(basic-apply \"" << node->procptr->name << "\"";
+    ++indent;
+    for (auto e : node->arguments) {
+        space();
+        convertAstNode(e);
     }
-    ooo << "))";
-  }
-
-  ///
-  void letAsLisp( Let* node, std::ostringstream& ooo )
-  {
-    ooo << "(basic-let :varname " << node->varname << " :expr ";
-    lisp(node->expr, ooo);
+    --indent;
     ooo << ")";
-  }
+    return 0;
+}
 
-  ///
-  void inputAsLisp( Input* node, std::ostringstream& ooo )
-  {
-    ooo << "(basic-input :varname " << node->varname << ")";
-  }
-
-  ///
-  void printAsLisp( Print* node, std::ostringstream& ooo )
-  {
-    ooo << "(basic-print :expr ";
-    lisp(node->expr, ooo);
+///
+int Lisper::convertLet(Let* node)
+{
+    ooo << "(basic-let (variable \"" << node->varptr->name << "\") ";
+    ++indent; space();
+    convertAstNode(node->expr);
+    --indent;
     ooo << ")";
-  }
+    return 0;
+}
 
-  ///
-  void ifAsLisp( If* node, std::ostringstream& ooo )
-  {
-    ooo << "(basic-if :condition ";
-    lisp(node->condition, ooo);
-    ooo << " :decision ";
-    lisp(node->decision, ooo);
-    ooo << " :alternative ";
-    lisp(node->alternative, ooo);
+///
+int Lisper::convertInput(Input* node)
+{
+    ooo << "(basic-input \"" << node->varptr->name << "\")";
+    return 0;
+}
+
+///
+int Lisper::convertPrint(Print* node)
+{
+    ooo << "(basic-print";
+    ++indent; space();
+    convertAstNode(node->expr);
+    --indent;
     ooo << ")";
-  }
+    return 0;
+}
 
-  ///
-  void whileAsLisp( While* node, std::ostringstream& ooo )
-  {
-    ooo << "(basic-while :condition ";
-    lisp(node->condition, ooo);
-    ooo << " :body ";
-    lisp(node->body, ooo);
+///
+int Lisper::convertIf(If* node)
+{
+    ooo << "(basic-if ";
+    convertAstNode(node->condition);
+    convertAstNode(node->decision);
+    convertAstNode(node->alternative);
     ooo << ")";
-  }
+    return 0;
+}
 
-  ///
-  void forAsLisp( For* node, std::ostringstream& ooo )
-  {
-    ooo << "(basic-for :parameter " << node->parameter;
-    ooo << " :begin ";
-    lisp(node->begin, ooo);
-    ooo << " :end ";
-    lisp(node->end, ooo);
-    ooo << " :step ";
-    lisp(node->step, ooo);
-    ooo << " :body ";
-    lisp(node->body, ooo);
+///
+int Lisper::convertWhile(While* node)
+{
+    ooo << "(basic-while ";
+    convertAstNode(node->condition);
+    convertAstNode(node->body);
     ooo << ")";
-  }
+    return 0;
+}
 
-  ///
-  void callAsLisp( Call* node, std::ostringstream& ooo )
-  {
-    ooo << "(basic-call :procname " << node->subrcall->procname;
-    ooo << " :arguments (";
-    for( auto e : node->subrcall->arguments ) {
-      lisp(e, ooo);
-      ooo << " ";
+///
+int Lisper::convertFor(For* node)
+{
+    ooo << "(basic-for \"" << node->parameter << "\"";
+    convertAstNode(node->begin);
+    convertAstNode(node->end);
+    convertAstNode(node->step);
+    convertAstNode(node->body);
+    ooo << ")";
+    return 0;
+}
+
+///
+int Lisper::convertCall(Call* node)
+{
+    ooo << "(basic-call \"" << node->subrcall->procptr->name << "\"";
+    for (auto e : node->subrcall->arguments)
+        convertAstNode(e);
+    ooo << ")";
+    return 0;
+}
+
+///
+int Lisper::convertSequence(Sequence* node)
+{
+    ooo << "(basic-sequence";
+    ++indent;
+    for (auto ei : node->items) {
+        space();
+        convertAstNode(ei);
     }
-    ooo << "))";
-  }
-
-  ///
-  void sequenceAsLisp( Sequence* node, std::ostringstream& ooo )
-  {
-    ooo << "(basic-sequence :items (";
-    for( auto ei : node->items ) {
-      lisp(ei, ooo);
-      ooo << " ";
-    }
-    ooo << "))";
-  }
-
-  ///
-  void subroutineAsLisp( Subroutine* node, std::ostringstream& ooo )
-  {
-    ooo << "(basic-subroutine :name " << node->name;
-    ooo << " :parameters (";
-    for( auto& ip : node->parameters )
-      ooo << ip << " ";
-    ooo << ") :body ";
-    lisp(node->body, ooo);
     ooo << ")";
-  }
+    --indent;
+    return 0;
+}
 
-  ///
-  void programAsLisp( Program* node, std::ostringstream& ooo )
-  {
-    ooo << "(basic-program :filename " << node->filename;
-    ooo << " :members (";
-    for( auto si : node->members ) {
-      ooo << "\n";
-      lisp(si, ooo);
+///
+int Lisper::convertSubroutine(Subroutine* node)
+{
+    space();
+    ooo << "(basic-subroutine \"" << node->name << "\"";
+    ++indent;
+    space();
+    std::string parlis = "";
+    for (auto& ip : node->parameters) {
+        parlis.append("\"");
+        parlis.append(ip);
+        parlis.append("\" ");
     }
-    ooo << "))\n";
-  }
+    if (!parlis.empty())
+        parlis.pop_back();
+    ooo << "'(" << parlis << ")";
+    space();
+    convertAstNode(node->body);
+    ooo << ")";
+    --indent;
+    return 0;
+}
 
-  ///
-  void lisp( AstNode* node, std::ostringstream& ooo )
-  {
-    switch( node->kind ) {
-      case NodeKind::Number:
-        numberAsLisp(dynamic_cast<Number*>(node), ooo);
-        break;
-      case NodeKind::Text:
-	textAsLisp(dynamic_cast<Text*>(node), ooo);
-	break;
-      case NodeKind::Variable:
-	variableAsLisp(dynamic_cast<Variable*>(node), ooo);
-	break;
-      case NodeKind::Unary:
-	unaryAsLisp(dynamic_cast<Unary*>(node), ooo);
-	break;
-      case NodeKind::Binary:
-	binaryAsLisp(dynamic_cast<Binary*>(node), ooo);
-	break;
-      case NodeKind::Apply:
-	applyAsLisp(dynamic_cast<Apply*>(node), ooo);
-	break;
-      case NodeKind::Sequence:
-	sequenceAsLisp(dynamic_cast<Sequence*>(node), ooo);
-	break;
-      case NodeKind::Input:
-	inputAsLisp(dynamic_cast<Input*>(node), ooo);
-	break;
-      case NodeKind::Print:
-	printAsLisp(dynamic_cast<Print*>(node), ooo);
-	break;
-      case NodeKind::Let:
-	letAsLisp(dynamic_cast<Let*>(node), ooo);
-	break;
-      case NodeKind::If:
-	ifAsLisp(dynamic_cast<If*>(node), ooo);
-	break;
-      case NodeKind::While:
-	whileAsLisp(dynamic_cast<While*>(node), ooo);
-	break;
-      case NodeKind::For:
-	forAsLisp(dynamic_cast<For*>(node), ooo);
-	break;
-      case NodeKind::Call:
-	callAsLisp(dynamic_cast<Call*>(node), ooo);
-	break;
-      case NodeKind::Subroutine:
-	subroutineAsLisp(dynamic_cast<Subroutine*>(node), ooo);
-	break;
-      case NodeKind::Program:
-	programAsLisp(dynamic_cast<Program*>(node), ooo);
-	break;
-      default:
-	{}
-    }
-  }
+///
+int Lisper::convertProgram(Program* node)
+{
+    ooo << "(basic-program \"" << node->filename << "\"";
+    ++indent;
+    for (auto si : node->members)
+        convertSubroutine(si);
+    --indent;
+    ooo << ")" << std::endl;
+    return 0;
+}
+
+void Lisper::space()
+{
+    ooo << std::endl << std::string(indent, '\t');
+}
 } // basic
-

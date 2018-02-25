@@ -1,28 +1,40 @@
 
+#include <fstream>
 #include <iostream>
 #include <sstream>
 
+#include "asdot.hxx"
+#include "aslisp.hxx"
 #include "parser.hxx"
 #include "scanner.hxx"
 
-namespace basic {
-  void lisp( AstNode* node, std::ostringstream& ooo );
-}
-
 //
-int main()
+int main(int argc, char* argv[])
 {
-  basic::Parser parser("../cases/case00.bas");
-  auto prog = parser.parse();
+    std::cout << "Parsing ..." << std::endl;
 
-  if( nullptr != prog ) {
-    std::ostringstream out;
-    basic::lisp(prog, out);
-    std::cout << out.str() << std::endl;
-    basic::AstNode::delete_allocated_nodes();
-  }
-  
-  return 0;
+    basic::Parser parser("../cases/case03.bas");
+    basic::Program* prog = nullptr;
+    try {
+        prog = parser.parse();
+    }
+    catch (basic::ParseError& e) {
+        std::cerr << e.what() << std::endl;
+    }
+    catch (basic::TypeError& e) {
+        std::cerr << e.what() << std::endl;
+    }
+
+    if (nullptr != prog) {
+        std::cout << "Lisp output..." << std::endl;
+        basic::Lisper(std::cout).convert(prog);
+        std::cout << std::endl
+                  << std::endl;
+
+        std::cout << "DOT output..." << std::endl;
+        basic::Doter(std::cout).convert(prog);
+    }
+
+    return 0;
 }
-
 

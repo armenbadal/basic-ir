@@ -3,15 +3,14 @@
 #define AST_HXX
 
 #include <list>
-#include <sstream>
 #include <string>
 #include <vector>
 
 //
 namespace basic {
 
-  //
-  enum class NodeKind : int {
+// Աբստրակտ քերականական ծառի հանգույցի տեսակը
+enum class NodeKind : int {
     Empty,
     Number,
     Text,
@@ -29,215 +28,245 @@ namespace basic {
     Call,
     Subroutine,
     Program
-  };
-  
-  //
-  class AstNode {
-  public:
-    NodeKind kind = NodeKind::Empty;
+};
 
-  private:    
-    unsigned int line = 0;
-
-  public:
+// Քերականական ծառի հանգույցի բազային տիպը։
+// Ծառի հանգույցների բոլոր տեսակներն այս տիպի ընդլայնում են։
+class AstNode {
+public:
     AstNode();
     virtual ~AstNode() = default;
 
-  private:
-    static std::list<AstNode*> allocated_nodes;
-    
-  public:
-    static void delete_allocated_nodes();
-  };
+    static void deleteAllocatedNodes();
 
+public:
+    NodeKind kind = NodeKind::Empty;
+    unsigned int line = 0;
 
-  //
-  enum class Type : char {
-    Void   = 'V',
-    Number = 'N',
-    Text   = 'T'  
-  };
+private:
+    // բոլոր դինամիկ ստեղծված հանգույցների հասցեները
+    static std::list<AstNode*> allocatedNodes;
+};
 
+// Տվյալների տիպերը։ Void-ն օգտագործվում է
+// արժեք չվերադարձնող ենթածրագրերի հետ աշխատելիս։
+enum class Type : char {
+    Void = 'V',   // արժեքի բացակայություն
+    Number = 'N', // թվային արժեք
+    Text = 'T'    // տեքստային արժեք
+};
 
-  //
-  class Expression : public AstNode {
-  public:
+//
+Type typeOf(const std::string& nm);
+
+// Արտահայտություն։
+class Expression : public AstNode {
+public:
     Type type = Type::Void;
-  };
+};
 
-  //
-  class Number : public Expression {
-  public:
+// @brief Թվային հաստատուն
+class Number : public Expression {
+public:
     double value = 0.0;
 
-  public:
-    Number( double vl );
-  };
+public:
+    Number(double vl);
+};
 
-  //
-  class Text : public Expression {
-  public:
+// @brief Տեքստային հաստատուն
+class Text : public Expression {
+public:
     std::string value = "";
 
-  public:
-    Text( const std::string& vl );
-  };
+public:
+    Text(const std::string& vl);
+};
 
-  //
-  class Variable : public Expression {
-  public:
+// @brief Փոփոխական
+//
+// Փոփոխականի տիպը որոշվում է նրա անվան կառուցվածքով։
+// Եթե այն ավարտվում է '$' նիշով, ապա փոփոխականի տիպը
+// @c TEXT է, հակառակ դեպքում՝ @c REAL է։
+class Variable : public Expression {
+public:
     std::string name = "";
 
-  public:
-    Variable( const std::string& nm );
-  };
+public:
+    Variable(const std::string& nm);
+};
 
-  //
-  enum class Operation {
-    None,
-    Add, Sub, Mul, Div, Mod, Pow,
-    Eq, Ne, Gt, Ge, Lt, Le,
-    And, Or, Not,
-    Conc
-  };
+// Գործողությունների անունները
+enum class Operation {
+    None, // անորոշ
+    Add,  // գումարում
+    Sub,  // հանում
+    Mul,  // բազմապատկում
+    Div,  // բաժանում
+    Mod,  // ամբողջ բաժանում
+    Pow,  // աստիճան
+    Eq,   // հավասար է
+    Ne,   // հավասար չէ
+    Gt,   // մեծ է
+    Ge,   // մեծ է կամ հավասար
+    Lt,   // փոքր է
+    Le,   // փոքր է կամ հավասար
+    And,  // ԵՎ (կոնյունկցիա)
+    Or,   // ԿԱՄ (դիզյունկցիա)
+    Not,  // ՈՉ (ժխտում)
+    Conc  // տեքստերի կցում
+};
 
-  //
-  class Unary : public Expression {
-  public:
+// Գործողության տեքստային անունը
+std::string toString(Operation opc);
+
+// Ունար գործողություն
+class Unary : public Expression {
+public:
     Operation opcode = Operation::None;
     Expression* subexpr = nullptr;
 
-  public:
-    Unary( Operation op, Expression* ex );
-  };
+public:
+    Unary(Operation op, Expression* ex);
+};
 
-  //
-  class Binary : public Expression {
-  public:
+// Բինար գործողություն
+class Binary : public Expression {
+public:
     Operation opcode = Operation::None;
     Expression* subexpro = nullptr;
     Expression* subexpri = nullptr;
 
-  public:
-    Binary( Operation op, Expression* exo, Expression* exi );
-  };
+public:
+    Binary(Operation op, Expression* exo, Expression* exi);
+};
 
-  //
-  class Apply : public Expression {
-  public:
-    std::string procname = "";
+class Subroutine;
+
+// Ֆունկցիայի կանչ (կիրառում)
+class Apply : public Expression {
+public:
+    Subroutine* procptr = nullptr;
     std::vector<Expression*> arguments;
 
-  public:
-    Apply( const std::string& pn, const std::vector<Expression*>& ags );
-  };
+public:
+    Apply(Subroutine* sp, const std::vector<Expression*>& ags);
+};
 
-  
-  //
-  class Statement : public AstNode {};
+// Ղեկավարող կառուցվածք (հրաման)
+class Statement : public AstNode {
+};
 
-  //
-  class Sequence : public Statement {
-  public:
+// Հրամանների շարք (հաջորդականություն)
+class Sequence : public Statement {
+public:
     std::vector<Statement*> items;
-    
-  public:
-    Sequence() = default;
-  };
-  
-  //
-  class Input : public Statement {
-  public:
-    std::string varname = "";
-    
-  public:
-    Input( const std::string& vn );
-  };
 
-  //
-  class Print : public Statement {
-  public:
+public:
+    Sequence();
+};
+
+// Տվյալների ներմուծում
+class Input : public Statement {
+public:
+    Variable* varptr = nullptr;
+
+public:
+    Input(Variable* vp);
+};
+
+// Տվյալների արտածում
+class Print : public Statement {
+public:
     Expression* expr = nullptr;
-    
-  public:
-    Print( Expression* ex );
-  };
-  
-  //
-  class Let : public Statement {
-  public:
-    std::string varname = "";
+
+public:
+    Print(Expression* ex);
+};
+
+// Վերագրում (միաժամանակ՝ փոփոխականի սահմանում)
+class Let : public Statement {
+public:
+    Variable* varptr = nullptr;
     Expression* expr = nullptr;
-    
-  public:
-    Let( const std::string& vn, Expression* ex );
-  };
-  
-  //
-  class If : public Statement {
-  public:
+
+public:
+    Let(Variable* vp, Expression* ex);
+};
+
+// Ճյուղավորում
+class If : public Statement {
+public:
     Expression* condition = nullptr;
     Statement* decision = nullptr;
     Statement* alternative = nullptr;
-    
-  public:
-    If( Expression* co, Statement* de, Statement* al = nullptr );
-  };
-  
-  //
-  class While : public Statement {
-  public:
+
+public:
+    If(Expression* co, Statement* de, Statement* al = nullptr);
+};
+
+// Նախապայմանով ցիկլ
+class While : public Statement {
+public:
     Expression* condition = nullptr;
     Statement* body = nullptr;
 
-  public:
-    While( Expression* co, Statement* bo );
-  };
-  
-  //
-  class For : public Statement {
-  public:
-    std::string parameter = "";
+public:
+    While(Expression* co, Statement* bo);
+};
+
+// Պարամետրով ցիկլ
+class For : public Statement {
+public:
+    Variable* parameter = nullptr;
     Expression* begin = nullptr;
     Expression* end = nullptr;
     Expression* step = nullptr;
     Statement* body = nullptr;
-    
-  public:
-    For( const std::string& pr, Expression* be, Expression* en, Expression* st, Statement* bo );
-  };
 
-  //
-  class Call : public Statement {
-  public:
+public:
+    For(Variable* pr, Expression* be, Expression* en, Expression* st, Statement* bo);
+};
+
+// Ենթածրագրի կանչ
+class Call : public Statement {
+public:
     Apply* subrcall = nullptr;
-    
-  public:
-    Call( const std::string& sn, const std::vector<Expression*> as );
-  };
 
-  //
-  class Subroutine : public AstNode {
-  public:
-    std::string name = "";
-    std::vector<std::string> parameters;
-    Statement* body = nullptr;
-    
-  public:
-    Subroutine( const std::string& nm, const std::vector<std::string>& ps, Statement* bo );
-  };
+public:
+    Call(Subroutine* sp, const std::vector<Expression*> as);
+};
 
-  //
-  class Program : public AstNode {
-  public:
+// Ենթածրագիր
+//
+// Ենթածրագիրը օգտագործվում է և՛ որպես պրոցեդուրա, և՛ որպես
+// ֆունկցիա։ Դրա վերադարձրած արժեքի տիպը որոշվում է անվան
+// կառուցվածքով, ինչպես փոփոխականներինը։ Ենթածրագիրը 
+// ֆունկցիա է, եթե նրա մարմնում է անվանը արժեք վերագրող
+// LET հրաման։ Այդ դեպքում @c hasvalue անդամի արժեքը
+// դրվում է @c true ։
+class Subroutine : public AstNode {
+public:
+    std::string name = ""; // անուն
+    std::vector<std::string> parameters; // պարամետրեր
+    std::vector<Variable*> locals; // լոկալ փոփոխականներ
+    Statement* body = nullptr; // մարմին
+    bool hasValue = false; // վերադարձնո՞ւմ է արժեքի
+
+public:
+    Subroutine(const std::string& nm, const std::vector<std::string>& ps, Statement* bo);
+};
+
+// Ծրագիր
+class Program : public AstNode {
+public:
     std::string filename = "";
     std::vector<Subroutine*> members;
 
-  public:
-    Program( const std::string& fn );
-  };
+public:
+    Program(const std::string& fn);
+};
 
 } // basic
 
 #endif // AST_HXX
-

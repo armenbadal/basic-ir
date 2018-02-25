@@ -1,131 +1,172 @@
 
 #include "ast.hxx"
 
-namespace basic {
-  //
-  std::list<AstNode*> AstNode::allocated_nodes;
-  
-  //
-  void AstNode::delete_allocated_nodes()
-  {
-    for( auto e : allocated_nodes )
-      delete e;
-  }
+#include <iostream>
+#include <map>
 
-  //
-  AstNode::AstNode()
-  {
-    allocated_nodes.push_front(this);
-  }
-  
-  //
-  Number::Number( double vl )
-    : value{vl}
-  {
+namespace basic {
+//
+std::list<AstNode*> AstNode::allocatedNodes;
+
+//
+void AstNode::deleteAllocatedNodes()
+{
+    for (auto e : allocatedNodes)
+        delete e;
+}
+
+//
+std::string toString(Operation opc)
+{
+    static std::map<Operation, std::string> names{
+        { Operation::None, "None" },
+        { Operation::Add, "+" },
+        { Operation::Sub, "-" },
+        { Operation::Mul, "*" },
+        { Operation::Div, "/" },
+        { Operation::Mod, "\\" },
+        { Operation::Pow, "^" },
+        { Operation::Eq, "=" },
+        { Operation::Ne, "<>" },
+        { Operation::Gt, ">" },
+        { Operation::Ge, ">=" },
+        { Operation::Lt, "<" },
+        { Operation::Le, "<=" },
+        { Operation::And, "AND" },
+        { Operation::Or, "OR" },
+        { Operation::Not, "NOT" },
+        { Operation::Conc, "&" }
+    };
+    return names[opc];
+}
+
+//
+Type typeOf(const std::string& nm)
+{
+    return nm.back() == '$' ? Type::Text : Type::Number;
+}
+
+//
+AstNode::AstNode()
+{
+    allocatedNodes.push_front(this);
+}
+
+//
+Number::Number(double vl)
+    : value(vl)
+{
     kind = NodeKind::Number;
     type = Type::Number;
-  }
+}
 
-  //
-  Text::Text( const std::string& vl )
-    : value{vl}
-  {
+//
+Text::Text(const std::string& vl)
+    : value(vl)
+{
     kind = NodeKind::Text;
     type = Type::Text;
-  }
+}
 
-  //
-  Variable::Variable( const std::string& nm )
-    : name{nm}
-  {
+//
+Variable::Variable(const std::string& nm)
+    : name(nm)
+{
     kind = NodeKind::Variable;
-    type = name.back() == '$' ? Type::Text : Type::Number;
-  }
+    type = typeOf(name);
+}
 
-  //
-  Unary::Unary( Operation op, Expression* ex )
-    : opcode{op}, subexpr{ex}
-  {
+//
+Unary::Unary(Operation op, Expression* ex)
+    : opcode(op), subexpr(ex)
+{
     kind = NodeKind::Unary;
     type = Type::Number;
-  }
+}
 
-  //
-  Binary::Binary( Operation op, Expression* exo, Expression* exi )
-    : opcode{op}, subexpro{exo}, subexpri{exi}
-  {
+//
+Binary::Binary(Operation op, Expression* exo, Expression* exi)
+    : opcode(op), subexpro(exo), subexpri(exi)
+{
     kind = NodeKind::Binary;
-  }
+}
 
-  //
-  Apply::Apply( const std::string& pn, const std::vector<Expression*>& ags )
-    : procname{pn}, arguments{ags}
-  {
+//
+Apply::Apply(Subroutine* sp, const std::vector<Expression*>& ags)
+    : procptr(sp), arguments(ags)
+{
     kind = NodeKind::Apply;
-  }
+}
 
-  //
-  Input::Input( const std::string& vn )
-    : varname{vn}
-  {
+//
+Sequence::Sequence()
+{
+    kind = NodeKind::Sequence;
+}
+
+//
+Input::Input(Variable* vp)
+    : varptr(vp)
+{
     kind = NodeKind::Input;
-  }
+}
 
-  //
-  Print::Print( Expression* ex )
-    : expr{ex}
-  {
+//
+Print::Print(Expression* ex)
+    : expr(ex)
+{
     kind = NodeKind::Print;
-  }
+}
 
-  //
-  Let::Let( const std::string& vn, Expression* ex )
-    : varname{vn}, expr{ex}
-  {
+//
+Let::Let(Variable* vp, Expression* ex)
+    : varptr(vp), expr(ex)
+{
     kind = NodeKind::Let;
-  }
+}
 
-  //
-  If::If( Expression* co, Statement* de, Statement* al )
-    : condition{co}, decision{de}, alternative{al}
-  {
+//
+If::If(Expression* co, Statement* de, Statement* al)
+    : condition(co), decision(de), alternative(al)
+{
     kind = NodeKind::If;
-  }
+}
 
-  //
-  While::While( Expression* co, Statement* bo )
-    : condition{co}, body{bo}
-  {
+//
+While::While(Expression* co, Statement* bo)
+    : condition(co), body(bo)
+{
     kind = NodeKind::While;
-  }
+}
 
-  //
-  For::For( const std::string& pr, Expression* be, Expression* en, Expression* st, Statement* bo )
-    : parameter{pr}, begin{be}, end{en}, step{st}, body{bo}
-  {
+//
+For::For(Variable* pr, Expression* be, Expression* en, Expression* st, Statement* bo)
+    : parameter(pr), begin(be), end(en), step(st), body(bo)
+{
     kind = NodeKind::For;
-  }
-  
-  //
-  Call::Call( const std::string& sn, const std::vector<Expression*> as )
-    : subrcall{new Apply{sn, as}}
-  {
+}
+
+//
+Call::Call(Subroutine* sp, const std::vector<Expression*> as)
+    : subrcall(new Apply(sp, as))
+{
     kind = NodeKind::Call;
-  }
+}
 
-  //
-  Subroutine::Subroutine( const std::string& nm, const std::vector<std::string>& ps, Statement* bo )
-    : name{nm}, parameters{ps}, body{bo}
-  {
+//
+Subroutine::Subroutine(const std::string& nm, const std::vector<std::string>& ps, Statement* bo)
+    : name(nm), parameters(ps), body(bo)
+{
     kind = NodeKind::Subroutine;
-  }
+    locals.push_back(new Variable(name));
+    for (auto& ps : parameters)
+        locals.push_back(new Variable(ps));
+}
 
-  //
-  Program::Program( const std::string& fn )
-    : filename{fn}
-  {
+//
+Program::Program(const std::string& fn)
+    : filename(fn)
+{
     kind = NodeKind::Program;
-  }
+}
 } // basic
-
-

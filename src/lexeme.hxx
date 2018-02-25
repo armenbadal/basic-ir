@@ -6,8 +6,8 @@
 #include <vector>
 
 namespace basic {
-  ///
-  enum class Token : int {
+///
+enum class Token : int {
     None,
 
     Number,
@@ -54,26 +54,27 @@ namespace basic {
     Not,
 
     Eof
-  };
+};
 
-  ///
-  class Lexeme {
-  public:
+std::string toString(Token sym);
+
+///
+class Lexeme {
+public:
     Token kind = Token::None;
     std::string value = "";
     unsigned int line = 0;
-  
-  public:
-    Lexeme() = default;
-    Lexeme( Token k, const std::string& v, unsigned int l );
 
-    bool is( Token exp ) const;
-    bool is( const std::vector<Token>& exps ) const;
-    bool isIn( Token el, Token eh ) const;
+public:
+    Lexeme() = default;
+    Lexeme(Token k, const std::string& v, unsigned int l);
+
+    bool is(Token exp) const;
+    bool is(const std::vector<Token>& exps) const;
+    bool isIn(Token el, Token eh) const;
 
     std::string toString() const;
-  };
+};
 } // basic
-  
-#endif
 
+#endif
