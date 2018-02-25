@@ -177,11 +177,17 @@ Statement* Parser::parseLet()
 Statement* Parser::parseInput()
 {
     match(Token::Input);
+    std::string prom = "";
+    if (lookahead.is(Token::Text)) {
+        prom = lookahead.value;
+        match(Token::Text);
+        match(Token::Comma);
+    }
     auto vnm = lookahead.value;
     match(Token::Identifier);
 
     auto varp = getVariable(vnm, false);
-    return new Input(varp);
+    return new Input(prom, varp);
 }
 
 //
@@ -223,6 +229,10 @@ Statement* Parser::parseIf()
         auto alte = parseStatements();
         it->alternative = alte;
     }
+
+    // TODO: եթե ELSE ճյուղը բացակայում է, ապա կարելի է կամ
+    // alternative-ին վերագրել դատարկ Sequence, կամ թողնել
+    // nullptr և գեներատորներում ստուգել
 
     match(Token::End);
     match(Token::If);
@@ -267,12 +277,16 @@ Statement* Parser::parseFor()
         auto lex = lookahead.value;
         match(Token::Number);
         sp = new Number(std::stod(lex));
+        if (neg)
+            sp = new Unary(Operation::Sub, sp);
     }
+    else
+        sp = new Number(1);
+    auto vp = getVariable(par, false);
     auto dy = parseStatements();
     match(Token::End);
     match(Token::For);
 
-    auto vp = getVariable(par, false);
     return new For(vp, be, en, sp, dy);
 }
 

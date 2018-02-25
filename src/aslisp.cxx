@@ -101,7 +101,7 @@ int Lisper::convertLet(Let* node)
 ///
 int Lisper::convertInput(Input* node)
 {
-    ooo << "(basic-input \"" << node->varptr->name << "\")";
+    ooo << "(basic-input \"" << node->prompt << "\" \"" << node->varptr->name << "\")";
     return 0;
 }
 
@@ -119,43 +119,55 @@ int Lisper::convertPrint(Print* node)
 ///
 int Lisper::convertIf(If* node)
 {
-    ooo << "(basic-if ";
-    convertAstNode(node->condition);
-    convertAstNode(node->decision);
-    convertAstNode(node->alternative);
+    ooo << "(basic-if";
+    ++indent;
+    space(); convertAstNode(node->condition);
+    space(); convertAstNode(node->decision);
+    if (nullptr != node->alternative) {
+        space(); convertAstNode(node->alternative);
+    }
     ooo << ")";
+    --indent;
     return 0;
 }
 
 ///
 int Lisper::convertWhile(While* node)
 {
-    ooo << "(basic-while ";
-    convertAstNode(node->condition);
-    convertAstNode(node->body);
+    ooo << "(basic-while";
+    ++indent;
+    space(); convertAstNode(node->condition);
+    space(); convertAstNode(node->body);
     ooo << ")";
+    --indent;
     return 0;
 }
 
 ///
 int Lisper::convertFor(For* node)
 {
-    ooo << "(basic-for \"" << node->parameter << "\"";
-    convertAstNode(node->begin);
-    convertAstNode(node->end);
-    convertAstNode(node->step);
-    convertAstNode(node->body);
+    ooo << "(basic-for";
+    ++indent;
+    space(); convertAstNode(node->parameter);
+    space(); convertAstNode(node->begin);
+    space(); convertAstNode(node->end);
+    space(); convertAstNode(node->step);
+    space(); convertAstNode(node->body);
     ooo << ")";
+    --indent;
     return 0;
 }
 
 ///
 int Lisper::convertCall(Call* node)
 {
-    ooo << "(basic-call \"" << node->subrcall->procptr->name << "\"";
-    for (auto e : node->subrcall->arguments)
-        convertAstNode(e);
+    ooo << "(basic-call \"" << (node->subrcall->procptr->name) << "\"";
+    ++indent;
+    for (auto e : node->subrcall->arguments) {
+        space(); convertAstNode(e);
+    }
     ooo << ")";
+    --indent;
     return 0;
 }
 
@@ -210,6 +222,6 @@ int Lisper::convertProgram(Program* node)
 
 void Lisper::space()
 {
-    ooo << std::endl << std::string(indent, '\t');
+    ooo << std::endl << std::string(2 * indent, ' ');
 }
 } // basic

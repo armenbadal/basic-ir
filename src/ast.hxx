@@ -169,10 +169,11 @@ public:
 // Տվյալների ներմուծում
 class Input : public Statement {
 public:
+    std::string prompt = "";
     Variable* varptr = nullptr;
 
 public:
-    Input(Variable* vp);
+    Input(const std::string& pr, Variable* vp);
 };
 
 // Տվյալների արտածում

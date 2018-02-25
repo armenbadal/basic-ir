@@ -8,12 +8,28 @@
 #include "parser.hxx"
 #include "scanner.hxx"
 
+bool fileExists(const std::string& filename)
+{
+    std::ifstream infi(filename);
+    return infi.good();
+}
+
 //
 int main(int argc, char* argv[])
 {
     std::cout << "Parsing ..." << std::endl;
 
-    basic::Parser parser("../cases/case03.bas");
+    if (argc < 2) {
+        std::cout << "" << std::endl;
+        return 0;
+    }
+
+    if (!fileExists(argv[1])) {
+        std::cout << argv[1] << " ֆայլը գոյություն չունի։";
+        return 0;
+    }
+
+    basic::Parser parser(argv[1]);
     basic::Program* prog = nullptr;
     try {
         prog = parser.parse();
@@ -27,12 +43,16 @@ int main(int argc, char* argv[])
 
     if (nullptr != prog) {
         std::cout << "Lisp output..." << std::endl;
-        basic::Lisper(std::cout).convert(prog);
-        std::cout << std::endl
-                  << std::endl;
+        std::ofstream sout(std::string(argv[1]) + ".lisp");
+        basic::Lisper(sout).convert(prog);
+        sout.close();
+
+        std::cout << std::endl;
 
         std::cout << "DOT output..." << std::endl;
-        basic::Doter(std::cout).convert(prog);
+        std::ofstream dout(std::string(argv[1]) + ".dot");
+        basic::Doter(dout).convert(prog);
+        dout.close();
     }
 
     return 0;

@@ -10,6 +10,9 @@ bool Converter::convert(AstNode* node)
 
 int Converter::convertAstNode(AstNode* node)
 {
+    if (nullptr == node)
+        return 0;
+
     int result = 0;
     switch (node->kind) {
         case NodeKind::Number:
