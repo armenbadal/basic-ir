@@ -2,13 +2,18 @@
 '
 '
 '
-SUB Main(n)
-  LET mul = 1
-  FOR i = 1 TO n STEP 2
-    LET mul = mul * i
+SUB Main
+  FOR i = 0 TO 10 STEP 2
     PRINT i * i
   END FOR
-  LET Main = mul
+
+  FOR j = 0 TO 10
+    PRINT j * j * j
+  END FOR
+
+  FOR k = 0 TO 10 STEP -4
+    PRINT 77 * k
+  END FOR
 END SUB
 
 

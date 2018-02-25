@@ -1,14 +1,15 @@
 
-SUB max(x, y, z)
+SUB max(x, y)
+  IF x + y > 0 THEN
+    PRINT "Yes"
+  END IF
+
   IF x > y THEN
-    IF x > z THEN
-        LET max = x
-    ELSE 
-        LET max = z
-    END IF
+    LET max = x
   ELSE
     LET max = y
   END IF
-  LET max = x + y
+
+  PRINT x + y
 END SUB
 

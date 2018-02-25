@@ -105,8 +105,8 @@ Sequence::Sequence()
 }
 
 //
-Input::Input(Variable* vp)
-    : varptr(vp)
+Input::Input(const std::string& pr, Variable* vp)
+    : prompt(pr), varptr(vp)
 {
     kind = NodeKind::Input;
 }
