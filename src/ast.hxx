@@ -11,23 +11,23 @@ namespace basic {
 
 //! @brief Աբստրակտ քերականական ծառի հանգույցի տեսակը
 enum class NodeKind : int {
-    Empty,
-    Number,
-    Text,
-    Variable,
-    Unary,
-    Binary,
-    Apply,
-    Sequence,
-    Input,
-    Print,
-    Let,
-    If,
-    While,
-    For,
-    Call,
-    Subroutine,
-    Program
+    Empty,      //!< ոչինչ
+    Number,     //!< թվային հաստատուն
+    Text,       //!< տեքստային հաստատուն
+    Variable,   //!< փոփոխականի հղում
+    Unary,      //!< ունար գործողություն
+    Binary,     //!< բինար գործողություն
+    Apply,      //!< ֆունկցիայի կիրառում
+    Sequence,   //!< հրամանների հաջորդում
+    Input,      //!< տվյալների ներմուծում
+    Print,      //!< տվյալների արտածում
+    Let,        //!< վերագրում
+    If,         //!< ճյուղավորում
+    While,      //!< պայմանով կրկնություն
+    For,        //!< պարամետրով կրկնություն
+    Call,       //!< պրոցեդուրայի կանչ
+    Subroutine, //!< ենթածրագիր
+    Program     //!< ծրագիր
 };
 
 //! @brief Քերականական ծառի հանգույցի բազային տիպը։
@@ -38,14 +38,15 @@ public:
     AstNode();
     virtual ~AstNode() = default;
 
+    //! @brief Ջնջել վերլուծության ընթացքում ստեղծված բոլոր հանգույցները
     static void deleteAllocatedNodes();
 
 public:
-    NodeKind kind = NodeKind::Empty;
-    unsigned int line = 0;
+    NodeKind kind = NodeKind::Empty; //!< հանգույցի տեսակը
+    unsigned int line = 0;           //!< տողի համարը
 
 private:
-    // բոլոր դինամիկ ստեղծված հանգույցների հասցեները
+    //! @brief Բոլոր դինամիկ ստեղծված հանգույցների հասցեները
     static std::list<AstNode*> allocatedNodes;
 };
 
@@ -58,7 +59,12 @@ enum class Type : char {
     Text = 'T'    //!< տեքստային արժեք
 };
 
-//
+//! @brief Իդենտիֆիկատորի տիպը
+//!
+//! Իդենտիֆիկատորի տիպը որոշում է ըստ նրա կառուցվածքի.
+//! եթե ավարտվում է '$' նիշով, ապա @c TEXT է, հակառակ
+//! դեպքում՝ @c REAL է։
+//!
 Type typeOf(const std::string& nm);
 
 //! @brief Արտահայտություն
@@ -86,13 +92,9 @@ public:
 };
 
 //! @brief Փոփոխական
-//!
-//! Փոփոխականի տիպը որոշվում է նրա անվան կառուցվածքով։
-//! Եթե այն ավարտվում է '$' նիշով, ապա փոփոխականի տիպը
-//! @c TEXT է, հակառակ դեպքում՝ @c REAL է։
 class Variable : public Expression {
 public:
-    std::string name = "";
+    std::string name = ""; //!< փոփոխականի անունը
 
 public:
     Variable(const std::string& nm);
@@ -125,8 +127,8 @@ std::string toString(Operation opc);
 //! @brief Ունար գործողություն
 class Unary : public Expression {
 public:
-    Operation opcode = Operation::None;
-    Expression* subexpr = nullptr;
+    Operation opcode = Operation::None; //!< գործողությոն կոդը
+    Expression* subexpr = nullptr;      //!< օպերանդը
 
 public:
     Unary(Operation op, Expression* ex);
@@ -136,8 +138,8 @@ public:
 class Binary : public Expression {
 public:
     Operation opcode = Operation::None; //!< գործողությոն կոդը
-    Expression* subexpro = nullptr; //!< ձախ օպերանդը
-    Expression* subexpri = nullptr; //!< աջ օպերանդը
+    Expression* subexpro = nullptr;     //!< ձախ օպերանդը
+    Expression* subexpri = nullptr;     //!< աջ օպերանդը
 
 public:
     Binary(Operation op, Expression* exo, Expression* exi);
@@ -148,8 +150,8 @@ class Subroutine;
 //! @brief Ֆունկցիայի կանչ (կիրառում)
 class Apply : public Expression {
 public:
-    Subroutine* procptr = nullptr;
-    std::vector<Expression*> arguments;
+    Subroutine* procptr = nullptr;      //!< կանչվող ենթածրագիրը
+    std::vector<Expression*> arguments; //!< արգումենտները
 
 public:
     Apply(Subroutine* sp, const std::vector<Expression*>& ags);
@@ -171,7 +173,7 @@ public:
 //! @brief Տվյալների ներմուծում
 class Input : public Statement {
 public:
-    std::string prompt = ""; //!< ներմուծման հրավերք
+    std::string prompt = "";    //!< ներմուծման հրավերք
     Variable* varptr = nullptr; //!< ներմուծվող փոփոխական
 
 public:
@@ -181,7 +183,7 @@ public:
 //! @brief Տվյալների արտածում
 class Print : public Statement {
 public:
-    Expression* expr = nullptr;
+    Expression* expr = nullptr; //!< արտածվող արտահայտությունը
 
 public:
     Print(Expression* ex);
@@ -190,8 +192,8 @@ public:
 //! @brief Վերագրում (միաժամանակ՝ փոփոխականի սահմանում)
 class Let : public Statement {
 public:
-    Variable* varptr = nullptr;
-    Expression* expr = nullptr;
+    Variable* varptr = nullptr; //!< փոփոխականը
+    Expression* expr = nullptr; //!< արժեքը
 
 public:
     Let(Variable* vp, Expression* ex);
@@ -200,9 +202,9 @@ public:
 //! @brief Ճյուղավորում
 class If : public Statement {
 public:
-    Expression* condition = nullptr;
-    Statement* decision = nullptr;
-    Statement* alternative = nullptr;
+    Expression* condition = nullptr;  //!< ճյուղավորման պայման
+    Statement* decision = nullptr;    //!< @c then ճյուղը
+    Statement* alternative = nullptr; //!< @c else ճյուղը
 
 public:
     If(Expression* co, Statement* de, Statement* al = nullptr);
@@ -212,7 +214,7 @@ public:
 class While : public Statement {
 public:
     Expression* condition = nullptr; //!< կրկնման պայման
-    Statement* body = nullptr; //!< ցիկլի մարմինը
+    Statement* body = nullptr;       //!< ցիկլի մարմինը
 
 public:
     While(Expression* co, Statement* bo);
@@ -264,7 +266,7 @@ public:
 //! @brief Ծրագիր
 class Program : public AstNode {
 public:
-    std::string filename = ""; //!< անունը
+    std::string filename = "";        //!< անունը
     std::vector<Subroutine*> members; //!< ենթածրագրերի ցուցակը
 
 public:

@@ -18,6 +18,7 @@ Parser::Parser(const std::string& filename)
 
     // տեքստային ֆունկցիաներ
     declareBuiltIn("MID$", { "a", "b", "c$" }, true);
+    declareBuiltIn("STR$", { "a" }, true);
 }
 
 ///
@@ -170,7 +171,8 @@ Statement* Parser::parseLet()
     if (varp->type != exo->type)
         throw TypeError("Տիպերի անհամապատասխանություն " + std::to_string(pos) + " տողում։");
 
-    // TODO: եթե vnm-ն համընկնում է ընթացիկ ենթածրագրի անվան հետ, ապա վերջինիս hasValue-ն դնել true
+    // եթե vnm-ն համընկնում է ընթացիկ ենթածրագրի անվան հետ,
+    // ապա վերջինիս hasValue-ն դնել true
     Subroutine* current = module->members.back();
     if (vnm == current->name)
         current->hasValue = true;
@@ -479,7 +481,7 @@ Expression* Parser::parseFactor()
         return getVariable(name, true);
     }
 
-    /// '(' Expression ')'
+    // '(' Expression ')'
     if (lookahead.is(Token::LeftPar)) {
         match(Token::LeftPar);
         auto exo = parseExpression();
@@ -487,7 +489,7 @@ Expression* Parser::parseFactor()
         return exo;
     }
 
-    return nullptr;
+    throw ParseError("Սպասվում է NUMBER, TEXT, '-', NOT, IDENT կամ '(', բայց հանդիպել է " + lookahead.value + "։");;
 }
 
 //
