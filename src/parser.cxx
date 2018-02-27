@@ -11,6 +11,13 @@ Parser::Parser(const std::string& filename)
     : scanner{ filename }
 {
     module = new Program(filename);
+
+    // թվային ֆունկցիաներ
+    declareBuiltIn("SQR", { "a" }, true);
+    declareBuiltIn("SIN", { "a" }, true);
+
+    // տեքստային ֆունկցիաներ
+    declareBuiltIn("MID$", { "a", "b", "c$" }, true);
 }
 
 ///
@@ -91,7 +98,7 @@ void Parser::parseSubroutine()
         match(Token::RightPar);
     }
 
-    auto subr = new Subroutine(name, params, nullptr);
+    auto subr = new Subroutine(name, params);
     module->members.push_back(subr);
 
     // մարմին
@@ -498,6 +505,15 @@ void Parser::match(Token exp)
         throw ParseError("Սպասվում է " + toString(exp) + ", բայց հանդիպել է " + lookahead.value + "։");
 
     scanner >> lookahead;
+}
+
+//
+void Parser::declareBuiltIn(const std::string& nm, const std::vector<std::string>& ps, bool rv)
+{
+    Subroutine* sre = new Subroutine(nm, ps);
+    sre->isBuiltIn = true;
+    sre->hasValue = rv;
+    module->members.push_back(sre);
 }
 
 //

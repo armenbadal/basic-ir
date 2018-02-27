@@ -7,7 +7,7 @@
 #include "scanner.hxx"
 
 namespace basic {
-//
+//! @brief Շարահյուսական վերլուծիչը
 class Parser {
 private:
     Program* module = nullptr;
@@ -48,6 +48,13 @@ private:
 
     void match(Token tok);
 
+    //! @brief Հայտարարում է BASIC-IR լեզվի ներդրված ենթածրագիր
+    //!
+    //! @param nm - ենթածրագրի անունը
+    //! @param ps - պարամետերեի ցուցակը
+    //! @param rv - ֆունկցիա է կամ պրոցեդուրա
+    //!
+    void declareBuiltIn(const std::string& nm, const std::vector<std::string>& ps, bool rv);
     Variable* getVariable(const std::string& nm, bool rval);
     Subroutine* getSubroutine(const std::string& nm, const std::vector<Expression*>& ags, bool func);
 };

@@ -9,7 +9,7 @@
 //
 namespace basic {
 
-// Աբստրակտ քերականական ծառի հանգույցի տեսակը
+//! @brief Աբստրակտ քերականական ծառի հանգույցի տեսակը
 enum class NodeKind : int {
     Empty,
     Number,
@@ -30,8 +30,9 @@ enum class NodeKind : int {
     Program
 };
 
-// Քերականական ծառի հանգույցի բազային տիպը։
-// Ծառի հանգույցների բոլոր տեսակներն այս տիպի ընդլայնում են։
+//! @brief Քերականական ծառի հանգույցի բազային տիպը։
+//!
+//! Ծառի հանգույցների բոլոր տեսակներն այս տիպի ընդլայնում են։
 class AstNode {
 public:
     AstNode();
@@ -48,24 +49,25 @@ private:
     static std::list<AstNode*> allocatedNodes;
 };
 
-// Տվյալների տիպերը։ Void-ն օգտագործվում է
-// արժեք չվերադարձնող ենթածրագրերի հետ աշխատելիս։
+//! @brief Տվյալների տիպերը
+//!
+//! @c Void -ն օգտագործվում է արժեք չվերադարձնող ենթածրագրերի հետ աշխատելիս։
 enum class Type : char {
-    Void = 'V',   // արժեքի բացակայություն
-    Number = 'N', // թվային արժեք
-    Text = 'T'    // տեքստային արժեք
+    Void = 'V',   //!< արժեքի բացակայություն
+    Number = 'N', //!< թվային արժեք
+    Text = 'T'    //!< տեքստային արժեք
 };
 
 //
 Type typeOf(const std::string& nm);
 
-// Արտահայտություն։
+//! @brief Արտահայտություն
 class Expression : public AstNode {
 public:
     Type type = Type::Void;
 };
 
-// @brief Թվային հաստատուն
+//! @brief Թվային հաստատուն
 class Number : public Expression {
 public:
     double value = 0.0;
@@ -74,7 +76,7 @@ public:
     Number(double vl);
 };
 
-// @brief Տեքստային հաստատուն
+//! @brief Տեքստային հաստատուն
 class Text : public Expression {
 public:
     std::string value = "";
@@ -83,11 +85,11 @@ public:
     Text(const std::string& vl);
 };
 
-// @brief Փոփոխական
-//
-// Փոփոխականի տիպը որոշվում է նրա անվան կառուցվածքով։
-// Եթե այն ավարտվում է '$' նիշով, ապա փոփոխականի տիպը
-// @c TEXT է, հակառակ դեպքում՝ @c REAL է։
+//! @brief Փոփոխական
+//!
+//! Փոփոխականի տիպը որոշվում է նրա անվան կառուցվածքով։
+//! Եթե այն ավարտվում է '$' նիշով, ապա փոփոխականի տիպը
+//! @c TEXT է, հակառակ դեպքում՝ @c REAL է։
 class Variable : public Expression {
 public:
     std::string name = "";
@@ -96,31 +98,31 @@ public:
     Variable(const std::string& nm);
 };
 
-// Գործողությունների անունները
+//! @brief Գործողությունների անունները
 enum class Operation {
-    None, // անորոշ
-    Add,  // գումարում
-    Sub,  // հանում
-    Mul,  // բազմապատկում
-    Div,  // բաժանում
-    Mod,  // ամբողջ բաժանում
-    Pow,  // աստիճան
-    Eq,   // հավասար է
-    Ne,   // հավասար չէ
-    Gt,   // մեծ է
-    Ge,   // մեծ է կամ հավասար
-    Lt,   // փոքր է
-    Le,   // փոքր է կամ հավասար
-    And,  // ԵՎ (կոնյունկցիա)
-    Or,   // ԿԱՄ (դիզյունկցիա)
-    Not,  // ՈՉ (ժխտում)
-    Conc  // տեքստերի կցում
+    None, //!< անորոշ
+    Add,  //!< գումարում
+    Sub,  //!< հանում
+    Mul,  //!< բազմապատկում
+    Div,  //!< բաժանում
+    Mod,  //!< ամբողջ բաժանում
+    Pow,  //!< աստիճան
+    Eq,   //!< հավասար է
+    Ne,   //!< հավասար չէ
+    Gt,   //!< մեծ է
+    Ge,   //!< մեծ է կամ հավասար
+    Lt,   //!< փոքր է
+    Le,   //!< փոքր է կամ հավասար
+    And,  //!< ԵՎ (կոնյունկցիա)
+    Or,   //!< ԿԱՄ (դիզյունկցիա)
+    Not,  //!< ՈՉ (ժխտում)
+    Conc  //!< տեքստերի կցում
 };
 
-// Գործողության տեքստային անունը
+//! @brief Գործողության տեքստային անունը
 std::string toString(Operation opc);
 
-// Ունար գործողություն
+//! @brief Ունար գործողություն
 class Unary : public Expression {
 public:
     Operation opcode = Operation::None;
@@ -130,12 +132,12 @@ public:
     Unary(Operation op, Expression* ex);
 };
 
-// Բինար գործողություն
+//! @brief Բինար գործողություն
 class Binary : public Expression {
 public:
-    Operation opcode = Operation::None;
-    Expression* subexpro = nullptr;
-    Expression* subexpri = nullptr;
+    Operation opcode = Operation::None; //!< գործողությոն կոդը
+    Expression* subexpro = nullptr; //!< ձախ օպերանդը
+    Expression* subexpri = nullptr; //!< աջ օպերանդը
 
 public:
     Binary(Operation op, Expression* exo, Expression* exi);
@@ -143,7 +145,7 @@ public:
 
 class Subroutine;
 
-// Ֆունկցիայի կանչ (կիրառում)
+//! @brief Ֆունկցիայի կանչ (կիրառում)
 class Apply : public Expression {
 public:
     Subroutine* procptr = nullptr;
@@ -153,11 +155,11 @@ public:
     Apply(Subroutine* sp, const std::vector<Expression*>& ags);
 };
 
-// Ղեկավարող կառուցվածք (հրաման)
+//! @brief Ղեկավարող կառուցվածք (հրաման)
 class Statement : public AstNode {
 };
 
-// Հրամանների շարք (հաջորդականություն)
+//! @brief Հրամանների շարք (հաջորդականություն)
 class Sequence : public Statement {
 public:
     std::vector<Statement*> items;
@@ -166,17 +168,17 @@ public:
     Sequence();
 };
 
-// Տվյալների ներմուծում
+//! @brief Տվյալների ներմուծում
 class Input : public Statement {
 public:
-    std::string prompt = "";
-    Variable* varptr = nullptr;
+    std::string prompt = ""; //!< ներմուծման հրավերք
+    Variable* varptr = nullptr; //!< ներմուծվող փոփոխական
 
 public:
     Input(const std::string& pr, Variable* vp);
 };
 
-// Տվյալների արտածում
+//! @brief Տվյալների արտածում
 class Print : public Statement {
 public:
     Expression* expr = nullptr;
@@ -185,7 +187,7 @@ public:
     Print(Expression* ex);
 };
 
-// Վերագրում (միաժամանակ՝ փոփոխականի սահմանում)
+//! @brief Վերագրում (միաժամանակ՝ փոփոխականի սահմանում)
 class Let : public Statement {
 public:
     Variable* varptr = nullptr;
@@ -195,7 +197,7 @@ public:
     Let(Variable* vp, Expression* ex);
 };
 
-// Ճյուղավորում
+//! @brief Ճյուղավորում
 class If : public Statement {
 public:
     Expression* condition = nullptr;
@@ -206,30 +208,30 @@ public:
     If(Expression* co, Statement* de, Statement* al = nullptr);
 };
 
-// Նախապայմանով ցիկլ
+//! @brief Նախապայմանով ցիկլ
 class While : public Statement {
 public:
-    Expression* condition = nullptr;
-    Statement* body = nullptr;
+    Expression* condition = nullptr; //!< կրկնման պայման
+    Statement* body = nullptr; //!< ցիկլի մարմինը
 
 public:
     While(Expression* co, Statement* bo);
 };
 
-// Պարամետրով ցիկլ
+//! @brief Պարամետրով ցիկլ
 class For : public Statement {
 public:
-    Variable* parameter = nullptr;
-    Expression* begin = nullptr;
-    Expression* end = nullptr;
-    Expression* step = nullptr;
-    Statement* body = nullptr;
+    Variable* parameter = nullptr; //!< ցիկլի պարամետրը
+    Expression* begin = nullptr;   //!< պարամետրի սկզբնակական արժեքը
+    Expression* end = nullptr;     //!< պարամետրի սահմանային արժեքը
+    Expression* step = nullptr;    //!< պարամետրի փոփոխման քայլը
+    Statement* body = nullptr;     //!< ցիկլի մարմինը
 
 public:
     For(Variable* pr, Expression* be, Expression* en, Expression* st, Statement* bo);
 };
 
-// Ենթածրագրի կանչ
+//! @brief Ենթածրագրի կանչ
 class Call : public Statement {
 public:
     Apply* subrcall = nullptr;
@@ -238,31 +240,32 @@ public:
     Call(Subroutine* sp, const std::vector<Expression*> as);
 };
 
-// Ենթածրագիր
-//
-// Ենթածրագիրը օգտագործվում է և՛ որպես պրոցեդուրա, և՛ որպես
-// ֆունկցիա։ Դրա վերադարձրած արժեքի տիպը որոշվում է անվան
-// կառուցվածքով, ինչպես փոփոխականներինը։ Ենթածրագիրը 
-// ֆունկցիա է, եթե նրա մարմնում է անվանը արժեք վերագրող
-// LET հրաման։ Այդ դեպքում @c hasvalue անդամի արժեքը
-// դրվում է @c true ։
+//! @brief Ենթածրագիր
+//!
+//! Ենթածրագիրը օգտագործվում է և՛ որպես պրոցեդուրա, և՛ որպես
+//! ֆունկցիա։ Դրա վերադարձրած արժեքի տիպը որոշվում է անվան
+//! կառուցվածքով, ինչպես փոփոխականներինը։ Ենթածրագիրը 
+//! ֆունկցիա է, եթե նրա մարմնում է անվանը արժեք վերագրող
+//! @c LET հրաման։ Այդ դեպքում @c hasValue անդամի արժեքը
+//! դրվում է @c true ։
 class Subroutine : public AstNode {
 public:
-    std::string name = ""; // անուն
-    std::vector<std::string> parameters; // պարամետրեր
-    std::vector<Variable*> locals; // լոկալ փոփոխականներ
-    Statement* body = nullptr; // մարմին
-    bool hasValue = false; // վերադարձնո՞ւմ է արժեքի
+    std::string name = "";               //<! անուն
+    std::vector<std::string> parameters; //<! պարամետրեր
+    bool isBuiltIn = false;              //<! true - ներդրված ենթածրագրերի համար
+    std::vector<Variable*> locals;       //<! լոկալ փոփոխականներ
+    Statement* body = nullptr;           //<! մարմին
+    bool hasValue = false;               //<! վերադարձնո՞ւմ է արժեքի
 
 public:
-    Subroutine(const std::string& nm, const std::vector<std::string>& ps, Statement* bo);
+    Subroutine(const std::string& nm, const std::vector<std::string>& ps);
 };
 
-// Ծրագիր
+//! @brief Ծրագիր
 class Program : public AstNode {
 public:
-    std::string filename = "";
-    std::vector<Subroutine*> members;
+    std::string filename = ""; //!< անունը
+    std::vector<Subroutine*> members; //!< ենթածրագրերի ցուցակը
 
 public:
     Program(const std::string& fn);

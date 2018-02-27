@@ -53,7 +53,7 @@ std::string toString(Token sym)
 
 //
 Lexeme::Lexeme(Token k, const std::string& v, unsigned int l)
-    : kind{ k }, value{ v }, line{ l }
+    : kind(k), value(v), line(l)
 {
 }
 

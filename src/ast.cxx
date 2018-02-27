@@ -154,8 +154,8 @@ Call::Call(Subroutine* sp, const std::vector<Expression*> as)
 }
 
 //
-Subroutine::Subroutine(const std::string& nm, const std::vector<std::string>& ps, Statement* bo)
-    : name(nm), parameters(ps), body(bo)
+Subroutine::Subroutine(const std::string& nm, const std::vector<std::string>& ps)
+    : name(nm), parameters(ps)
 {
     kind = NodeKind::Subroutine;
     locals.push_back(new Variable(name));

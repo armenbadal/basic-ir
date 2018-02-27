@@ -34,6 +34,8 @@ private:
     int convertText(Text* node) override;
     int convertNumber(Number* node) override;
 
+    int convertAstNode(AstNode* node) override;
+
 private:
     std::ostream& ooo;
     int indent = 0;
