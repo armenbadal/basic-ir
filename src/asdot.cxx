@@ -72,7 +72,12 @@ int Doter::convertPrint(Print* node)
 //
 int Doter::convertIf(If* node)
 {
-    return 0;
+    int cnum = index++;
+    labeledNode(cnum, "IF");
+    int e0 = convertAstNode(node->condition);
+    int e1 = convertAstNode(node->decision);
+    int e2 = convertAstNode(node->alternative);
+    return cnum;
 }
 
 //

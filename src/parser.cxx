@@ -126,8 +126,9 @@ Statement* Parser::parseStatements()
     parseNewLines();
 
     auto sequ = new Sequence();
-    while (!lookahead.is(Token::End) && !lookahead.is(Token::Else)) {
+    while (true) {
         Statement* stat = nullptr;
+        unsigned int line = lookahead.line;
         if (lookahead.is(Token::Let))
             stat = parseLet();
         else if (lookahead.is(Token::Input))
@@ -142,10 +143,9 @@ Statement* Parser::parseStatements()
             stat = parseFor();
         else if (lookahead.is(Token::Call))
             stat = parseCall();
-        else {
-            /* DEBUG */ std::cout << "LOOKAHEAD THROW: " << lookahead.value << std::endl;
-            throw ParseError("Սպասվում է LET, INPUT, PRINT, IF, WHILE, FOR կամ CALL, բայց հանդիպել է " + lookahead.value + "։");
-        }
+        else
+            break;
+        stat->line = line;
         sequ->items.push_back(stat);
         parseNewLines();
     }
@@ -331,23 +331,27 @@ Statement* Parser::parseCall()
 }
 
 //
-std::map<Token, Operation> mapopcode{
-    { Token::Add, Operation::Add },
-    { Token::Sub, Operation::Sub },
-    { Token::Amp, Operation::Conc },
-    { Token::Mul, Operation::Mul },
-    { Token::Div, Operation::Div },
-    { Token::Mod, Operation::Mod },
-    { Token::Pow, Operation::Pow },
-    { Token::Eq, Operation::Eq },
-    { Token::Ne, Operation::Ne },
-    { Token::Gt, Operation::Gt },
-    { Token::Ge, Operation::Ge },
-    { Token::Lt, Operation::Lt },
-    { Token::Le, Operation::Le },
-    { Token::And, Operation::And },
-    { Token::Or, Operation::Or }
-};
+Operation opCode(Token tok)
+{
+    static std::map<Token, Operation> opcodes{
+        { Token::Add, Operation::Add },
+        { Token::Sub, Operation::Sub },
+        { Token::Amp, Operation::Conc },
+        { Token::Mul, Operation::Mul },
+        { Token::Div, Operation::Div },
+        { Token::Mod, Operation::Mod },
+        { Token::Pow, Operation::Pow },
+        { Token::Eq, Operation::Eq },
+        { Token::Ne, Operation::Ne },
+        { Token::Gt, Operation::Gt },
+        { Token::Ge, Operation::Ge },
+        { Token::Lt, Operation::Lt },
+        { Token::Le, Operation::Le },
+        { Token::And, Operation::And },
+        { Token::Or, Operation::Or }
+    };
+    return opcodes[tok];
+}
 
 //
 // Expression = Addition [('=' | '<>' | '>' | '>=' | '<' | '<=') Addition].
@@ -356,7 +360,7 @@ Expression* Parser::parseExpression()
 {
     auto res = parseAddition();
     if (lookahead.is({ Token::Eq, Token::Ne, Token::Gt, Token::Ge, Token::Lt, Token::Le })) {
-        auto opc = mapopcode[lookahead.kind];
+        auto opc = opCode(lookahead.kind);
         match(lookahead.kind);
         auto exo = parseAddition();
         res = new Binary(opc, res, exo);
@@ -372,7 +376,7 @@ Expression* Parser::parseAddition()
 {
     auto res = parseMultiplication();
     while (lookahead.is({ Token::Add, Token::Sub, Token::Amp, Token::Or })) {
-        auto opc = mapopcode[lookahead.kind];
+        auto opc = opCode(lookahead.kind);
         match(lookahead.kind);
         auto exo = parseMultiplication();
         res = new Binary(opc, res, exo);
@@ -388,7 +392,7 @@ Expression* Parser::parseMultiplication()
 {
     auto res = parsePower();
     while (lookahead.is({ Token::Mul, Token::Div, Token::Mod, Token::And })) {
-        auto opc = mapopcode[lookahead.kind];
+        auto opc = opCode(lookahead.kind);
         match(lookahead.kind);
         auto exo = parsePower();
         res = new Binary(opc, res, exo);
