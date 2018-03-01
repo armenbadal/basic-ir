@@ -1,4 +1,4 @@
-
+﻿
 #ifndef LEXEME_HXX
 #define LEXEME_HXX
 
@@ -6,64 +6,69 @@
 #include <vector>
 
 namespace basic {
-///
+//! @brief Բառային տարրերի պիտակները
 enum class Token : int {
-    None,
+    None, //!< ոչինչ
 
-    Number,
-    Text,
-    Identifier,
+    Number,     //!< թվային հաստատուն
+    Text,       //!< տեքստային հաստատուն
+    Identifier, //!< իդենտիֆիկատոր
 
-    Subroutine,
-    Input,
-    Print,
-    Let,
-    If,
-    Then,
-    ElseIf,
-    Else,
-    While,
-    For,
-    To,
-    Step,
-    Call,
-    End,
+    Subroutine, //!< SUB
+    Input,      //!< INPUT
+    Print,      //!<
+    Let,        //!< LET
+    If,         //!< IF
+    Then,       //!< THEN
+    ElseIf,     //!< ELSEIF
+    Else,       //!< ELSE
+    While,      //!< WHILE
+    For,        //!< FOR
+    To,         //!< TO
+    Step,       //!< STEP
+    Call,       //!< CALL
+    End,        //!< END
 
-    NewLine,
+    NewLine, //!< նոր տողի նիշ
 
-    Eq,
-    Ne,
-    Lt,
-    Le,
-    Gt,
-    Ge,
+    Eq, //!< @c =
+    Ne, //!< @c <>
+    Lt, //!< @c <
+    Le, //!< @c <=
+    Gt, //!< @c >
+    Ge, //!< @c >=
 
-    LeftPar,
-    RightPar,
-    Comma,
+    LeftPar,  //!< @c (
+    RightPar, //!< @c )
+    Comma,    //!< @c ,
 
-    Add,
-    Sub,
-    Amp,
-    Or,
-    Mul,
-    Div,
-    Mod,
-    And,
-    Pow,
-    Not,
+    Add, //!< @c +
+    Sub, //!< @c -
+    Amp, //!< @c &
+    Or,  //!< OR
+    Mul, //!< @c *
+    Div, //!< @c /
+    Mod, //!< MOD
+    And, //!< AND
+    Pow, //!< @c ^
+    Not, //!< NOT
 
-    Eof
+    Eof //!< ֆայլի վերջը
 };
 
+//! @brief Պիտակի տեքստային ներկայացումը
 std::string toString(Token sym);
 
-///
+//! @brief Լեքսեմի դասը
+//!
+//! Օգտագործվում որպես բառային և շարահյուսական վերլուծիչների 
+//! տվյալների փոխանակման միավոր։
+//!
 class Lexeme {
 public:
-    Token kind = Token::None;
-    std::string value = "";
-    unsigned int line = 0;
+    Token kind = Token::None; //!< պիտակը
+    std::string value = ""; //!< տեքստը (լեքսեմը)
+    unsigned int line = 0; //!< տողի համարը
 
 public:
     Lexeme() = default;
@@ -73,6 +78,9 @@ public:
     bool is(const std::vector<Token>& exps) const;
     bool isIn(Token el, Token eh) const;
 
+    //! @brief Լեքսեմի տեքստային ներկայացում
+    //!
+    //! Օգտագործվում է շտկման (debug) գործողությունների ժամանակ։
     std::string toString() const;
 };
 } // basic
