@@ -3,38 +3,38 @@
 #define ASLISP_HXX
 
 #include "ast.hxx"
-#include "converter.hxx"
+#include "compiler.hxx"
 
 #include <ostream>
 
 namespace basic {
-class Lisper : public Converter {
+class Lisper : public Compiler {
 public:
     Lisper(std::ostream& os)
         : ooo(os)
     {}
 
 private:
-    int convertProgram(Program* node) override;
-    int convertSubroutine(Subroutine* node) override;
+    void compileProgram(Program* node) override;
+    void compileSubroutine(Subroutine* node) override;
 
-    int convertSequence(Sequence* node) override;
-    int convertLet(Let* node) override;
-    int convertInput(Input* node) override;
-    int convertPrint(Print* node) override;
-    int convertIf(If* node) override;
-    int convertWhile(While* node) override;
-    int convertFor(For* node) override;
-    int convertCall(Call* node) override;
+    void compileSequence(Sequence* node) override;
+    void compileLet(Let* node) override;
+    void compileInput(Input* node) override;
+    void compilePrint(Print* node) override;
+    void compileIf(If* node) override;
+    void compileWhile(While* node) override;
+    void compileFor(For* node) override;
+    void compileCall(Call* node) override;
 
-    int convertApply(Apply* node) override;
-    int convertBinary(Binary* node) override;
-    int convertUnary(Unary* node) override;
-    int convertVariable(Variable* node) override;
-    int convertText(Text* node) override;
-    int convertNumber(Number* node) override;
+    void compileApply(Apply* node) override;
+    void compileBinary(Binary* node) override;
+    void compileUnary(Unary* node) override;
+    void compileVariable(Variable* node) override;
+    void compileText(Text* node) override;
+    void compileNumber(Number* node) override;
 
-    int convertAstNode(AstNode* node) override;
+    void compileAstNode(AstNode* node) override;
 
 private:
     std::ostream& ooo;

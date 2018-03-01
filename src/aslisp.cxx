@@ -28,155 +28,143 @@ std::map<Operation, std::string> mnemonic{
 };
 
 ///
-int Lisper::convertNumber(Number* node)
+void Lisper::compileNumber(Number* node)
 {
     ooo << "(basic-number " << node->value << ")";
-    return 0;
 }
 
 ///
-int Lisper::convertText(Text* node)
+void Lisper::compileText(Text* node)
 {
     ooo << "(basic-text \"" << node->value << "\")";
-    return 0;
 }
 
 ///
-int Lisper::convertVariable(Variable* node)
+void Lisper::compileVariable(Variable* node)
 {
     ooo << "(basic-variable \"" << node->name << "\")";
-    return 0;
 }
 
 ///
-int Lisper::convertUnary(Unary* node)
+void Lisper::compileUnary(Unary* node)
 {
     ooo << "(basic-unary \"" << mnemonic[node->opcode] << "\" ";
-    convertAstNode(node->subexpr);
+    compileAstNode(node->subexpr);
     ooo << ")";
-    return 0;
 }
 
 ///
-int Lisper::convertBinary(Binary* node)
+void Lisper::compileBinary(Binary* node)
 {
     ooo << "(basic-binary \"" << mnemonic[node->opcode] << "\"";
     ++indent;
-    convertAstNode(node->subexpro);
-    convertAstNode(node->subexpri);
+    compileAstNode(node->subexpro);
+    compileAstNode(node->subexpri);
     --indent;
     ooo << ")";
-    return 0;
 }
 
 ///
-int Lisper::convertApply(Apply* node)
+void Lisper::compileApply(Apply* node)
 {
     ooo << "(basic-apply \"" << node->procptr->name << "\"";
     ++indent;
     for (auto e : node->arguments)
-        convertAstNode(e);
+        compileAstNode(e);
     --indent;
     ooo << ")";
-    return 0;
 }
 
 ///
-int Lisper::convertLet(Let* node)
+void Lisper::compileLet(Let* node)
 {
     ooo << "(basic-let (basic-variable \"" << node->varptr->name << "\") ";
     ++indent;
-    convertAstNode(node->expr);
+    compileAstNode(node->expr);
     --indent;
     ooo << ")";
-    return 0;
 }
 
 ///
-int Lisper::convertInput(Input* node)
+void Lisper::compileInput(Input* node)
 {
     ooo << "(basic-input (basic-variable \"" << node->prompt << "\") \"" << node->varptr->name << "\")";
     return 0;
 }
 
 ///
-int Lisper::convertPrint(Print* node)
+void Lisper::compilePrint(Print* node)
 {
     ooo << "(basic-print";
     ++indent;
-    convertAstNode(node->expr);
+    compileAstNode(node->expr);
     --indent;
     ooo << ")";
-    return 0;
 }
 
 ///
-int Lisper::convertIf(If* node)
+void Lisper::compileIf(If* node)
 {
     ooo << "(basic-if";
     ++indent;
-    convertAstNode(node->condition);
-    convertAstNode(node->decision);
+    compileAstNode(node->condition);
+    compileAstNode(node->decision);
     if (nullptr != node->alternative)
-        convertAstNode(node->alternative);
+        compileAstNode(node->alternative);
     ooo << ")";
     --indent;
-    return 0;
 }
 
 ///
-int Lisper::convertWhile(While* node)
+void Lisper::compileWhile(While* node)
 {
     ooo << "(basic-while";
     ++indent;
-    convertAstNode(node->condition);
-    convertAstNode(node->body);
+    compileAstNode(node->condition);
+    compileAstNode(node->body);
     ooo << ")";
     --indent;
-    return 0;
 }
 
 ///
-int Lisper::convertFor(For* node)
+void Lisper::compileFor(For* node)
 {
     ooo << "(basic-for";
     ++indent;
-    convertAstNode(node->parameter);
-    convertAstNode(node->begin);
-    convertAstNode(node->end);
-    convertAstNode(node->step);
-    convertAstNode(node->body);
+    compileAstNode(node->parameter);
+    compileAstNode(node->begin);
+    compileAstNode(node->end);
+    compileAstNode(node->step);
+    compileAstNode(node->body);
     ooo << ")";
     --indent;
-    return 0;
 }
 
 ///
-int Lisper::convertCall(Call* node)
+void Lisper::compileCall(Call* node)
 {
     ooo << "(basic-call \"" << (node->subrcall->procptr->name) << "\"";
     ++indent;
     for (auto e : node->subrcall->arguments)
-        convertAstNode(e);
+        compileAstNode(e);
     ooo << ")";
     --indent;
     return 0;
 }
 
 ///
-int Lisper::convertSequence(Sequence* node)
+void Lisper::compileSequence(Sequence* node)
 {
     ooo << "(basic-sequence";
     ++indent;
     for (auto ei : node->items)
-        convertAstNode(ei);
+        compileAstNode(ei);
     ooo << ")";
     --indent;
-    return 0;
 }
 
 ///
-int Lisper::convertSubroutine(Subroutine* node)
+void Lisper::compileSubroutine(Subroutine* node)
 {
     space();
     ooo << "(basic-subroutine \"" << node->name << "\"";
@@ -191,29 +179,27 @@ int Lisper::convertSubroutine(Subroutine* node)
     if (!parlis.empty())
         parlis.pop_back();
     ooo << "'(" << parlis << ")";
-    convertAstNode(node->body);
+    compileAstNode(node->body);
     ooo << ")";
     --indent;
-    return 0;
 }
 
 ///
-int Lisper::convertProgram(Program* node)
+void Lisper::compileProgram(Program* node)
 {
     ooo << "(basic-program \"" << node->filename << "\"";
     ++indent;
     for (auto si : node->members)
         if (!si->isBuiltIn)
-            convertSubroutine(si);
+            compileSubroutine(si);
     --indent;
     ooo << ")" << std::endl;
-    return 0;
 }
 
-int Lisper::convertAstNode(AstNode* node)
+void Lisper::compileAstNode(AstNode* node)
 {
     space(); 
-    return Converter::convertAstNode(node);
+    Converter::compileAstNode(node);
 }
 
 void Lisper::space()
