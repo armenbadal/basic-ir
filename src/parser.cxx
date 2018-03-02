@@ -523,14 +523,6 @@ void Parser::declareBuiltIn(const std::string& nm, const std::vector<std::string
 }
 
 //
-// Եթե լոկալ տիրույթում արդեն սահմանված է @c nm անունով փոփոխական,
-// ապա վերադարձնում է դրա ցուցիչը։
-// Եթե դեռ սահմանված չէ, ապա ստեղծել նոր @c Variable օբյեկտ, և 
-// վերադարձնել դրա ցուցիչը։
-// Եթե հարցումն արվում է rval-ի համար, ապա նոր օբյեկտ չստեղծել։
-// Եթե հարցումը կատարվում է rval-ի համար, ապա ընթացիկ ենթածրագրի
-// անունը փոփոխական չհամարել։
-//
 Variable* Parser::getVariable(const std::string& nm, bool rval)
 {
     Subroutine* subr = module->members.back();

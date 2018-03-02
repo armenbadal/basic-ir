@@ -3,44 +3,43 @@
 #define ASLISP_HXX
 
 #include "ast.hxx"
-#include "compiler.hxx"
 
 #include <ostream>
 
 namespace basic {
-class Lisper : public Compiler {
+class Lisper {
 public:
     Lisper(std::ostream& os)
         : ooo(os)
     {}
 
+    bool asLisp(AstNode* node);
+
 private:
-    void compileProgram(Program* node) override;
-    void compileSubroutine(Subroutine* node) override;
+    void asLispProgram(Program* node);
+    void asLispSubroutine(Subroutine* node);
 
-    void compileSequence(Sequence* node) override;
-    void compileLet(Let* node) override;
-    void compileInput(Input* node) override;
-    void compilePrint(Print* node) override;
-    void compileIf(If* node) override;
-    void compileWhile(While* node) override;
-    void compileFor(For* node) override;
-    void compileCall(Call* node) override;
+    void asLispSequence(Sequence* node);
+    void asLispLet(Let* node);
+    void asLispInput(Input* node);
+    void asLispPrint(Print* node);
+    void asLispIf(If* node);
+    void asLispWhile(While* node);
+    void asLispFor(For* node);
+    void asLispCall(Call* node);
 
-    void compileApply(Apply* node) override;
-    void compileBinary(Binary* node) override;
-    void compileUnary(Unary* node) override;
-    void compileVariable(Variable* node) override;
-    void compileText(Text* node) override;
-    void compileNumber(Number* node) override;
+    void asLispApply(Apply* node);
+    void asLispBinary(Binary* node);
+    void asLispUnary(Unary* node);
+    void asLispVariable(Variable* node);
+    void asLispText(Text* node);
+    void asLispNumber(Number* node);
 
-    void compileAstNode(AstNode* node) override;
+    void asLispAstNode(AstNode* node);
 
 private:
     std::ostream& ooo;
     int indent = 0;
-
-    void space();
 };
 } // basic
 
