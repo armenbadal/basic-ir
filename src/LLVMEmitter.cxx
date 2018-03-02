@@ -67,7 +67,8 @@ void LLVMEmitter::emitFunction(Subroutine* sub)
     std::vector<llvm::Type*> paramTypes;
     paramTypes.insert(paramTypes.begin(), paramNum, mBuilder.getDoubleTy());
 
-    auto retType = getLLVMType(sub->rettype);
+    //auto retType = getLLVMType(sub->rettype);
+    llvm::Type* retType = llvm::Type::getDoubleTy(llvmContext);
 
     auto ft = llvm::FunctionType::get(retType, paramTypes, false);
     auto fun = llvm::Function::Create(ft, llvm::GlobalValue::ExternalLinkage, sub->name, mModule);
