@@ -16,26 +16,26 @@ public:
     bool asLisp(AstNode* node);
 
 private:
-    void asLispProgram(Program* node);
-    void asLispSubroutine(Subroutine* node);
+    void visitProgram(Program* node);
+    void visitSubroutine(Subroutine* node);
 
-    void asLispSequence(Sequence* node);
-    void asLispLet(Let* node);
-    void asLispInput(Input* node);
-    void asLispPrint(Print* node);
-    void asLispIf(If* node);
-    void asLispWhile(While* node);
-    void asLispFor(For* node);
-    void asLispCall(Call* node);
+    void visitSequence(Sequence* node);
+    void visitLet(Let* node);
+    void visitInput(Input* node);
+    void visitPrint(Print* node);
+    void visitIf(If* node);
+    void visitWhile(While* node);
+    void visitFor(For* node);
+    void visitCall(Call* node);
 
-    void asLispApply(Apply* node);
-    void asLispBinary(Binary* node);
-    void asLispUnary(Unary* node);
-    void asLispVariable(Variable* node);
-    void asLispText(Text* node);
-    void asLispNumber(Number* node);
+    void visitApply(Apply* node);
+    void visitBinary(Binary* node);
+    void visitUnary(Unary* node);
+    void visitVariable(Variable* node);
+    void visitText(Text* node);
+    void visitNumber(Number* node);
 
-    void asLispAstNode(AstNode* node);
+    void visitAstNode(AstNode* node);
 
 private:
     std::ostream& ooo;

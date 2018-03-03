@@ -35,143 +35,143 @@ bool Lisper::asLisp(AstNode* node)
 }
 
 ///
-void Lisper::asLispNumber(Number* node)
+void Lisper::visitNumber(Number* node)
 {
     ooo << "(basic-number " << node->value << ")";
 }
 
 ///
-void Lisper::asLispText(Text* node)
+void Lisper::visitText(Text* node)
 {
     ooo << "(basic-text \"" << node->value << "\")";
 }
 
 ///
-void Lisper::asLispVariable(Variable* node)
+void Lisper::visitVariable(Variable* node)
 {
     ooo << "(basic-variable \"" << node->name << "\")";
 }
 
 ///
-void Lisper::asLispUnary(Unary* node)
+void Lisper::visitUnary(Unary* node)
 {
     ooo << "(basic-unary \"" << mnemonic[node->opcode] << "\" ";
-    asLispAstNode(node->subexpr);
+    visitAstNode(node->subexpr);
     ooo << ")";
 }
 
 ///
-void Lisper::asLispBinary(Binary* node)
+void Lisper::visitBinary(Binary* node)
 {
     ooo << "(basic-binary \"" << mnemonic[node->opcode] << "\"";
     ++indent;
-    asLispAstNode(node->subexpro);
-    asLispAstNode(node->subexpri);
+    visitAstNode(node->subexpro);
+    visitAstNode(node->subexpri);
     --indent;
     ooo << ")";
 }
 
 ///
-void Lisper::asLispApply(Apply* node)
+void Lisper::visitApply(Apply* node)
 {
     ooo << "(basic-apply \"" << node->procptr->name << "\"";
     ++indent;
     for (auto e : node->arguments)
-        asLispAstNode(e);
+        visitAstNode(e);
     --indent;
     ooo << ")";
 }
 
 ///
-void Lisper::asLispLet(Let* node)
+void Lisper::visitLet(Let* node)
 {
     ooo << "(basic-let (basic-variable \""
         << node->varptr->name << "\") ";
     ++indent;
-    asLispAstNode(node->expr);
+    visitAstNode(node->expr);
     --indent;
     ooo << ")";
 }
 
 ///
-void Lisper::asLispInput(Input* node)
+void Lisper::visitInput(Input* node)
 {
     ooo << "(basic-input (basic-variable \"" << node->prompt 
         << "\") \"" << node->varptr->name << "\")";
 }
 
 ///
-void Lisper::asLispPrint(Print* node)
+void Lisper::visitPrint(Print* node)
 {
     ooo << "(basic-print";
     ++indent;
-    asLispAstNode(node->expr);
+    visitAstNode(node->expr);
     --indent;
     ooo << ")";
 }
 
 ///
-void Lisper::asLispIf(If* node)
+void Lisper::visitIf(If* node)
 {
     ooo << "(basic-if";
     ++indent;
-    asLispAstNode(node->condition);
-    asLispAstNode(node->decision);
+    visitAstNode(node->condition);
+    visitAstNode(node->decision);
     if (nullptr != node->alternative)
-        asLispAstNode(node->alternative);
+        visitAstNode(node->alternative);
     ooo << ")";
     --indent;
 }
 
 ///
-void Lisper::asLispWhile(While* node)
+void Lisper::visitWhile(While* node)
 {
     ooo << "(basic-while";
     ++indent;
-    asLispAstNode(node->condition);
-    asLispAstNode(node->body);
+    visitAstNode(node->condition);
+    visitAstNode(node->body);
     ooo << ")";
     --indent;
 }
 
 ///
-void Lisper::asLispFor(For* node)
+void Lisper::visitFor(For* node)
 {
     ooo << "(basic-for";
     ++indent;
-    asLispAstNode(node->parameter);
-    asLispAstNode(node->begin);
-    asLispAstNode(node->end);
-    asLispAstNode(node->step);
-    asLispAstNode(node->body);
+    visitAstNode(node->parameter);
+    visitAstNode(node->begin);
+    visitAstNode(node->end);
+    visitAstNode(node->step);
+    visitAstNode(node->body);
     ooo << ")";
     --indent;
 }
 
 ///
-void Lisper::asLispCall(Call* node)
+void Lisper::visitCall(Call* node)
 {
     ooo << "(basic-call \"" << (node->subrcall->procptr->name) << "\"";
     ++indent;
     for (auto e : node->subrcall->arguments)
-        asLispAstNode(e);
+        visitAstNode(e);
     ooo << ")";
     --indent;
 }
 
 ///
-void Lisper::asLispSequence(Sequence* node)
+void Lisper::visitSequence(Sequence* node)
 {
     ooo << "(basic-sequence";
     ++indent;
     for (auto ei : node->items)
-        asLispAstNode(ei);
+        visitAstNode(ei);
     ooo << ")";
     --indent;
 }
 
 ///
-void Lisper::asLispSubroutine(Subroutine* node)
+void Lisper::visitSubroutine(Subroutine* node)
 {
     ooo << "(basic-subroutine \"" << node->name << "\"";
     ++indent;
@@ -183,25 +183,26 @@ void Lisper::asLispSubroutine(Subroutine* node)
     }
     if (!parlis.empty())
         parlis.pop_back();
-    ooo << std::endl << std::string(2 * indent, ' ') << "'(" << parlis << ")";
-    asLispAstNode(node->body);
+    ooo << std::endl << std::string(2 * indent, ' ')
+        << "'(" << parlis << ")";
+    visitAstNode(node->body);
     ooo << ")";
     --indent;
 }
 
 ///
-void Lisper::asLispProgram(Program* node)
+void Lisper::visitProgram(Program* node)
 {
     ooo << "(basic-program \"" << node->filename << "\"";
     ++indent;
     for (auto si : node->members)
         if (!si->isBuiltIn)
-            asLispAstNode(si);
+            visitAstNode(si);
     --indent;
     ooo << ")" << std::endl;
 }
 
-void Lisper::asLispAstNode(AstNode* node)
+void Lisper::visitAstNode(AstNode* node)
 {
     if (nullptr == node)
         return;
@@ -210,52 +211,52 @@ void Lisper::asLispAstNode(AstNode* node)
 
     switch (node->kind) {
         case NodeKind::Number:
-            asLispNumber(dynamic_cast<Number*>(node));
+            visitNumber(dynamic_cast<Number*>(node));
             break;
         case NodeKind::Text:
-            asLispText(dynamic_cast<Text*>(node));
+            visitText(dynamic_cast<Text*>(node));
             break;
         case NodeKind::Variable:
-            asLispVariable(dynamic_cast<Variable*>(node));
+            visitVariable(dynamic_cast<Variable*>(node));
             break;
         case NodeKind::Unary:
-            asLispUnary(dynamic_cast<Unary*>(node));
+            visitUnary(dynamic_cast<Unary*>(node));
             break;
         case NodeKind::Binary:
-            asLispBinary(dynamic_cast<Binary*>(node));
+            visitBinary(dynamic_cast<Binary*>(node));
             break;
         case NodeKind::Apply:
-            asLispApply(dynamic_cast<Apply*>(node));
+            visitApply(dynamic_cast<Apply*>(node));
             break;
         case NodeKind::Sequence:
-            asLispSequence(dynamic_cast<Sequence*>(node));
+            visitSequence(dynamic_cast<Sequence*>(node));
             break;
         case NodeKind::Input:
-            asLispInput(dynamic_cast<Input*>(node));
+            visitInput(dynamic_cast<Input*>(node));
             break;
         case NodeKind::Print:
-            asLispPrint(dynamic_cast<Print*>(node));
+            visitPrint(dynamic_cast<Print*>(node));
             break;
         case NodeKind::Let:
-            asLispLet(dynamic_cast<Let*>(node));
+            visitLet(dynamic_cast<Let*>(node));
             break;
         case NodeKind::If:
-            asLispIf(dynamic_cast<If*>(node));
+            visitIf(dynamic_cast<If*>(node));
             break;
         case NodeKind::While:
-            asLispWhile(dynamic_cast<While*>(node));
+            visitWhile(dynamic_cast<While*>(node));
             break;
         case NodeKind::For:
-            asLispFor(dynamic_cast<For*>(node));
+            visitFor(dynamic_cast<For*>(node));
             break;
         case NodeKind::Call:
-            asLispCall(dynamic_cast<Call*>(node));
+            visitCall(dynamic_cast<Call*>(node));
             break;
         case NodeKind::Subroutine:
-            asLispSubroutine(dynamic_cast<Subroutine*>(node));
+            visitSubroutine(dynamic_cast<Subroutine*>(node));
             break;
         case NodeKind::Program:
-            asLispProgram(dynamic_cast<Program*>(node));
+            visitProgram(dynamic_cast<Program*>(node));
             break;
         default:
             break;

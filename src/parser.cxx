@@ -449,7 +449,7 @@ Expression* Parser::parseFactor()
         }
         auto exo = parseFactor();
         if (exo->type != Type::Number)
-            throw TypeError{ "Բացասումն ու ժխտումը կիրառելի է միայն թվերին։" };
+            throw TypeError("Բացասումն ու ժխտումը կիրառելի է միայն թվերին։");
 
         return new Unary(opc, exo);
     }
