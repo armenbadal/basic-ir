@@ -3,11 +3,12 @@
 #define ASLISP_HXX
 
 #include "ast.hxx"
+#include "astvisitor.hxx"
 
 #include <ostream>
 
 namespace basic {
-class Lisper {
+class Lisper : public AstVisitor {
 public:
     Lisper(std::ostream& os)
         : ooo(os)
@@ -16,26 +17,26 @@ public:
     bool asLisp(AstNode* node);
 
 private:
-    void visitProgram(Program* node);
-    void visitSubroutine(Subroutine* node);
+    void visitProgram(Program* node) override;
+    void visitSubroutine(Subroutine* node) override;
 
-    void visitSequence(Sequence* node);
-    void visitLet(Let* node);
-    void visitInput(Input* node);
-    void visitPrint(Print* node);
-    void visitIf(If* node);
-    void visitWhile(While* node);
-    void visitFor(For* node);
-    void visitCall(Call* node);
+    void visitSequence(Sequence* node) override;
+    void visitLet(Let* node) override;
+    void visitInput(Input* node) override;
+    void visitPrint(Print* node) override;
+    void visitIf(If* node) override;
+    void visitWhile(While* node) override;
+    void visitFor(For* node) override;
+    void visitCall(Call* node) override;
 
-    void visitApply(Apply* node);
-    void visitBinary(Binary* node);
-    void visitUnary(Unary* node);
-    void visitVariable(Variable* node);
-    void visitText(Text* node);
-    void visitNumber(Number* node);
+    void visitApply(Apply* node) override;
+    void visitBinary(Binary* node) override;
+    void visitUnary(Unary* node) override;
+    void visitVariable(Variable* node) override;
+    void visitText(Text* node) override;
+    void visitNumber(Number* node) override;
 
-    void visitAstNode(AstNode* node);
+    void visitAstNode(AstNode* node) override;
 
 private:
     std::ostream& ooo;
