@@ -79,7 +79,7 @@ void Parser::parseSubroutine()
     auto sbit = find_if(module->members.begin(), module->members.end(),
         [&name](auto sp) -> bool { return equalNames(name, sp->name); });
     if (sbit != module->members.end())
-        throw ParseError{ name + " անունով ենթածրագիրն արդեն սահմանված է։" };
+        throw ParseError(name + " անունով ենթածրագիրն արդեն սահմանված է։");
 
     // պարամետրերի ցուցակ
     std::vector<std::string> params;
@@ -167,9 +167,6 @@ Statement* Parser::parseLet()
     auto exo = parseExpression();
 
     auto varp = getVariable(vnm, false);
-
-    if (varp->type != exo->type)
-        throw TypeError("Տիպերի անհամապատասխանություն " + std::to_string(pos) + " տողում։");
 
     // եթե vnm-ն համընկնում է ընթացիկ ենթածրագրի անվան հետ,
     // ապա վերջինիս hasValue-ն դնել true
@@ -364,7 +361,6 @@ Expression* Parser::parseExpression()
         match(lookahead.kind);
         auto exo = parseAddition();
         res = new Binary(opc, res, exo);
-        checkTypes(dynamic_cast<Binary*>(res));
     }
     return res;
 }
@@ -380,7 +376,6 @@ Expression* Parser::parseAddition()
         match(lookahead.kind);
         auto exo = parseMultiplication();
         res = new Binary(opc, res, exo);
-        checkTypes(dynamic_cast<Binary*>(res));
     }
     return res;
 }
@@ -396,7 +391,6 @@ Expression* Parser::parseMultiplication()
         match(lookahead.kind);
         auto exo = parsePower();
         res = new Binary(opc, res, exo);
-        checkTypes(dynamic_cast<Binary*>(res));
     }
     return res;
 }
@@ -411,7 +405,6 @@ Expression* Parser::parsePower()
         match(Token::Pow);
         auto exo = parseFactor();
         res = new Binary(Operation::Pow, res, exo);
-        checkTypes(dynamic_cast<Binary*>(res));
     }
     return res;
 }
@@ -448,9 +441,6 @@ Expression* Parser::parseFactor()
             match(Token::Not);
         }
         auto exo = parseFactor();
-        if (exo->type != Type::Number)
-            throw TypeError("Բացասումն ու ժխտումը կիրառելի է միայն թվերին։");
-
         return new Unary(opc, exo);
     }
 
@@ -500,21 +490,21 @@ Expression* Parser::parseFactor()
 void Parser::parseNewLines()
 {
     match(Token::NewLine);
-    while (lookahead.is(Token::NewLine))
+    while( lookahead.is(Token::NewLine) )
         match(Token::NewLine);
 }
 
 //
 void Parser::match(Token exp)
 {
-    if (!lookahead.is(exp))
+    if( !lookahead.is(exp) )
         throw ParseError("Սպասվում է " + toString(exp) + ", բայց հանդիպել է " + lookahead.value + "։");
 
     scanner >> lookahead;
 }
 
 //
-void Parser::declareBuiltIn(const std::string& nm, const std::vector<std::string>& ps, bool rv)
+void Parser::declareBuiltIn( const std::string& nm, const std::vector<std::string>& ps, bool rv )
 {
     Subroutine* sre = new Subroutine(nm, ps);
     sre->isBuiltIn = true;
@@ -523,20 +513,20 @@ void Parser::declareBuiltIn(const std::string& nm, const std::vector<std::string
 }
 
 //
-Variable* Parser::getVariable(const std::string& nm, bool rval)
+Variable* Parser::getVariable( const std::string& nm, bool rval )
 {
     Subroutine* subr = module->members.back();
     auto& locals = subr->locals;
 
-    if (rval && equalNames(subr->name, nm))
+    if( rval && equalNames(subr->name, nm) )
         throw ParseError("Ենթածրագրի անունը օգտագործված է որպես փոփոխական։");
 
     auto vpi = std::find_if(locals.begin(), locals.end(),
         [&nm](auto vp) -> bool { return equalNames(nm, vp->name); });
-    if (locals.end() != vpi)
+    if( locals.end() != vpi )
         return *vpi;
 
-    if (rval)
+    if( rval )
         throw ParseError(nm + " փոփոխականը դեռ սահմանված չէ։");
 
     auto varp = new Variable(nm);
@@ -546,7 +536,7 @@ Variable* Parser::getVariable(const std::string& nm, bool rval)
 }
 
 //
-Subroutine* Parser::getSubroutine(const std::string& nm, const std::vector<Expression*>& ags, bool func)
+Subroutine* Parser::getSubroutine( const std::string& nm, const std::vector<Expression*>& ags, bool func )
 {
     // որոնել տրված անունով ենթածրագիրը արդեն սահմանվածների մեջ
     auto subrit = std::find_if(module->members.begin(), module->members.end(),
@@ -559,51 +549,51 @@ Subroutine* Parser::getSubroutine(const std::string& nm, const std::vector<Expre
     // եթե օբյեկտը գտնվել է, ... 
     Subroutine* subr = *subrit;
 
-    // ... ստուգել անունների տիպերի համընկնելը
-    if (!equalTypes(subr->name, nm))
-        throw TypeError("Ենթածրագրի անունը տարբերվում է կանչի անունից։");
+//    // ... ստուգել անունների տիպերի համընկնելը
+//    if (!equalTypes(subr->name, nm))
+//        throw TypeError("Ենթածրագրի անունը տարբերվում է կանչի անունից։");
 
-    // ... ստուգել պարամետրերի և արգումենտների քանակների հավասար լինելը
-    if (subr->parameters.size() != ags.size())
-        throw ParseError("Ենթածրագրերի պարամետրերի և փոխանցված արգումենտների քանակները տարբեր են։");
+//    // ... ստուգել պարամետրերի և արգումենտների քանակների հավասար լինելը
+//    if (subr->parameters.size() != ags.size())
+//        throw ParseError("Ենթածրագրերի պարամետրերի և փոխանցված արգումենտների քանակները տարբեր են։");
 
-    // ... ապա ստուգել պարամետրերի ու արգումենտների տիպրտի համապատասխանությունը
-    for (int i = 0; i < subr->parameters.size(); ++i)
-        if (typeOf(subr->parameters[i]) != ags[i]->type)
-            throw TypeError(std::to_string(i)+ "-րդ պարամետրի ու արգումնտի տիպերը նույնը չեն։");
+//    // ... ապա ստուգել պարամետրերի ու արգումենտների տիպրտի համապատասխանությունը
+//    for (int i = 0; i < subr->parameters.size(); ++i)
+//        if (typeOf(subr->parameters[i]) != ags[i]->type)
+//            throw TypeError(std::to_string(i)+ "-րդ պարամետրի ու արգումնտի տիպերը նույնը չեն։");
 
     // եթե հարցումը ֆունկցիայի կանչի համար է, բայց ենթածրագիրն արժեք չի վերադարձնում
-    if (func && !subr->hasValue)
+    if( func && !subr->hasValue )
         throw ParseError(nm + " պրոցեդուրան արժեք չի վերադարձնում։");
 
     return subr;
 }
 
+////
+//void checkTypes(Binary* nodebi)
+//{
+//    Type tyo = nodebi->subexpro->type;
+//    Type tyi = nodebi->subexpri->type;
+//    Operation opc = nodebi->opcode;
 //
-void checkTypes(Binary* nodebi)
-{
-    Type tyo = nodebi->subexpro->type;
-    Type tyi = nodebi->subexpri->type;
-    Operation opc = nodebi->opcode;
-
-    // տիպերի ստուգում և որոշում
-    if (tyo == Type::Number && tyi == Type::Number) {
-        if (opc == Operation::Conc)
-            throw TypeError("'&' գործողությունը կիրառելի չէ թվերին։");
-        else
-            nodebi->type = Type::Number;
-    }
-    else if (tyo == Type::Text && tyi == Type::Text) {
-        if (opc == Operation::Conc)
-            nodebi->type = Type::Text;
-        else if (opc >= Operation::Eq && opc <= Operation::Le)
-            nodebi->type = Type::Number;
-        else
-            throw TypeError("'" + toString(opc) + "' գործողությունը կիրառելի չէ տեքստերին։");
-    }
-    else
-        throw TypeError("'" + toString(opc) + "' գործողության երկու կողմերում տարբեր տիպեր են։");
-}
+//    // տիպերի ստուգում և որոշում
+//    if (tyo == Type::Number && tyi == Type::Number) {
+//        if (opc == Operation::Conc)
+//            throw TypeError("'&' գործողությունը կիրառելի չէ թվերին։");
+//        else
+//            nodebi->type = Type::Number;
+//    }
+//    else if (tyo == Type::Text && tyi == Type::Text) {
+//        if (opc == Operation::Conc)
+//            nodebi->type = Type::Text;
+//        else if (opc >= Operation::Eq && opc <= Operation::Le)
+//            nodebi->type = Type::Number;
+//        else
+//            throw TypeError("'" + toString(opc) + "' գործողությունը կիրառելի չէ տեքստերին։");
+//    }
+//    else
+//        throw TypeError("'" + toString(opc) + "' գործողության երկու կողմերում տարբեր տիպեր են։");
+//}
 
 //
 bool equalNames(const std::string& no, const std::string& ni)
