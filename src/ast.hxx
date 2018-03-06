@@ -66,6 +66,7 @@ enum class Type : char {
 //! դեպքում՝ @c REAL է։
 //!
 Type typeOf(const std::string& nm);
+std::string toString(Type vl);
 
 //! @brief Արտահայտություն
 class Expression : public AstNode {

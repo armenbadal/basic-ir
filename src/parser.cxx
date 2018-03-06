@@ -6,6 +6,14 @@
 #include <iostream>
 
 namespace basic {
+//
+class ParseError : public std::exception {
+public:
+    ParseError(const std::string& mes)
+        : std::exception(mes.c_str())
+    {}
+};
+
 ///
 Parser::Parser(const std::string& filename)
     : scanner{ filename }
@@ -24,23 +32,32 @@ Parser::Parser(const std::string& filename)
 ///
 Parser::~Parser()
 {
-    AstNode::deleteAllocatedNodes();
+    /// AstNode::deleteAllocatedNodes(); 
 }
 
 ///
 Program* Parser::parse()
 {
-    parseProgram();
+    try {
+        parseProgram();
+    }
+    catch( ParseError& e ) {
+        std::cerr << "Վերլուծության սխալ։ " << e.what() << std::endl;
+        return nullptr;
+    }
+
+    if( unresolved.empty() )
+        return module;
 
     // տուգել, որ unresolved ցուցակը դատարկ լինի, այսինքն՝
     // ծրագրում ոչ մի տեղ չսահմանված ֆունկցիայի հղում չմնա
-    for (auto& e : unresolved) {
+    for( auto& e : unresolved ) {
         std::string mes = e.first + " անունով ենթածրագիրը սահմանված չէ։";
+        std::cerr << "Վերլուծության սխալ։ " << mes << std::endl;
         // TODO: նշել կանչերի տեղերը
-        throw ParseError(mes);
     }
 
-    return module;
+    return nullptr;
 }
 
 //
@@ -272,22 +289,21 @@ Statement* Parser::parseFor()
     auto be = parseExpression();
     match(Token::To);
     auto en = parseExpression();
-    Expression* sp = nullptr;
-    if (lookahead.is(Token::Step)) {
+    double spvl = 1;
+    if( lookahead.is(Token::Step) ) {
         match(Token::Step);
         bool neg = false;
-        if (lookahead.is(Token::Sub)) {
+        if( lookahead.is(Token::Sub) ) {
             match(Token::Sub);
             neg = true;
         }
         auto lex = lookahead.value;
         match(Token::Number);
-        sp = new Number(std::stod(lex));
-        if (neg)
-            sp = new Unary(Operation::Sub, sp);
+        spvl = std::stod(lex);
+        if( neg )
+            spvl = -spvl;
     }
-    else
-        sp = new Number(1);
+    auto sp = new Number(spvl);
     auto vp = getVariable(par, false);
     auto dy = parseStatements();
     match(Token::End);
@@ -543,57 +559,15 @@ Subroutine* Parser::getSubroutine( const std::string& nm, const std::vector<Expr
         [&nm](auto sp)->bool { return equalNames(sp->name, nm); });
 
     // եթե դեռ սահմանված չէ, պարզապես վերադաձնել @c nullptr
-    if (subrit == module->members.end())
+    if( subrit == module->members.end() )
         return nullptr;
 
-    // եթե օբյեկտը գտնվել է, ... 
-    Subroutine* subr = *subrit;
-
-//    // ... ստուգել անունների տիպերի համընկնելը
-//    if (!equalTypes(subr->name, nm))
-//        throw TypeError("Ենթածրագրի անունը տարբերվում է կանչի անունից։");
-
-//    // ... ստուգել պարամետրերի և արգումենտների քանակների հավասար լինելը
-//    if (subr->parameters.size() != ags.size())
-//        throw ParseError("Ենթածրագրերի պարամետրերի և փոխանցված արգումենտների քանակները տարբեր են։");
-
-//    // ... ապա ստուգել պարամետրերի ու արգումենտների տիպրտի համապատասխանությունը
-//    for (int i = 0; i < subr->parameters.size(); ++i)
-//        if (typeOf(subr->parameters[i]) != ags[i]->type)
-//            throw TypeError(std::to_string(i)+ "-րդ պարամետրի ու արգումնտի տիպերը նույնը չեն։");
-
     // եթե հարցումը ֆունկցիայի կանչի համար է, բայց ենթածրագիրն արժեք չի վերադարձնում
-    if( func && !subr->hasValue )
+    if( func && !(*subrit)->hasValue )
         throw ParseError(nm + " պրոցեդուրան արժեք չի վերադարձնում։");
 
-    return subr;
+    return *subrit;
 }
-
-////
-//void checkTypes(Binary* nodebi)
-//{
-//    Type tyo = nodebi->subexpro->type;
-//    Type tyi = nodebi->subexpri->type;
-//    Operation opc = nodebi->opcode;
-//
-//    // տիպերի ստուգում և որոշում
-//    if (tyo == Type::Number && tyi == Type::Number) {
-//        if (opc == Operation::Conc)
-//            throw TypeError("'&' գործողությունը կիրառելի չէ թվերին։");
-//        else
-//            nodebi->type = Type::Number;
-//    }
-//    else if (tyo == Type::Text && tyi == Type::Text) {
-//        if (opc == Operation::Conc)
-//            nodebi->type = Type::Text;
-//        else if (opc >= Operation::Eq && opc <= Operation::Le)
-//            nodebi->type = Type::Number;
-//        else
-//            throw TypeError("'" + toString(opc) + "' գործողությունը կիրառելի չէ տեքստերին։");
-//    }
-//    else
-//        throw TypeError("'" + toString(opc) + "' գործողության երկու կողմերում տարբեր տիպեր են։");
-//}
 
 //
 bool equalNames(const std::string& no, const std::string& ni)
@@ -604,11 +578,5 @@ bool equalNames(const std::string& no, const std::string& ni)
     if ('$' == si.back())
         si.pop_back();
     return so == si;
-}
-
-//
-bool equalTypes(const std::string& no, const std::string& ni)
-{
-    return typeOf(no) == typeOf(ni);
 }
 } // basic

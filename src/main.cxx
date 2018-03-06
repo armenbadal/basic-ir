@@ -6,6 +6,7 @@
 #include "aslisp.hxx"
 #include "parser.hxx"
 #include "scanner.hxx"
+#include "typechecker.hxx"
 
 bool fileExists(const std::string& filename)
 {
@@ -29,21 +30,16 @@ int main( int argc, char* argv[] )
     }
 
     basic::Parser parser(argv[1]);
-    basic::Program* prog = nullptr;
-    try {
-        prog = parser.parse();
-    }
-    catch( basic::ParseError& e ) {
-        std::cerr << e.what() << std::endl;
-    }
-    catch( basic::TypeError& e ) {
-        std::cerr << e.what() << std::endl;
-    }
+    basic::Program* prog = parser.parse();
 
     if( nullptr != prog ) {
-        std::ofstream sout(std::string(argv[1]) + ".lisp");
-        basic::Lisper(sout).asLisp(prog);
-        sout.close();
+        bool errok = basic::TypeChecker().check(prog);
+
+        if( errok ) {
+            std::ofstream sout(std::string(argv[1]) + ".lisp");
+            basic::Lisper(sout).asLisp(prog);
+            sout.close();
+        }
     }
 
     return 0;

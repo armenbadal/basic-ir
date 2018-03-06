@@ -129,46 +129,5 @@ private:
     Subroutine* getSubroutine(const std::string& nm, const std::vector<Expression*>& ags, bool func);
 };
 
-// TODO: վերանայել այս դասերը
-//
-class ParseError : public std::exception {
-private:
-    std::string message = "";
-
-public:
-    ParseError(const std::string& mes)
-        : message(mes)
-    {}
-
-    ParseError(Token exp, Token got)
-    {
-        message = "սպասվում էր ..., բայց հանդիպել է ...";
-    }
-
-    const char* what() const noexcept
-    {
-        return message.c_str();
-    }
-};
-
-//
-class TypeError : public std::exception {
-private:
-    std::string message = "";
-
-public:
-    TypeError(const std::string& mes)
-        : message(mes)
-    {
-    }
-    const char* what() const noexcept
-    {
-        return message.c_str();
-    }
-};
-
-//
-void checkTypes(Binary* nodebi);
 bool equalNames(const std::string& no, const std::string& ni);
-bool equalTypes(const std::string& no, const std::string& ni);
 } // basic
