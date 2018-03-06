@@ -1,20 +1,14 @@
 
-#ifndef ASLISP_HXX
-#define ASLISP_HXX
+#ifndef TYPE_CHECKER_HXX
+#define TYPE_CHECKER_HXX
 
 #include "ast.hxx"
 #include "astvisitor.hxx"
 
-#include <ostream>
-
 namespace basic {
-class Lisper : public AstVisitor {
+class TypeChecker : public AstVisitor {
 public:
-    Lisper(std::ostream& os)
-        : ooo(os)
-    {}
-
-    bool asLisp(AstNode* node);
+    bool check(AstNode* node);
 
 private:
     void visitProgram(Program* node) override;
@@ -35,13 +29,7 @@ private:
     void visitVariable(Variable* node) override;
     void visitText(Text* node) override;
     void visitNumber(Number* node) override;
-
-    void visitAstNode(AstNode* node) override;
-
-private:
-    std::ostream& ooo;
-    int indent = 0;
 };
-} // basic
+}
 
-#endif // ASLISP_HXX
+#endif // TYPE_CHECKER_HXX
