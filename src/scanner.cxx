@@ -25,106 +25,119 @@ std::map<const std::string, Token> Scanner::keywords{
     { "NOT", Token::Not }
 };
 
-///
-Scanner::Scanner(const std::string& filename)
+//
+Scanner::Scanner( const std::string& filename )
 {
+    // ստեղծել (բացել) ֆայլային հոսք
     source.open(filename);
+    // կարդալիս բացատները չանտեսել
     source.unsetf(std::ios_base::skipws);
+    // կարդալ առաջին նիշը
     source >> ch;
 }
 
-///
+//
 Scanner::~Scanner()
 {
-    if (source.is_open())
+    // եթե ֆայլային հոսքը բացված է՝ փակել այն
+    if( source.is_open() )
         source.close();
 }
 
-///
+//! @brief Հերթական լեքսեմը կարդալու օպերատորը
 Scanner& Scanner::operator>>(Lexeme& lex)
 {
     next(lex);
     return *this;
 }
 
-///
-bool Scanner::next(Lexeme& lex)
+//! @brief Հերթական լեքսեմը կարդալու ֆունկցիա
+bool Scanner::next( Lexeme& lex )
 {
+    // լեքսեմի դաշտերի սկզբնական արժեքներ
     lex.kind = Token::None;
     lex.value = "";
     lex.line = line;
 
-    // skip spaces
-    while (ch == ' ' || ch == '\t' || ch == '\r')
+    // անտեսել բացատանիշերը (բացի նոր տողի նիշից)
+    while( ch == ' ' || ch == '\t' || ch == '\r' )
         source >> ch;
 
-    // detect EOF
-    if (source.eof()) {
+    // ֆայլի վերջը
+    if( source.eof() ) {
         lex.kind = Token::Eof;
         lex.value = "EOF";
         return true;
     }
 
-    //
-    if (isdigit(ch))
+    // երբ ընթացիկ նիշը թվանշան է՝ կարդալ թվային լիտերալ
+    if( isdigit(ch) )
         return scanNumber(lex);
 
-    //
-    if (ch == '"')
+    // երբ ընթացիկ նիշը չակերտ է՝ կարդալ տողային լիտերալ
+    if( ch == '"' )
         return scanText(lex);
 
-    //
-    if (isalpha(ch))
+    // երբ ընթացիկ նիշը տառ է՝ կարդալ իդենտիֆիկատոր կամ ծառայողական բառ
+    if( isalpha(ch) )
         return scanIdentifier(lex);
 
-    //
-    if (ch == '\'') {
-        while (ch != '\n')
+    // երբ ընթացիկ նիշը ապաթարցն է, ...
+    if( ch == '\'' ) {
+        // ... ապա սկսվում է մեկնաբանություն, կարդալ ու 
+        // դեն նետել մինչև տողի վերջը եղած բոլոր նիշերը
+        while( ch != '\n' )
             source >> ch;
+        // կարդալ ու վերադարձնել հաջորդ լեքսեմը
         return next(lex);
     }
 
-    //
-    if (ch == '\n') {
+    // երբ հանդիպել է նոր տողի նիշը
+    if( ch == '\n' ) {
         lex.kind = Token::NewLine;
         lex.value = "\n";
+        // փոխել ընթացիկ տողի համարը
         ++line;
         source >> ch;
         return true;
     }
 
-    //
-    if (ch == '<') {
+    // «փոքր է», «փոքր է կամ հավասար» և «հավասար չէ» 
+    // գործողությունները
+    if( ch == '<' ) {
+        lex.value = "<";
         source >> ch;
-        if (ch == '>') {
+        if( ch == '>' ) {
+            lex.value.push_back('>');
             source >> ch;
             lex.kind = Token::Ne;
         }
-        else if (ch == '=') {
+        else if( ch == '=' ) {
+            lex.value.push_back('=');
             source >> ch;
             lex.kind = Token::Le;
         }
         else
             lex.kind = Token::Lt;
-        // TODO add lex.value
         return true;
     }
 
-    //
-    if (ch == '>') {
+    // «մեծ է» և «մեծ է կամ հավասար» գործողությունները
+    if( ch == '>' ) {
+        lex.value = ">";
         source >> ch;
-        if (ch == '=') {
+        if( ch == '=' ) {
+            lex.value.push_back('=');
             source >> ch;
             lex.kind = Token::Ge;
         }
         else
             lex.kind = Token::Gt;
-        // TODO add lex.value
         return true;
     }
 
-    //
-    switch (ch) {
+    // այլ մետասիմվոլներ
+    switch( ch ) {
         case '(':
             lex.kind = Token::LeftPar;
             break;
@@ -156,23 +169,29 @@ bool Scanner::next(Lexeme& lex)
             lex.kind = Token::Eq;
             break;
     };
+    // կարդալ հերթական նիշը
     source >> ch;
 
+    // լեքսեմ կարդալու գործողությունը հաջողվել է, եթե kind-ը None չէ
     return lex.kind != Token::None;
 }
 
 //
 bool Scanner::scanNumber(Lexeme& lex)
 {
-    while (isdigit(ch)) {
+    // կարդալ թվանշանների շարք
+    while( isdigit(ch) ) {
         lex.value.push_back(ch);
         source >> ch;
     }
-    if (ch == '.') {
-        source >> ch;
+    // եթե հերթական նիշը «.» է, ապա հանդիպել է
+    // իրական թվի լիտերալ
+    if( ch == '.' ) {
+        // կետն ավելացնել լեքսեմի տեքստին
         lex.value.push_back('.');
-
-        while (isdigit(ch)) {
+        source >> ch;
+        // նորից կարդալ թվանշանների հաջորդականություն
+        while( isdigit(ch) ) {
             lex.value.push_back(ch);
             source >> ch;
         }
@@ -185,7 +204,9 @@ bool Scanner::scanNumber(Lexeme& lex)
 bool Scanner::scanText(Lexeme& lex)
 {
     source >> ch;
-    while (ch != '"') {
+    // քանի դեռ նորի չակերտ չի հանդիպել
+    while( ch != '"' ) {
+        // կարդալ ու հավաքել հերթական նիշերը
         lex.value.push_back(ch);
         source >> ch;
     }
@@ -197,25 +218,21 @@ bool Scanner::scanText(Lexeme& lex)
 //
 bool Scanner::scanIdentifier(Lexeme& lex)
 {
-    while (isalnum(ch)) {
+    // կարդալ թվանշանների ու տառերի հաջորդականություն
+    while( isalnum(ch) ) {
         lex.value.push_back(ch);
         source >> ch;
     }
-    if (ch == '$') {
+    // եթե հանդիպել է «$», ապա դա էլ կցել լեքսեմի արժեքին
+    if( ch == '$' ) {
         source >> ch;
         lex.value.push_back('$');
     }
+    // լեքսեմի արժեքը փնտրել ծառայողական բառերի ցուցակում
     auto ival = keywords.find(lex.value);
+    // եթե գտնվել է, ապա վերադարձնել համապատասխան պիտակը,
+    // հակառակ դեպքում վերադարձնել իդենտիֆիկատորի պիտակ
     lex.kind = ival == keywords.end() ? Token::Identifier : ival->second;
     return true;
-}
-
-//
-void Scanner::sequence(std::function<bool(char)> pred, std::string& res)
-{
-    while (pred(ch)) {
-        res.push_back(ch);
-        source >> ch;
-    }
 }
 } // basic

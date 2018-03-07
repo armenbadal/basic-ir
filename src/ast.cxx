@@ -46,6 +46,17 @@ Type typeOf(const std::string& nm)
     return nm.back() == '$' ? Type::Text : Type::Number;
 }
 
+std::string toString(Type vl)
+{
+    if( Type::Number == vl )
+        return "NUMBER";
+
+    if( Type::Text == vl )
+        return "TEXT";
+
+    return "VOID";
+}
+
 //
 AstNode::AstNode()
 {

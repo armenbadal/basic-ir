@@ -10,28 +10,41 @@
 #include "lexeme.hxx"
 
 namespace basic {
-//
+//! @brief Բառային վերլուծիչ
 class Scanner {
 private:
-    static std::map<const std::string, Token> keywords;
+    //! @brief ծառայողական բառերի ցուցակ
+    static std::map<const std::string,Token> keywords;
 
 private:
-    std::ifstream source;
-    char ch;
+    std::ifstream source; //!< նիշերը կարդալու հոսքը
+    char ch = '\0'; //!< ընթացիկ նիշը
 
-    unsigned int line = 1;
+    unsigned int line = 1; //!< ընթացիկ տողը
 
 public:
-    Scanner(const std::string& filename);
+    //! @brief Բառային վերլուծիչի կոնստրուկտոր
+    //!
+    //! @param filename Վերլուծվելիք ֆայլի ճանապարհը
+    Scanner( const std::string& filename );
+
+    //! @brief Բառային վերլուծիչի դեստրուկտոր
     ~Scanner();
 
+    //! @brief Հերթական լեքսեմը կարդալու օպերատոր
     Scanner& operator>>(Lexeme& lex);
 
 private:
-    void sequence(std::function<bool(char)> pred, std::string& res);
+    //! @brief Հերթական լեքսեմը կարդալու ֆունկցիա
     bool next(Lexeme& lex);
+
+    //! @brief Թվային լիտերալ
     bool scanNumber(Lexeme& lex);
+
+    //! @brief Տեքստային լիտերալ
     bool scanText(Lexeme& lex);
+
+    //! @brief Իդենտիֆիկատոր
     bool scanIdentifier(Lexeme& lex);
 };
 } // basic
