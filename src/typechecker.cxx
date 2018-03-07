@@ -8,8 +8,15 @@ namespace basic {
 class TypeError : public std::exception {
 public:
     TypeError(const std::string& mes)
-        : std::exception(mes.c_str())
+        : message(mes)
     {}
+
+    const char* what() const noexcept override
+    {
+        return message.c_str();
+    }
+private:
+    std::string message;
 };
 
 //

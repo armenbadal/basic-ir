@@ -10,8 +10,15 @@ namespace basic {
 class ParseError : public std::exception {
 public:
     ParseError(const std::string& mes)
-        : std::exception(mes.c_str())
+        : message(mes)
     {}
+
+    const char* what() const noexcept override
+    {
+        return message.c_str();
+    }
+private:
+    std::string message;
 };
 
 ///

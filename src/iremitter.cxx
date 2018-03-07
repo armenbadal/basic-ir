@@ -1,5 +1,5 @@
 
-#include "LLVMEmitter.hxx"
+#include "iremitter.hxx"
 #include "ast.hxx"
 
 #include <llvm/IR/GlobalValue.h>
@@ -10,14 +10,11 @@
 
 namespace basic {
 
-llvm::LLVMContext LLVMEmitter::llvmContext;
+llvm::LLVMContext IrEmitter::llvmContext;
 
-llvm::Value* LLVMEmitter::getEmittedNode(AstNode* node)
+///
+llvm::Value* IrEmitter::getEmittedNode(AstNode* node)
 {
-    if (!node) {
-        return nullptr;
-    }
-
     auto i = mEmittedNodes.find(node);
     if (i != mEmittedNodes.end()) {
         return i->second;
@@ -25,7 +22,8 @@ llvm::Value* LLVMEmitter::getEmittedNode(AstNode* node)
     return nullptr;
 }
 
-llvm::Type* LLVMEmitter::getLLVMType(Type type)
+///
+llvm::Type* IrEmitter::getLLVMType(Type type)
 {
     if (type == Type::Void) {
         return mBuilder.getVoidTy();
@@ -45,24 +43,19 @@ llvm::Type* LLVMEmitter::getLLVMType(Type type)
 }
 
 ///
-void LLVMEmitter::emitModule(Program* prog)
+void IrEmitter::emitProgram(Program* prog)
 {
-    if (!prog) {
-        return;
-    }
-    mModule = new llvm::Module("llvm-ir.ll", llvmContext);
-    for (Subroutine* si : prog->members) {
-        emitFunction(si);
-    }
-    mModule->print(llvm::errs(), nullptr);
-    mModule->print(mOut, nullptr);
+    module = new llvm::Module("llvm-ir.ll", llvmContext);
+    for( Subroutine* si : prog->members )
+        emitSubroutine(si);
+
+    module->print(llvm::errs(), nullptr);
+    module->print(mOut, nullptr);
 }
 
-void LLVMEmitter::emitFunction(Subroutine* sub)
+//
+void IrEmitter::emitSubroutine(Subroutine* sub)
 {
-    if (!sub) {
-        return;
-    }
     auto paramNum = sub->parameters.size();
     std::vector<llvm::Type*> paramTypes;
     paramTypes.insert(paramTypes.begin(), paramNum, mBuilder.getDoubleTy());
@@ -71,7 +64,7 @@ void LLVMEmitter::emitFunction(Subroutine* sub)
     llvm::Type* retType = llvm::Type::getDoubleTy(llvmContext);
 
     auto ft = llvm::FunctionType::get(retType, paramTypes, false);
-    auto fun = llvm::Function::Create(ft, llvm::GlobalValue::ExternalLinkage, sub->name, mModule);
+    auto fun = llvm::Function::Create(ft, llvm::GlobalValue::ExternalLinkage, sub->name, module);
 
     auto bb = llvm::BasicBlock::Create(llvmContext, "entry", fun);
     mBuilder.SetInsertPoint(bb);
@@ -96,7 +89,7 @@ void LLVMEmitter::emitFunction(Subroutine* sub)
 
     //Handle the function body
     mBuilder.SetInsertPoint(bb);
-    processStatement(sub->body, endBB);
+    emitStatement(sub->body, endBB);
 
     //Set return statement
     mBuilder.SetInsertPoint(endBB);
@@ -111,24 +104,9 @@ void LLVMEmitter::emitFunction(Subroutine* sub)
     mEmittedNodes.insert({ sub, fun });
 }
 
-void LLVMEmitter::processSequence(Sequence* seq, llvm::BasicBlock* endBB)
+///
+void IrEmitter::emitStatement(Statement* stat, llvm::BasicBlock* endBB)
 {
-    if (!seq) {
-        assert(0);
-        return;
-    }
-
-    for (auto st : seq->items) {
-        processStatement(st, endBB);
-    }
-}
-
-void LLVMEmitter::processStatement(Statement* stat, llvm::BasicBlock* endBB)
-{
-    if (!stat) {
-        assert(0);
-        return;
-    }
     if (getEmittedNode(stat)) {
         return;
     }
@@ -137,23 +115,23 @@ void LLVMEmitter::processStatement(Statement* stat, llvm::BasicBlock* endBB)
         case NodeKind::Apply:
             break;
         case NodeKind::Sequence:
-            processSequence(static_cast<Sequence*>(stat), endBB);
+            emitSequence(static_cast<Sequence*>(stat), endBB);
             break;
         case NodeKind::Input:
             break;
         case NodeKind::Print:
             break;
         case NodeKind::Let:
-            processLet(static_cast<Let*>(stat));
+            emitLet(static_cast<Let*>(stat));
             break;
         case NodeKind::If:
-            processIf(static_cast<If*>(stat), endBB);
+            emitIf(static_cast<If*>(stat), endBB);
             break;
         case NodeKind::While:
-            processWhile(static_cast<While*>(stat), endBB);
+            emitWhile(static_cast<While*>(stat), endBB);
             break;
         case NodeKind::For:
-            processFor(static_cast<For*>(stat), endBB);
+            emitFor(static_cast<For*>(stat), endBB);
             break;
         case NodeKind::Call:
             break;
@@ -162,42 +140,43 @@ void LLVMEmitter::processStatement(Statement* stat, llvm::BasicBlock* endBB)
     }
 }
 
-void LLVMEmitter::processLet(Let* letSt)
+///
+void IrEmitter::emitSequence(Sequence* seq, llvm::BasicBlock* endBB)
 {
-    if (!letSt) {
-        assert(0);
-        return;
+    for (auto st : seq->items) {
+        emitStatement(st, endBB);
     }
+}
+
+///
+void IrEmitter::emitLet(Let* letSt)
+{
     auto addr = getVariableAddress(letSt->varptr->name);
     assert(addr && "Unallocated variable");
 
-    auto val = processExpression(letSt->expr);
+    auto val = emitExpression(letSt->expr);
     auto st = mBuilder.CreateStore(val, addr);
 }
 
-void LLVMEmitter::processIf(If* ifSt, llvm::BasicBlock* endBB)
+//
+void IrEmitter::emitIf(If* ifSt, llvm::BasicBlock* endBB)
 {
-    if (!ifSt) {
-        assert(0);
-        return;
-    }
-
     if (getEmittedNode(ifSt)) {
         return;
     }
     auto insertBB = mBuilder.GetInsertBlock();
     auto fun = insertBB->getParent();
-    auto cnd = processExpression(ifSt->condition);
+    auto cnd = emitExpression(ifSt->condition);
 
     llvm::BasicBlock* decBB = llvm::BasicBlock::Create(llvmContext, "bb", fun, endBB);
     mBuilder.SetInsertPoint(decBB);
-    processStatement(ifSt->decision, endBB);
+    emitStatement(ifSt->decision, endBB);
 
     llvm::BasicBlock* altBB = endBB;
     if (ifSt->alternative) {
         altBB = llvm::BasicBlock::Create(llvmContext, "bb", fun, endBB);
         mBuilder.SetInsertPoint(altBB);
-        processStatement(ifSt->alternative, endBB);
+        emitStatement(ifSt->alternative, endBB);
     }
 
     mBuilder.SetInsertPoint(insertBB);
@@ -217,24 +196,19 @@ void LLVMEmitter::processIf(If* ifSt, llvm::BasicBlock* endBB)
     mEmittedNodes.insert({ ifSt, br });
 }
 
-void LLVMEmitter::processWhile(While* whileSt, llvm::BasicBlock* endBB)
+void IrEmitter::emitWhile(While* whileSt, llvm::BasicBlock* endBB)
 {
-    if (!whileSt) {
-        assert(0);
-        return;
-    }
-
     llvm::BasicBlock* head = llvm::BasicBlock::Create(llvmContext, "bb", endBB->getParent(), endBB);
     llvm::BasicBlock* body = llvm::BasicBlock::Create(llvmContext, "bb", endBB->getParent(), endBB);
 
     mBuilder.CreateBr(head);
 
     mBuilder.SetInsertPoint(head);
-    auto cnd = processExpression(whileSt->condition);
+    auto cnd = emitExpression(whileSt->condition);
     auto br = mBuilder.CreateCondBr(cnd, body, endBB);
 
     mBuilder.SetInsertPoint(body);
-    processStatement(whileSt->body, endBB);
+    emitStatement(whileSt->body, endBB);
 
     if (!body->getTerminator()) {
         mBuilder.SetInsertPoint(body);
@@ -243,19 +217,14 @@ void LLVMEmitter::processWhile(While* whileSt, llvm::BasicBlock* endBB)
     mBuilder.SetInsertPoint(endBB);
 }
 
-void LLVMEmitter::processFor(For* forSt, llvm::BasicBlock* endBB)
+void IrEmitter::emitFor(For* forSt, llvm::BasicBlock* endBB)
 {
-    if (!forSt) {
-        assert(0);
-        return;
-    }
-
     llvm::BasicBlock* head = llvm::BasicBlock::Create(llvmContext, "bb", endBB->getParent(), endBB);
     llvm::BasicBlock* body = llvm::BasicBlock::Create(llvmContext, "bb", endBB->getParent(), endBB);
     llvm::BasicBlock* exit = llvm::BasicBlock::Create(llvmContext, "bb", endBB->getParent(), endBB);
 
     auto param_addr = getVariableAddress(forSt->parameter->name);
-    auto begin = processExpression(forSt->begin);
+    auto begin = emitExpression(forSt->begin);
     mBuilder.CreateStore(begin, param_addr);
 
     //Setting step 1 by default
@@ -263,10 +232,10 @@ void LLVMEmitter::processFor(For* forSt, llvm::BasicBlock* endBB)
 
     //Looking if step is given
     if (forSt->step) {
-        step = processExpression(forSt->step);
+        step = emitExpression(forSt->step);
     }
 
-    auto end = processExpression(forSt->end);
+    auto end = emitExpression(forSt->end);
     mBuilder.CreateBr(head);
 
     mBuilder.SetInsertPoint(head);
@@ -276,7 +245,7 @@ void LLVMEmitter::processFor(For* forSt, llvm::BasicBlock* endBB)
 
     //Handling the body
     mBuilder.SetInsertPoint(body);
-    processStatement(forSt->body, exit);
+    emitStatement(forSt->body, exit);
 
     //Incrementing the index
     auto inc_param = mBuilder.CreateFAdd(param, step);
@@ -290,13 +259,9 @@ void LLVMEmitter::processFor(For* forSt, llvm::BasicBlock* endBB)
     mBuilder.SetInsertPoint(endBB);
 }
 
-llvm::Value* LLVMEmitter::processExpression(Expression* expr)
+///
+llvm::Value* IrEmitter::emitExpression(Expression* expr)
 {
-    if (!expr) {
-        assert(0);
-        return nullptr;
-    }
-
     if (auto r = getEmittedNode(expr)) {
         return r;
     }
@@ -314,11 +279,11 @@ llvm::Value* LLVMEmitter::processExpression(Expression* expr)
     }
     else if (auto unary = dynamic_cast<Unary*>(expr)) {
         std::cout << __LINE__ << std::endl;
-        return processUnary(unary);
+        return emitUnary(unary);
     }
     else if (auto binary = dynamic_cast<Binary*>(expr)) {
         std::cout << __LINE__ << std::endl;
-        return processBinary(binary);
+        return emitBinary(binary);
     }
     else if (auto apply = dynamic_cast<Apply*>(expr)) {
         std::cout << __LINE__ << std::endl;
@@ -330,7 +295,8 @@ llvm::Value* LLVMEmitter::processExpression(Expression* expr)
     return nullptr;
 }
 
-llvm::Value* LLVMEmitter::getVariableAddress(const std::string& name)
+//
+llvm::Value* IrEmitter::getVariableAddress(const std::string& name)
 {
     auto it = mAddresses.find(name);
     if (it != mAddresses.end()) {
@@ -341,12 +307,8 @@ llvm::Value* LLVMEmitter::getVariableAddress(const std::string& name)
     return alloca;
 }
 
-llvm::LoadInst* LLVMEmitter::emitLoad(Variable* var)
+llvm::LoadInst* IrEmitter::emitLoad(Variable* var)
 {
-    if (!var) {
-        return nullptr;
-    }
-
     auto addr = getVariableAddress(var->name);
     llvm::LoadInst* load = nullptr;
     if (var->type == Type::Text) {
@@ -360,19 +322,14 @@ llvm::LoadInst* LLVMEmitter::emitLoad(Variable* var)
     return load;
 }
 
-llvm::Value* LLVMEmitter::processBinary(Binary* bin)
+llvm::Value* IrEmitter::emitBinary(Binary* bin)
 {
-    if (!bin) {
-        assert(0);
-        return nullptr;
-    }
-
     if (auto r = getEmittedNode(bin)) {
         return r;
     }
-    llvm::Value* lhs = processExpression(bin->subexpro);
+    llvm::Value* lhs = emitExpression(bin->subexpro);
     assert(lhs);
-    llvm::Value* rhs = processExpression(bin->subexpri);
+    llvm::Value* rhs = emitExpression(bin->subexpri);
     assert(rhs);
     llvm::Value* ret = nullptr;
     switch (bin->opcode) {
@@ -440,13 +397,9 @@ llvm::Value* LLVMEmitter::processBinary(Binary* bin)
     return ret;
 }
 
-llvm::Value* LLVMEmitter::processUnary(Unary* un)
+llvm::Value* IrEmitter::emitUnary(Unary* un)
 {
-    if (!un) {
-        assert(0);
-        return nullptr;
-    }
-    llvm::Value* val = processExpression(un->subexpr);
+    llvm::Value* val = emitExpression(un->subexpr);
     switch (un->opcode) {
         case Operation::Sub:
             return mBuilder.CreateFNeg(val, "neg");
@@ -459,13 +412,8 @@ llvm::Value* LLVMEmitter::processUnary(Unary* un)
     return nullptr;
 }
 
-llvm::Constant* LLVMEmitter::emitConstant(Number* num)
+llvm::Constant* IrEmitter::emitConstant(Number* num)
 {
-    if (!num) {
-        assert(0);
-        return nullptr;
-    }
-
     return llvm::ConstantFP::get(mBuilder.getDoubleTy(), num->value);
 }
 
