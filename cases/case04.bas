@@ -6,3 +6,8 @@ SUB Main
     LET n = n - 1
   END WHILE
 END SUB
+
+SUB f(x$, y)
+  PRINT x$
+  PRINT y
+END SUB

@@ -10,51 +10,55 @@
 #include <string>
 
 namespace basic {
-
 ///
 class IrEmitter {
 public:
-    IrEmitter(AstNode* node, llvm::raw_fd_ostream& out)
-        : mAst(node), mOut(out), mBuilder(llvmContext)
+    IrEmitter(llvm::raw_fd_ostream& out)
+        : context(), builder(context), outstream(out)
     {}
-    ~IrEmitter() { delete module; }
+    ~IrEmitter()
+    {
+        //delete module;
+    }
+
+    bool emitIrCode( Program* prog );
 
 private:
-    void emitProgram(Program* prog);
-    void emitSubroutine(Subroutine* sub);
+    void emitProgram( Program* prog );
+    void emitSubroutine( Subroutine* subr );
 
-    void emitStatement(Statement* stat, llvm::BasicBlock* endBB = nullptr);
-
-    void emitSequence(Sequence* seq, llvm::BasicBlock* endBB);
-    void emitLet(Let* let);
-    void emitInput(Input* inp);
-    void emitPrint(Print* pri);
+    void emitSequence( Sequence* seq );
+    void emitLet( Let* let );
+    void emitInput( Input* inp );
+    void emitPrint( Print* pri );
+    /*
     void emitIf(If* ifSt, llvm::BasicBlock* endBB = nullptr);
     void emitWhile(While* whileSt, llvm::BasicBlock* endBB);
-    void emitFor(For* forSt, llvm::BasicBlock* endBB);
+    */
+    void emitFor( For* sfor );
+    /*
     void emitCall(Call* cal);
+    */
 
-    llvm::Value* emitExpression(Expression* expr);
-    llvm::Value* emitBinary(Binary* bin);
-    llvm::Value* emitUnary(Unary* un);
+    llvm::Value* emitExpression( Expression* expr );
+    llvm::Value* emitBinary( Binary* bin );
+    llvm::Value* emitUnary( Unary* una );
+    llvm::Value* emitText( Text* txt );
+    llvm::Constant* emitNumber( Number* num );
+    llvm::LoadInst* emitLoad( Variable* var );
 
-    llvm::Constant* emitConstant(Number* num);
-    llvm::LoadInst* emitLoad(Variable* var);
-
-    llvm::Value* getEmittedNode(AstNode* node);
-    llvm::Value* getVariableAddress(const std::string& name);
-    llvm::Type* getLLVMType(Type type);
+    llvm::Type* llvmType( Type type );
 
 private:
-    AstNode* mAst = nullptr;
-    //std::ostringstream& mOut;
-    llvm::raw_fd_ostream& mOut;
+    llvm::LLVMContext context;
+    llvm::IRBuilder<> builder;
 
-    llvm::IRBuilder<> mBuilder;
     llvm::Module* module = nullptr;
-    std::unordered_map<AstNode*, llvm::Value*> mEmittedNodes;
-    std::unordered_map<std::string, llvm::Value*> mAddresses;
 
-    static llvm::LLVMContext llvmContext;
+    llvm::raw_fd_ostream& outstream;
+
+    //std::unordered_map<AstNode*, llvm::Value*> mEmittedNodes;
+    std::unordered_map<std::string,llvm::Value*> globaltexts;
+    std::unordered_map<std::string,llvm::Value*> varaddresses;
 };
 } // namespace basic

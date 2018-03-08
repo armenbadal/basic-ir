@@ -8,156 +8,157 @@
 #include <iostream>
 #include <sstream>
 
+/*
+// աջակցող գրադարանը բեռնելու համար
+
+std::unique_ptr<Module> llvm::parseAssemblyString(
+    StringRef AsmString,
+    SMDiagnostic& Error,
+    LLVMContext& Context,
+    SlotMapping* Slots = nullptr,
+    bool UpgradeDebugInfo = true,
+    StringRef DataLayoutString = "");
+
+սtd::unique_ptr<Module> llvm::parseAssemblyFile(
+    StringRef Filename,
+    SMDiagnostic& Error,
+    LLVMContext& Context,
+    SlotMapping* Slots = nullptr,
+    bool UpgradeDebugInfo = true,
+    StringRef DataLayoutString = "");
+
+// llvm::Linker դասի օգնությամբ կապակցել գրադարանի ու ծրագրի մոդուլները
+*/
+
+
 namespace basic {
-
-llvm::LLVMContext IrEmitter::llvmContext;
-
 ///
-llvm::Value* IrEmitter::getEmittedNode(AstNode* node)
+bool IrEmitter::emitIrCode( Program* prog )
 {
-    auto i = mEmittedNodes.find(node);
-    if (i != mEmittedNodes.end()) {
-        return i->second;
-    }
-    return nullptr;
+    emitProgram(prog);
 }
 
 ///
-llvm::Type* IrEmitter::getLLVMType(Type type)
+void IrEmitter::emitProgram( Program* prog )
 {
-    if (type == Type::Void) {
-        return mBuilder.getVoidTy();
-    }
+    module = new llvm::Module(prog->filename, context);
 
-    if (type == Type::Number) {
-        return mBuilder.getDoubleTy();
-    }
-
-    if (type == Type::Text) {
-        return mBuilder.getInt8PtrTy();
-    }
-
-    assert(!"Undefined type");
-
-    return nullptr;
-}
-
-///
-void IrEmitter::emitProgram(Program* prog)
-{
-    module = new llvm::Module("llvm-ir.ll", llvmContext);
     for( Subroutine* si : prog->members )
         emitSubroutine(si);
 
     module->print(llvm::errs(), nullptr);
-    module->print(mOut, nullptr);
+    //module->print(mOut, nullptr);
 }
 
 //
-void IrEmitter::emitSubroutine(Subroutine* sub)
+void IrEmitter::emitSubroutine( Subroutine* subr )
 {
-    auto paramNum = sub->parameters.size();
-    std::vector<llvm::Type*> paramTypes;
-    paramTypes.insert(paramTypes.begin(), paramNum, mBuilder.getDoubleTy());
+    // պարամետրերի տիպերի ցուցակի կառուցումը
+    std::vector<llvm::Type*> ptypes;
+    for( auto& pr : subr->parameters )
+        ptypes.push_back(llvmType(typeOf(pr)));
 
-    //auto retType = getLLVMType(sub->rettype);
-    llvm::Type* retType = llvm::Type::getDoubleTy(llvmContext);
+    // TODO: վերադարձվող արժեքի տիպը
+    llvm::Type* rtype = nullptr;
+    if( subr->hasValue )
+        rtype = llvmType(typeOf(subr->name));
+    else
+        rtype = builder.getVoidTy();
 
-    auto ft = llvm::FunctionType::get(retType, paramTypes, false);
-    auto fun = llvm::Function::Create(ft, llvm::GlobalValue::ExternalLinkage, sub->name, module);
+    // ֆունկցիայի տիպը
+    auto procty = llvm::FunctionType::get(rtype, ptypes, false);
+    // ֆունկցիա օբյեկտը
+    auto fun = llvm::Function::Create(procty, llvm::GlobalValue::ExternalLinkage, subr->name, module);
 
-    auto bb = llvm::BasicBlock::Create(llvmContext, "entry", fun);
-    mBuilder.SetInsertPoint(bb);
-    for (auto& arg : fun->args()) {
-        auto i = arg.getArgNo();
-        auto name = sub->parameters[i];
-        arg.setName(name);
-        auto addr = mBuilder.CreateAlloca(mBuilder.getDoubleTy(), nullptr, name + "_addr");
-        mBuilder.CreateStore(&arg, addr);
-        mAddresses.insert({ name, addr });
-    }
-
-    // Return value allocation
-    llvm::Value* retAddr = nullptr;
-    if (!retType->isVoidTy()) {
-        retAddr = mBuilder.CreateAlloca(mBuilder.getDoubleTy(), nullptr, "ret_addr");
-        mAddresses.insert({ sub->name, retAddr });
-    }
-
-    //Last block
-    auto endBB = llvm::BasicBlock::Create(llvmContext, "end", fun);
-
-    //Handle the function body
-    mBuilder.SetInsertPoint(bb);
-    emitStatement(sub->body, endBB);
-
-    //Set return statement
-    mBuilder.SetInsertPoint(endBB);
-    if (retAddr != nullptr) {
-        auto ret = mBuilder.CreateLoad(mBuilder.getDoubleTy(), retAddr, "ret_val");
-        mBuilder.CreateRet(ret);
-    }
-    else {
-        mBuilder.CreateRetVoid();
-    }
-
-    mEmittedNodes.insert({ sub, fun });
-}
-
-///
-void IrEmitter::emitStatement(Statement* stat, llvm::BasicBlock* endBB)
-{
-    if (getEmittedNode(stat)) {
+    // եթե սա ներդրված ենթածրագիր է, ապա գեներացնում ենք միայն հայտարարությունը
+    if( subr->isBuiltIn )
         return;
+
+    // ֆունկցիայի առաջին պիտակը (ցույց է տալիս ֆունկցիայի սկիզբը)
+    auto start = llvm::BasicBlock::Create(context, "start", fun);
+    builder.SetInsertPoint(start);
+
+    // ֆունկցիայի պարամետրերին տալ անուններ
+    for( auto& arg : fun->args() ) {
+        int ix = arg.getArgNo();
+        arg.setName(subr->parameters[ix]);
     }
 
-    switch (stat->kind) {
-        case NodeKind::Apply:
-            break;
-        case NodeKind::Sequence:
-            emitSequence(static_cast<Sequence*>(stat), endBB);
-            break;
-        case NodeKind::Input:
-            break;
-        case NodeKind::Print:
-            break;
-        case NodeKind::Let:
-            emitLet(static_cast<Let*>(stat));
-            break;
-        case NodeKind::If:
-            emitIf(static_cast<If*>(stat), endBB);
-            break;
-        case NodeKind::While:
-            emitWhile(static_cast<While*>(stat), endBB);
-            break;
-        case NodeKind::For:
-            emitFor(static_cast<For*>(stat), endBB);
-            break;
-        case NodeKind::Call:
-            break;
-        default:
-            break;
+    // օբյեկտներ բոլոր լոկալ փոփոխականների, պարամետրերի 
+    // և վերադարձվող արժեքի համար
+    for( Variable* vi : subr->locals ) {
+        auto vty = llvmType(vi->type);
+        auto addr = builder.CreateAlloca(vty, nullptr, vi->name + "_addr");
+        varaddresses[vi->name] = addr;
     }
-}
 
-///
-void IrEmitter::emitSequence(Sequence* seq, llvm::BasicBlock* endBB)
-{
-    for (auto st : seq->items) {
-        emitStatement(st, endBB);
+    // պարամետրերի արժեքները վերագրել լոկալ օբյեկտներին
+    for( auto& arg : fun->args() )
+        builder.CreateStore(&arg, varaddresses[arg.getName()]);
+
+    // գեներացնել ֆունկցիայի մարմինը
+    emitSequence(dynamic_cast<Sequence*>(subr->body));
+
+    // TODO: լրացնել, ուղղել
+    if( rtype->isVoidTy() )
+        builder.CreateRetVoid();
+    else {
+        auto rv = builder.CreateLoad(varaddresses[subr->name]);
+        builder.CreateRet(rv);
     }
 }
 
 ///
-void IrEmitter::emitLet(Let* letSt)
+void IrEmitter::emitSequence( Sequence* seq )
 {
-    auto addr = getVariableAddress(letSt->varptr->name);
-    assert(addr && "Unallocated variable");
-
-    auto val = emitExpression(letSt->expr);
-    auto st = mBuilder.CreateStore(val, addr);
+    for( Statement* st : seq->items ) {
+        switch( st->kind ) {
+            case NodeKind::Let:
+                emitLet(dynamic_cast<Let*>(st));
+                break;
+            case NodeKind::Input:
+                emitInput(dynamic_cast<Input*>(st));
+                break;
+            case NodeKind::Print:
+                emitPrint(dynamic_cast<Print*>(st));
+                break;
+            case NodeKind::If:
+                break;
+            case NodeKind::While:
+                break;
+            case NodeKind::For:
+                break;
+            case NodeKind::Call:
+                break;
+            default:
+                break;
+        }
+    }
 }
 
+///
+void IrEmitter::emitLet( Let* let )
+{
+    auto val = emitExpression(let->expr);
+    auto addr = varaddresses[let->varptr->name];
+    builder.CreateStore(val, addr);
+}
+
+///
+void IrEmitter::emitInput( Input* inp )
+{
+    // կանչել գրադարանային ֆունկցիա
+    // input_text() կամ input_number()
+}
+
+///
+void IrEmitter::emitPrint( Print* pri )
+{
+    // կանչել գրադարանային ֆունկցիա
+    // print_text() կամ print_number()
+}
+
+/*
 //
 void IrEmitter::emitIf(If* ifSt, llvm::BasicBlock* endBB)
 {
@@ -216,9 +217,22 @@ void IrEmitter::emitWhile(While* whileSt, llvm::BasicBlock* endBB)
     }
     mBuilder.SetInsertPoint(endBB);
 }
+*/
 
-void IrEmitter::emitFor(For* forSt, llvm::BasicBlock* endBB)
+//
+void IrEmitter::emitFor( For* sfor )
 {
+    // TODO:
+    // 1. գեներացնել սկզբնական արժեքի արտահայտությունը,
+    // 2. գեներացնել վերջնական արժեքի արտահայտությունը,
+    // 3. պարամետրին վերագրել սկզբնական արժեքը,
+    // 4. եթե պարամետրի արժեքը >= (կամ <=, եթե քայլը բացասական է) վերջնականից,
+    // 5. ապա դուրս գալ ցիկլից,
+    // 6. գեներացնել մարմինը,
+    // 7. պարամետրի արժեքին գումարել քայլի արժեքը,
+    // 8. շարունակել 4-րդ կետից։
+
+    /*
     llvm::BasicBlock* head = llvm::BasicBlock::Create(llvmContext, "bb", endBB->getParent(), endBB);
     llvm::BasicBlock* body = llvm::BasicBlock::Create(llvmContext, "bb", endBB->getParent(), endBB);
     llvm::BasicBlock* exit = llvm::BasicBlock::Create(llvmContext, "bb", endBB->getParent(), endBB);
@@ -257,71 +271,69 @@ void IrEmitter::emitFor(For* forSt, llvm::BasicBlock* endBB)
     }
 
     mBuilder.SetInsertPoint(endBB);
+    */
 }
 
+
 ///
-llvm::Value* IrEmitter::emitExpression(Expression* expr)
+llvm::Value* IrEmitter::emitExpression( Expression* expr )
 {
-    if (auto r = getEmittedNode(expr)) {
-        return r;
+    llvm::Value* res = nullptr;
+
+    switch( expr->kind ) {
+        case NodeKind::Number:
+            res = emitNumber(dynamic_cast<Number*>(expr));
+            break;
+        case NodeKind::Text:
+            res = emitText(dynamic_cast<Text*>(expr));
+            break;
+        case NodeKind::Variable:
+            res = emitLoad(dynamic_cast<Variable*>(expr));
+            break;
+        case NodeKind::Unary:
+            break;
+        case NodeKind::Binary:
+            break;
+        case NodeKind::Apply:
+            break;
+        default:
+            break;
     }
-    if (auto num = dynamic_cast<Number*>(expr)) {
-        std::cout << __LINE__ << std::endl;
-        return emitConstant(num);
-    }
-    else if (auto text = dynamic_cast<Text*>(expr)) {
-        std::cout << __LINE__ << std::endl;
-        //return emitString(num);
-    }
-    else if (auto var = dynamic_cast<Variable*>(expr)) {
-        //std::cout << __LINE__ << "  VAR NAME:" << var->name << std::endl;
-        return emitLoad(var);
-    }
-    else if (auto unary = dynamic_cast<Unary*>(expr)) {
-        std::cout << __LINE__ << std::endl;
-        return emitUnary(unary);
-    }
-    else if (auto binary = dynamic_cast<Binary*>(expr)) {
-        std::cout << __LINE__ << std::endl;
-        return emitBinary(binary);
-    }
-    else if (auto apply = dynamic_cast<Apply*>(expr)) {
-        std::cout << __LINE__ << std::endl;
-        // return emitCall(apply);
-    }
-    else {
-        assert(!"Invalid expression");
-    }
-    return nullptr;
+
+    return res;
 }
 
 //
-llvm::Value* IrEmitter::getVariableAddress(const std::string& name)
+llvm::Value* IrEmitter::emitText( Text* txt )
 {
-    auto it = mAddresses.find(name);
-    if (it != mAddresses.end()) {
-        return it->second;
-    }
-    auto alloca = mBuilder.CreateAlloca(mBuilder.getDoubleTy(), nullptr, name + "_addr");
-    mAddresses.insert({ name, alloca });
-    return alloca;
+    // եթե տրված արժեքով տող արդեն սահմանված է գլոբալ
+    // տիրույթում, ապա վերադարձնել դրա հասցեն
+    auto sri = globaltexts.find(txt->value);
+    if( sri != globaltexts.end() )
+        return sri->second;
+
+    // ... հակառակ դեպքում՝ սահմանել նոր գլոբալ տող, դրա հասցեն
+    // պահել գլոբալ տողերի ցուցակում և վերադարձնել որպես արժեք
+    auto strp = builder.CreateGlobalStringPtr(txt->value, "g_str");
+    globaltexts[txt->value] = strp;
+
+    return strp;
 }
 
-llvm::LoadInst* IrEmitter::emitLoad(Variable* var)
+//
+llvm::Constant* IrEmitter::emitNumber( Number* num )
 {
-    auto addr = getVariableAddress(var->name);
-    llvm::LoadInst* load = nullptr;
-    if (var->type == Type::Text) {
-        //TODO
-    }
-    else {
-        load = mBuilder.CreateLoad(mBuilder.getDoubleTy(), addr, var->name);
-    }
-    llvm::errs() << *load << "\n";
-
-    return load;
+    return llvm::ConstantFP::get(builder.getDoubleTy(), num->value);
 }
 
+///
+llvm::LoadInst* IrEmitter::emitLoad( Variable* var )
+{
+    llvm::Value* vaddr = varaddresses[var->name];
+    return builder.CreateLoad(vaddr, var->name);
+}
+
+/*
 llvm::Value* IrEmitter::emitBinary(Binary* bin)
 {
     if (auto r = getEmittedNode(bin)) {
@@ -411,10 +423,16 @@ llvm::Value* IrEmitter::emitUnary(Unary* un)
     }
     return nullptr;
 }
+*/
 
-llvm::Constant* IrEmitter::emitConstant(Number* num)
+llvm::Type* IrEmitter::llvmType( Type type )
 {
-    return llvm::ConstantFP::get(mBuilder.getDoubleTy(), num->value);
-}
+    if( Type::Number == type )
+        return builder.getDoubleTy();
 
+    if( Type::Text == type )
+        return builder.getInt8PtrTy();
+
+    return builder.getVoidTy();
+}
 } // namespace llvm
