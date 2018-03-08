@@ -58,7 +58,7 @@ void IrEmitter::emitSubroutine( Subroutine* subr )
     for( auto& pr : subr->parameters )
         ptypes.push_back(llvmType(typeOf(pr)));
 
-    // TODO: վերադարձվող արժեքի տիպը
+    // վերադարձվող արժեքի տիպը
     llvm::Type* rtype = nullptr;
     if( subr->hasValue )
         rtype = llvmType(typeOf(subr->name));
@@ -99,7 +99,7 @@ void IrEmitter::emitSubroutine( Subroutine* subr )
     // գեներացնել ֆունկցիայի մարմինը
     emitSequence(dynamic_cast<Sequence*>(subr->body));
 
-    // TODO: լրացնել, ուղղել
+    // լրացնել, ուղղել
     if( rtype->isVoidTy() )
         builder.CreateRetVoid();
     else {
@@ -139,6 +139,7 @@ void IrEmitter::emitSequence( Sequence* seq )
 ///
 void IrEmitter::emitLet( Let* let )
 {
+    // TODO: տողերի դեպքում՝ ուրիշ մոտեցում
     auto val = emitExpression(let->expr);
     auto addr = varaddresses[let->varptr->name];
     builder.CreateStore(val, addr);
