@@ -10,6 +10,7 @@
 #include <string>
 
 namespace basic {
+
 ///
 class IrEmitter {
 public:
@@ -31,14 +32,12 @@ private:
     void emitLet( Let* let );
     void emitInput( Input* inp );
     void emitPrint( Print* pri );
-    /*
-    void emitIf(If* ifSt, llvm::BasicBlock* endBB = nullptr);
-    void emitWhile(While* whileSt, llvm::BasicBlock* endBB);
-    */
+
+    //void emitIf(If* ifSt, llvm::BasicBlock* endBB = nullptr);
+    //void emitWhile(While* whileSt, llvm::BasicBlock* endBB);
+
     void emitFor( For* sfor );
-    /*
-    void emitCall(Call* cal);
-    */
+    //void emitCall(Call* cal);
 
     llvm::Value* emitExpression( Expression* expr );
     llvm::Value* emitBinary( Binary* bin );
@@ -57,8 +56,7 @@ private:
 
     llvm::raw_fd_ostream& outstream;
 
-    //std::unordered_map<AstNode*, llvm::Value*> mEmittedNodes;
-    std::unordered_map<std::string,llvm::Value*> globaltexts;
-    std::unordered_map<std::string,llvm::Value*> varaddresses;
+    std::unordered_map<std::string, llvm::Value*> globaltexts;
+    std::unordered_map<std::string, llvm::Value*> varaddresses;
 };
 } // namespace basic
