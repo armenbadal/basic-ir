@@ -47,6 +47,8 @@ private:
     llvm::Constant* emitNumber( Number* num );
     llvm::LoadInst* emitLoad( Variable* var );
 
+    void declareLibSubr( const std::string& name, llvm::ArrayRef<llvm::Type*> patys, llvm::Type* rty );
+    void declareLibrary();
     llvm::Type* llvmType( Type type );
 
 private:
@@ -57,7 +59,7 @@ private:
 
     llvm::raw_fd_ostream& outstream;
 
-    //std::unordered_map<AstNode*, llvm::Value*> mEmittedNodes;
+    std::unordered_map<std::string,llvm::Function*> library;
     std::unordered_map<std::string,llvm::Value*> globaltexts;
     std::unordered_map<std::string,llvm::Value*> varaddresses;
 };

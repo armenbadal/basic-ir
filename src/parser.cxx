@@ -132,6 +132,11 @@ void Parser::parseSubroutine()
     match(Token::End);
     match(Token::Subroutine);
 
+    // եթե վերադարձվող արժեք չկա, ապա ֆունկցիայի անունը հեռացնել
+    // լոկալ փոփոխականների ցուցակից
+    if( !subr->hasValue )
+        ;// TODO: հեռացնել name-ն locals-ից
+
     // անորոշ հղումների ցուցակում ճշտել, թե որ Apply օբյեկտներն են
     // հղվում այս ենթածրագրին, և ուղղել/լրացնել պակասող տվյալները
     auto apit = unresolved.find(name);

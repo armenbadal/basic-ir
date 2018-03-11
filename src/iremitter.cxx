@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <list>
 
 /*
 // աջակցող գրադարանը բեռնելու համար
@@ -36,12 +37,15 @@ namespace basic {
 bool IrEmitter::emitIrCode( Program* prog )
 {
     emitProgram(prog);
+    return true;
 }
 
 ///
 void IrEmitter::emitProgram( Program* prog )
 {
     module = new llvm::Module(prog->filename, context);
+
+    declareLibrary();
 
     for( Subroutine* si : prog->members )
         emitSubroutine(si);
@@ -78,11 +82,14 @@ void IrEmitter::emitSubroutine( Subroutine* subr )
     auto start = llvm::BasicBlock::Create(context, "start", fun);
     builder.SetInsertPoint(start);
 
-    // ֆունկցիայի պարամետրերին տալ անուններ
+    // ֆունկցիայի պարամետրերին տալ սահմանված անունները
     for( auto& arg : fun->args() ) {
         int ix = arg.getArgNo();
         arg.setName(subr->parameters[ix]);
     }
+
+    // տեքստային օբյեկտների հասցեները
+    std::list<llvm::Value*> localtexts;
 
     // օբյեկտներ բոլոր լոկալ փոփոխականների, պարամետրերի 
     // և վերադարձվող արժեքի համար
@@ -90,16 +97,35 @@ void IrEmitter::emitSubroutine( Subroutine* subr )
         auto vty = llvmType(vi->type);
         auto addr = builder.CreateAlloca(vty, nullptr, vi->name + "_addr");
         varaddresses[vi->name] = addr;
+        if( Type::Text == vi->type )
+            localtexts.push_back(addr);
     }
 
     // պարամետրերի արժեքները վերագրել լոկալ օբյեկտներին
     for( auto& arg : fun->args() )
-        builder.CreateStore(&arg, varaddresses[arg.getName()]);
+        if( arg.getType()->isPointerTy() ) {
+            auto parval = builder.CreateCall(library["text_clone"], { &arg });
+            builder.CreateStore(parval, varaddresses[arg.getName()]);
+        }
+        else
+            builder.CreateStore(&arg, varaddresses[arg.getName()]);
+
+    // տեքստային օբյեկտների համար գեներացնել սկզբնական արժեք
+    // (սա արվում է վերագրման ժամանակ հին արժեքը ջնջելու և 
+    // նորը վերագրելու սիմետրիկությունն ապահովելու համար)
+    for( auto vp : localtexts ) {
+        auto deva = builder.CreateCall(library["malloc"], { builder.getInt64(1) });
+        builder.CreateStore(deva, vp);
+    }
 
     // գեներացնել ֆունկցիայի մարմինը
     emitSequence(dynamic_cast<Sequence*>(subr->body));
 
-    // լրացնել, ուղղել
+    // ազատել տեքստային օբյեկտների զբաղեցրած հիշողությունը
+    for( auto vp : localtexts )
+        auto deva = builder.CreateCall(library["free"], { vp });
+
+    // վերադարձվող արժեք
     if( rtype->isVoidTy() )
         builder.CreateRetVoid();
     else {
@@ -139,10 +165,17 @@ void IrEmitter::emitSequence( Sequence* seq )
 ///
 void IrEmitter::emitLet( Let* let )
 {
-    // TODO: տողերի դեպքում՝ ուրիշ մոտեցում
     auto val = emitExpression(let->expr);
     auto addr = varaddresses[let->varptr->name];
-    builder.CreateStore(val, addr);
+    if( Type::Text == let->varptr->type ) {
+        auto e0 = builder.CreateCall(library["text_clone"], {val});
+        builder.CreateCall(library["free"], addr);
+        builder.CreateStore(e0, addr);
+        if( val->getName().startswith("_temp_") )
+            builder.CreateCall(library["free"], val);
+    }
+    else
+        builder.CreateStore(val, addr);
 }
 
 ///
@@ -294,6 +327,7 @@ llvm::Value* IrEmitter::emitExpression( Expression* expr )
         case NodeKind::Unary:
             break;
         case NodeKind::Binary:
+            res = emitBinary(dynamic_cast<Binary*>(expr));
             break;
         case NodeKind::Apply:
             break;
@@ -334,18 +368,15 @@ llvm::LoadInst* IrEmitter::emitLoad( Variable* var )
     return builder.CreateLoad(vaddr, var->name);
 }
 
-/*
+/**/
 llvm::Value* IrEmitter::emitBinary(Binary* bin)
 {
-    if (auto r = getEmittedNode(bin)) {
-        return r;
-    }
     llvm::Value* lhs = emitExpression(bin->subexpro);
-    assert(lhs);
     llvm::Value* rhs = emitExpression(bin->subexpri);
-    assert(rhs);
+
     llvm::Value* ret = nullptr;
     switch (bin->opcode) {
+        /*
         case Operation::None:
             break;
         case Operation::Add:
@@ -390,26 +421,18 @@ llvm::Value* IrEmitter::emitBinary(Binary* bin)
         case Operation::Or:
             ret = mBuilder.CreateOr(lhs, rhs, "or");
             break;
+        */
         case Operation::Conc:
-            // TODO: [18:02:36] Armen Badalian: դեռ չեմ պատկերացնում, թե տողերի կոնկատենացիայի համար ինչ կոդ ես գեներացնելու
-            //[18:03:16] Tigran Sargsyan: ես էլ չեմ պատկերացնում
-            //[18:03:21] Tigran Sargsyan: :)
-            //[18:03:33] Tigran Sargsyan: բայց դե միբան կբստրենք
-            //[18:03:44] Armen Badalian: միգուցե տողերը սարքենք հին Պասկալի պես, երկարությունը ֆիքսենք 255 նիշ, ու բոլոր գործողությունները դրանով անենք
-            //[18:04:16 | Edited 18:04:20] Armen Badalian: հին Պասկալում տողի առաջին բայթում գրվում էր տողի երկարությունը
-            //[18:04:30] Armen Badalian: ու դա կարող էր լինել 255
-            //[18:05:14] Tigran Sargsyan: տարբերակ ա, կարելի ա մտածել
-            assert("CONC operator is not handled yet");
+            ret = builder.CreateCall(library["text_concatenate"], {lhs, rhs}, "_temp_");
             break;
-        default: {
-            assert("Undefined binary operator");
+        default:
             break;
-        }
     }
-    mEmittedNodes.insert({ bin, ret });
+
     return ret;
 }
 
+/*
 llvm::Value* IrEmitter::emitUnary(Unary* un)
 {
     llvm::Value* val = emitExpression(un->subexpr);
@@ -426,6 +449,30 @@ llvm::Value* IrEmitter::emitUnary(Unary* un)
 }
 */
 
+/**/
+void IrEmitter::declareLibSubr( const std::string& name, llvm::ArrayRef<llvm::Type*> patys, llvm::Type* rty )
+{
+    auto functy = llvm::FunctionType::get(rty, patys, false);
+    library[name] = llvm::Function::Create(functy, llvm::GlobalValue::ExternalLinkage, name, module);
+}
+
+/**/
+void IrEmitter::declareLibrary()
+{
+    auto _V = builder.getVoidTy();
+    auto _N = builder.getDoubleTy();
+    auto _T = builder.getInt8PtrTy();
+
+    declareLibSubr("text_clone", {_T}, _T);
+    declareLibSubr("text_input", {}, _T);
+    declareLibSubr("text_print", {_T}, _V);
+    declareLibSubr("text_concatenate", {_T, _T}, _T);
+
+    declareLibSubr("malloc", { builder.getInt64Ty() }, _T);
+    declareLibSubr("free", {_T}, _V);
+}
+
+/**/
 llvm::Type* IrEmitter::llvmType( Type type )
 {
     if( Type::Number == type )
