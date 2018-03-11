@@ -9,16 +9,22 @@ namespace basic {
 //
 class ParseError : public std::exception {
 public:
-    ParseError(const std::string& mes)
-        : std::exception(mes.c_str())
+    ParseError( const std::string& mes )
+        : message(mes)
     {}
+    const char* what() const noexcept override
+    {
+        return message.c_str();
+    }
+private:
+    std::string message;
 };
 
 ///
-Parser::Parser(const std::string& filename)
+Parser::Parser( const std::string& filename )
     : scanner{ filename }
 {
-    module = new Program(filename);
+    module = std::make_shared<Program>(filename);
 
     // թվային ֆունկցիաներ
     declareBuiltIn("SQR", { "a" }, true);
@@ -31,12 +37,10 @@ Parser::Parser(const std::string& filename)
 
 ///
 Parser::~Parser()
-{
-    /// AstNode::deleteAllocatedNodes(); 
-}
+{}
 
 ///
-Program* Parser::parse()
+std::shared_ptr<Program> Parser::parse()
 {
     try {
         parseProgram();
@@ -69,11 +73,11 @@ void Parser::parseProgram()
     scanner >> lookahead;
 
     // կարդալ ու դեն նետել ծրագրի սկզբի դատարկ տողերը
-    if (lookahead.is(Token::NewLine))
+    if( lookahead.is(Token::NewLine) )
         parseNewLines();
 
     // վերլուծել ենթածրագրերի հաջորդականությունը
-    while (!lookahead.is(Token::Eof)) {
+    while( !lookahead.is(Token::Eof) ) {
         parseSubroutine();
         parseNewLines();
     }
@@ -100,13 +104,13 @@ void Parser::parseSubroutine()
 
     // պարամետրերի ցուցակ
     std::vector<std::string> params;
-    if (lookahead.is(Token::LeftPar)) {
+    if( lookahead.is(Token::LeftPar) ) {
         match(Token::LeftPar);
-        if (lookahead.is(Token::Identifier)) {
+        if( lookahead.is(Token::Identifier) ) {
             auto idlex = lookahead.value;
             match(Token::Identifier);
             params.push_back(idlex);
-            while (lookahead.is(Token::Comma)) {
+            while( lookahead.is(Token::Comma) ) {
                 match(Token::Comma);
                 idlex = lookahead.value;
                 match(Token::Identifier);
@@ -116,7 +120,7 @@ void Parser::parseSubroutine()
         match(Token::RightPar);
     }
 
-    auto subr = new Subroutine(name, params);
+    auto subr = std::make_shared<Subroutine>(name, params);
     module->members.push_back(subr);
 
     // մարմին
@@ -128,8 +132,8 @@ void Parser::parseSubroutine()
     // անորոշ հղումների ցուցակում ճշտել, թե որ Apply օբյեկտներն են
     // հղվում այս ենթածրագրին, և ուղղել/լրացնել պակասող տվյալները
     auto apit = unresolved.find(name);
-    if (apit != unresolved.end()) {
-        for (Apply* ap : apit->second)
+    if( apit != unresolved.end() ) {
+        for( auto& ap : apit->second )
             ap->procptr = subr;
         unresolved.erase(apit);
     }
@@ -138,27 +142,27 @@ void Parser::parseSubroutine()
 //
 // Statements = NewLines { (Let | Input | Print | If | While | For | Call) NewLines }.
 //
-Statement* Parser::parseStatements()
+std::shared_ptr<Statement> Parser::parseStatements()
 {
     parseNewLines();
 
-    auto sequ = new Sequence();
-    while (true) {
-        Statement* stat = nullptr;
+    auto sequ = std::make_shared<Sequence>();
+    while( true ) {
+        std::shared_ptr<Statement> stat;
         unsigned int line = lookahead.line;
-        if (lookahead.is(Token::Let))
+        if( lookahead.is(Token::Let) )
             stat = parseLet();
-        else if (lookahead.is(Token::Input))
+        else if( lookahead.is(Token::Input) )
             stat = parseInput();
-        else if (lookahead.is(Token::Print))
+        else if( lookahead.is(Token::Print) )
             stat = parsePrint();
-        else if (lookahead.is(Token::If))
+        else if( lookahead.is(Token::If) )
             stat = parseIf();
-        else if (lookahead.is(Token::While))
+        else if( lookahead.is(Token::While) )
             stat = parseWhile();
-        else if (lookahead.is(Token::For))
+        else if( lookahead.is(Token::For) )
             stat = parseFor();
-        else if (lookahead.is(Token::Call))
+        else if( lookahead.is(Token::Call) )
             stat = parseCall();
         else
             break;
@@ -173,7 +177,7 @@ Statement* Parser::parseStatements()
 //
 // Let = 'LET' IDENT '=' Expression.
 //
-Statement* Parser::parseLet()
+std::shared_ptr<Statement> Parser::parseLet()
 {
     unsigned int pos = lookahead.line;
 
@@ -187,21 +191,21 @@ Statement* Parser::parseLet()
 
     // եթե vnm-ն համընկնում է ընթացիկ ենթածրագրի անվան հետ,
     // ապա վերջինիս hasValue-ն դնել true
-    Subroutine* current = module->members.back();
-    if (vnm == current->name)
+    auto current = module->members.back();
+    if( vnm == current->name )
         current->hasValue = true;
 
-    return new Let(varp, exo);
+    return std::make_shared<Let>(varp, exo);
 }
 
 //
 // Input = 'INPUT' IDENT.
 //
-Statement* Parser::parseInput()
+std::shared_ptr<Statement> Parser::parseInput()
 {
     match(Token::Input);
     std::string prom = "";
-    if (lookahead.is(Token::Text)) {
+    if( lookahead.is(Token::Text) ) {
         prom = lookahead.value;
         match(Token::Text);
         match(Token::Comma);
@@ -210,17 +214,17 @@ Statement* Parser::parseInput()
     match(Token::Identifier);
 
     auto varp = getVariable(vnm, false);
-    return new Input(prom, varp);
+    return std::make_shared<Input>(prom, varp);
 }
 
 //
 // Print = 'PRINT' Expression.
 //
-Statement* Parser::parsePrint()
+std::shared_ptr<Statement> Parser::parsePrint()
 {
     match(Token::Print);
     auto exo = parseExpression();
-    return new Print(exo);
+    return std::make_shared<Print>(exo);
 }
 
 //
@@ -228,26 +232,26 @@ Statement* Parser::parsePrint()
 //   {'ELSEIF' Expression 'THEN' Statements }
 //   ['ELSE' Statements] 'END' 'IF'.
 //
-Statement* Parser::parseIf()
+std::shared_ptr<Statement> Parser::parseIf()
 {
     match(Token::If);
     auto cond = parseExpression();
     match(Token::Then);
     auto deci = parseStatements();
-    auto sif = new If(cond, deci);
+    auto sif = std::make_shared<If>(cond, deci);
 
     auto it = sif;
-    while (lookahead.is(Token::ElseIf)) {
+    while( lookahead.is(Token::ElseIf) ) {
         match(Token::ElseIf);
         auto cone = parseExpression();
         match(Token::Then);
         auto dece = parseStatements();
-        auto eif = new If(cone, dece);
+        auto eif = std::make_shared<If>(cone, dece);
         it->alternative = eif;
         it = eif;
     }
 
-    if (lookahead.is(Token::Else)) {
+    if( lookahead.is(Token::Else) ) {
         match(Token::Else);
         auto alte = parseStatements();
         it->alternative = alte;
@@ -266,21 +270,21 @@ Statement* Parser::parseIf()
 //
 // While = 'WHILE' Expression Statements 'END' 'WHILE'.
 //
-Statement* Parser::parseWhile()
+std::shared_ptr<Statement> Parser::parseWhile()
 {
     match(Token::While);
     auto cond = parseExpression();
     auto body = parseStatements();
     match(Token::End);
     match(Token::While);
-    return new While(cond, body);
+    return std::make_shared<While>(cond, body);
 }
 
 //
 // For = 'FOR' IDENT '=' Expression 'TO' Expression ['STEP' NUMBER]
 //    Statements 'END' 'FOR'.
 //
-Statement* Parser::parseFor()
+std::shared_ptr<Statement> Parser::parseFor()
 {
     match(Token::For);
     auto par = lookahead.value;
@@ -303,39 +307,39 @@ Statement* Parser::parseFor()
         if( neg )
             spvl = -spvl;
     }
-    auto sp = new Number(spvl);
+    auto sp = std::make_shared<Number>(spvl);
     auto vp = getVariable(par, false);
     auto dy = parseStatements();
     match(Token::End);
     match(Token::For);
 
-    return new For(vp, be, en, sp, dy);
+    return std::make_shared<For>(vp, be, en, sp, dy);
 }
 
 //
 // Call = 'CALL' IDENT [ExpressionList].
 //
-Statement* Parser::parseCall()
+std::shared_ptr<Statement> Parser::parseCall()
 {
     match(Token::Call);
     auto name = lookahead.value;
     match(Token::Identifier);
-    std::vector<Expression*> args;
-    if (lookahead.is({ Token::Number, Token::Text, Token::Identifier, 
-        Token::Sub, Token::Not, Token::LeftPar })) {
+    std::vector<std::shared_ptr<Expression>> args;
+    if( lookahead.is({ Token::Number, Token::Text, Token::Identifier, 
+        Token::Sub, Token::Not, Token::LeftPar }) ) {
         auto exo = parseExpression();
         args.push_back(exo);
-        while (lookahead.is(Token::Comma)) {
+        while( lookahead.is(Token::Comma) ) {
             match(Token::Comma);
             exo = parseExpression();
             args.push_back(exo);
         }
     }
 
-    Call* caller = new Call(nullptr, args);
+    auto caller = std::make_shared<Call>(nullptr, args);
 
     auto callee = getSubroutine(name, args, false);
-    if (nullptr == callee)
+    if( nullptr == callee )
         unresolved[name].push_back(caller->subrcall);
 
     caller->subrcall->procptr = callee;
@@ -344,7 +348,7 @@ Statement* Parser::parseCall()
 }
 
 //
-Operation opCode(Token tok)
+Operation opCode( Token tok )
 {
     static std::map<Token, Operation> opcodes{
         { Token::Add, Operation::Add },
@@ -369,14 +373,14 @@ Operation opCode(Token tok)
 //
 // Expression = Addition [('=' | '<>' | '>' | '>=' | '<' | '<=') Addition].
 //
-Expression* Parser::parseExpression()
+std::shared_ptr<Expression> Parser::parseExpression()
 {
     auto res = parseAddition();
-    if (lookahead.is({ Token::Eq, Token::Ne, Token::Gt, Token::Ge, Token::Lt, Token::Le })) {
+    if( lookahead.is({ Token::Eq, Token::Ne, Token::Gt, Token::Ge, Token::Lt, Token::Le }) ) {
         auto opc = opCode(lookahead.kind);
         match(lookahead.kind);
         auto exo = parseAddition();
-        res = new Binary(opc, res, exo);
+        res = std::make_shared<Binary>(opc, res, exo);
     }
     return res;
 }
@@ -384,14 +388,14 @@ Expression* Parser::parseExpression()
 //
 // Addition = Multiplication {('+' | '-' | '&' | 'OR') Multiplication}.
 //
-Expression* Parser::parseAddition()
+std::shared_ptr<Expression> Parser::parseAddition()
 {
     auto res = parseMultiplication();
-    while (lookahead.is({ Token::Add, Token::Sub, Token::Amp, Token::Or })) {
+    while( lookahead.is({ Token::Add, Token::Sub, Token::Amp, Token::Or }) ) {
         auto opc = opCode(lookahead.kind);
         match(lookahead.kind);
         auto exo = parseMultiplication();
-        res = new Binary(opc, res, exo);
+        res = std::make_shared<Binary>(opc, res, exo);
     }
     return res;
 }
@@ -399,14 +403,14 @@ Expression* Parser::parseAddition()
 //
 // Multiplication = Power {('*' | '/' | '\' | 'AND') Power}.
 //
-Expression* Parser::parseMultiplication()
+std::shared_ptr<Expression> Parser::parseMultiplication()
 {
     auto res = parsePower();
-    while (lookahead.is({ Token::Mul, Token::Div, Token::Mod, Token::And })) {
+    while( lookahead.is({ Token::Mul, Token::Div, Token::Mod, Token::And }) ) {
         auto opc = opCode(lookahead.kind);
         match(lookahead.kind);
         auto exo = parsePower();
-        res = new Binary(opc, res, exo);
+        res = std::make_shared<Binary>(opc, res, exo);
     }
     return res;
 }
@@ -414,13 +418,13 @@ Expression* Parser::parseMultiplication()
 //
 // Power = Factor ['^' Power].
 //
-Expression* Parser::parsePower()
+std::shared_ptr<Expression> Parser::parsePower()
 {
     auto res = parseFactor();
-    if (lookahead.is(Token::Pow)) {
+    if( lookahead.is(Token::Pow) ) {
         match(Token::Pow);
         auto exo = parseFactor();
-        res = new Binary(Operation::Pow, res, exo);
+        res = std::make_shared<Binary>(Operation::Pow, res, exo);
     }
     return res;
 }
@@ -429,58 +433,58 @@ Expression* Parser::parsePower()
 // Factor = NUMBER | TEXT | IDENT | '(' Expression ')'
 //     | IDENT '(' [ExpressionList] ')'.
 //
-Expression* Parser::parseFactor()
+std::shared_ptr<Expression> Parser::parseFactor()
 {
     // NUMBER
-    if (lookahead.is(Token::Number)) {
+    if( lookahead.is(Token::Number) ) {
         auto lex = lookahead.value;
         match(Token::Number);
-        return new Number(std::stod(lex));
+        return std::make_shared<Number>(std::stod(lex));
     }
 
     // TEXT
-    if (lookahead.is(Token::Text)) {
+    if( lookahead.is(Token::Text) ) {
         auto lex = lookahead.value;
         match(Token::Text);
-        return new Text(lex);
+        return std::make_shared<Text>(lex);
     }
 
     // ('-' | 'NOT') Factor
-    if (lookahead.is({ Token::Sub, Token::Not })) {
+    if( lookahead.is({ Token::Sub, Token::Not }) ) {
         Operation opc = Operation::None;
-        if (lookahead.is(Token::Sub)) {
+        if( lookahead.is(Token::Sub) ) {
             opc = Operation::Sub;
             match(Token::Sub);
         }
-        else if (lookahead.is(Token::Not)) {
+        else if( lookahead.is(Token::Not) ) {
             opc = Operation::Not;
             match(Token::Not);
         }
         auto exo = parseFactor();
-        return new Unary(opc, exo);
+        return std::make_shared<Unary>(opc, exo);
     }
 
     // IDENT ['(' [ExpressionList] ')']
-    if (lookahead.is(Token::Identifier)) {
+    if( lookahead.is(Token::Identifier) ) {
         auto name = lookahead.value;
         match(Token::Identifier);
-        if (lookahead.is(Token::LeftPar)) {
-            std::vector<Expression*> args;
+        if( lookahead.is(Token::LeftPar) ) {
+            std::vector<std::shared_ptr<Expression>> args;
             match(Token::LeftPar);
             auto exo = parseExpression();
             args.push_back(exo);
-            while (lookahead.is(Token::Comma)) {
+            while( lookahead.is(Token::Comma) ) {
                 match(Token::Comma);
                 exo = parseExpression();
                 args.push_back(exo);
             }
             match(Token::RightPar);
 
-            Apply* applyer = new Apply(nullptr, args);
+            auto applyer = std::make_shared<Apply>(nullptr, args);
             applyer->type = typeOf(name);
 
             auto callee = getSubroutine(name, args, true);
-            if (nullptr == callee)
+            if( nullptr == callee )
                 unresolved[name].push_back(applyer);
 
             applyer->procptr = callee;
@@ -492,7 +496,7 @@ Expression* Parser::parseFactor()
     }
 
     // '(' Expression ')'
-    if (lookahead.is(Token::LeftPar)) {
+    if( lookahead.is(Token::LeftPar) ) {
         match(Token::LeftPar);
         auto exo = parseExpression();
         match(Token::RightPar);
@@ -511,10 +515,11 @@ void Parser::parseNewLines()
 }
 
 //
-void Parser::match(Token exp)
+void Parser::match( Token exp )
 {
     if( !lookahead.is(exp) )
-        throw ParseError("Սպասվում է " + toString(exp) + ", բայց հանդիպել է " + lookahead.value + "։");
+        throw ParseError("Սպասվում է " + toString(exp) + 
+                ", բայց հանդիպել է " + lookahead.value + "։");
 
     scanner >> lookahead;
 }
@@ -522,16 +527,16 @@ void Parser::match(Token exp)
 //
 void Parser::declareBuiltIn( const std::string& nm, const std::vector<std::string>& ps, bool rv )
 {
-    Subroutine* sre = new Subroutine(nm, ps);
+    auto sre = std::make_shared<Subroutine>(nm, ps);
     sre->isBuiltIn = true;
     sre->hasValue = rv;
     module->members.push_back(sre);
 }
 
 //
-Variable* Parser::getVariable( const std::string& nm, bool rval )
+std::shared_ptr<Variable> Parser::getVariable( const std::string& nm, bool rval )
 {
-    Subroutine* subr = module->members.back();
+    auto subr = module->members.back();
     auto& locals = subr->locals;
 
     if( rval && equalNames(subr->name, nm) )
@@ -545,14 +550,15 @@ Variable* Parser::getVariable( const std::string& nm, bool rval )
     if( rval )
         throw ParseError(nm + " փոփոխականը դեռ սահմանված չէ։");
 
-    auto varp = new Variable(nm);
+    auto varp = std::make_shared<Variable>(nm);
     locals.push_back(varp);
 
     return varp;
 }
 
 //
-Subroutine* Parser::getSubroutine( const std::string& nm, const std::vector<Expression*>& ags, bool func )
+std::shared_ptr<Subroutine> Parser::getSubroutine( const std::string& nm, 
+    const std::vector<std::shared_ptr<Expression>>& ags, bool func )
 {
     // որոնել տրված անունով ենթածրագիրը արդեն սահմանվածների մեջ
     auto subrit = std::find_if(module->members.begin(), module->members.end(),
@@ -570,12 +576,12 @@ Subroutine* Parser::getSubroutine( const std::string& nm, const std::vector<Expr
 }
 
 //
-bool equalNames(const std::string& no, const std::string& ni)
+bool equalNames( const std::string& no, const std::string& ni )
 {
     std::string so = no, si = ni;
-    if ('$' == so.back())
+    if( '$' == so.back() )
         so.pop_back();
-    if ('$' == si.back())
+    if( '$' == si.back() )
         si.pop_back();
     return so == si;
 }

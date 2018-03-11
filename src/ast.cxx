@@ -6,19 +6,9 @@
 
 namespace basic {
 //
-std::list<AstNode*> AstNode::allocatedNodes;
-
-//
-void AstNode::deleteAllocatedNodes()
+std::string toString( Operation opc )
 {
-    for (auto e : allocatedNodes)
-        delete e;
-}
-
-//
-std::string toString(Operation opc)
-{
-    static std::map<Operation, std::string> names{
+    static std::map<Operation,std::string> names{
         { Operation::None, "None" },
         { Operation::Add, "+" },
         { Operation::Sub, "-" },
@@ -41,12 +31,12 @@ std::string toString(Operation opc)
 }
 
 //
-Type typeOf(const std::string& nm)
+Type typeOf( const std::string& nm )
 {
     return nm.back() == '$' ? Type::Text : Type::Number;
 }
 
-std::string toString(Type vl)
+std::string toString( Type vl )
 {
     if( Type::Number == vl )
         return "NUMBER";
@@ -58,13 +48,7 @@ std::string toString(Type vl)
 }
 
 //
-AstNode::AstNode()
-{
-    allocatedNodes.push_front(this);
-}
-
-//
-Number::Number(double vl)
+Number::Number( double vl )
     : value(vl)
 {
     kind = NodeKind::Number;
@@ -72,7 +56,7 @@ Number::Number(double vl)
 }
 
 //
-Text::Text(const std::string& vl)
+Text::Text( const std::string& vl )
     : value(vl)
 {
     kind = NodeKind::Text;
@@ -80,7 +64,7 @@ Text::Text(const std::string& vl)
 }
 
 //
-Variable::Variable(const std::string& nm)
+Variable::Variable( const std::string& nm )
     : name(nm)
 {
     kind = NodeKind::Variable;
@@ -88,7 +72,7 @@ Variable::Variable(const std::string& nm)
 }
 
 //
-Unary::Unary(Operation op, Expression* ex)
+Unary::Unary( Operation op, std::shared_ptr<Expression> ex )
     : opcode(op), subexpr(ex)
 {
     kind = NodeKind::Unary;
@@ -96,14 +80,14 @@ Unary::Unary(Operation op, Expression* ex)
 }
 
 //
-Binary::Binary(Operation op, Expression* exo, Expression* exi)
+Binary::Binary( Operation op, std::shared_ptr<Expression> exo, std::shared_ptr<Expression> exi )
     : opcode(op), subexpro(exo), subexpri(exi)
 {
     kind = NodeKind::Binary;
 }
 
 //
-Apply::Apply(Subroutine* sp, const std::vector<Expression*>& ags)
+Apply::Apply( std::shared_ptr<Subroutine> sp, const std::vector<std::shared_ptr<Expression>>& ags )
     : procptr(sp), arguments(ags)
 {
     kind = NodeKind::Apply;
@@ -116,66 +100,68 @@ Sequence::Sequence()
 }
 
 //
-Input::Input(const std::string& pr, Variable* vp)
+Input::Input( const std::string& pr, std::shared_ptr<Variable> vp )
     : prompt(pr), varptr(vp)
 {
     kind = NodeKind::Input;
 }
 
 //
-Print::Print(Expression* ex)
+Print::Print( std::shared_ptr<Expression> ex )
     : expr(ex)
 {
     kind = NodeKind::Print;
 }
 
 //
-Let::Let(Variable* vp, Expression* ex)
+Let::Let( std::shared_ptr<Variable> vp, std::shared_ptr<Expression> ex )
     : varptr(vp), expr(ex)
 {
     kind = NodeKind::Let;
 }
 
 //
-If::If(Expression* co, Statement* de, Statement* al)
+If::If( std::shared_ptr<Expression> co, std::shared_ptr<Statement> de, std::shared_ptr<Statement> al )
     : condition(co), decision(de), alternative(al)
 {
     kind = NodeKind::If;
 }
 
 //
-While::While(Expression* co, Statement* bo)
+While::While( std::shared_ptr<Expression> co, std::shared_ptr<Statement> bo )
     : condition(co), body(bo)
 {
     kind = NodeKind::While;
 }
 
 //
-For::For(Variable* pr, Expression* be, Expression* en, Expression* st, Statement* bo)
+For::For( std::shared_ptr<Variable> pr, std::shared_ptr<Expression> be,
+          std::shared_ptr<Expression> en, std::shared_ptr<Expression> st,
+          std::shared_ptr<Statement> bo )
     : parameter(pr), begin(be), end(en), step(st), body(bo)
 {
     kind = NodeKind::For;
 }
 
 //
-Call::Call(Subroutine* sp, const std::vector<Expression*> as)
-    : subrcall(new Apply(sp, as))
+Call::Call( std::shared_ptr<Subroutine> sp, const std::vector<std::shared_ptr<Expression>>& as )
+    : subrcall(std::make_shared<Apply>(sp, as))
 {
     kind = NodeKind::Call;
 }
 
 //
-Subroutine::Subroutine(const std::string& nm, const std::vector<std::string>& ps)
+Subroutine::Subroutine( const std::string& nm, const std::vector<std::string>& ps )
     : name(nm), parameters(ps)
 {
     kind = NodeKind::Subroutine;
-    locals.push_back(new Variable(name));
-    for (auto& ps : parameters)
-        locals.push_back(new Variable(ps));
+    locals.push_back(std::make_shared<Variable>(name));
+    for( auto& ps : parameters )
+        locals.push_back(std::make_shared<Variable>(ps));
 }
 
 //
-Program::Program(const std::string& fn)
+Program::Program( const std::string& fn )
     : filename(fn)
 {
     kind = NodeKind::Program;

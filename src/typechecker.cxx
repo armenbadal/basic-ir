@@ -7,18 +7,24 @@ namespace basic {
 //
 class TypeError : public std::exception {
 public:
-    TypeError(const std::string& mes)
-        : std::exception(mes.c_str())
+    TypeError( const std::string& mes )
+        : message(mes)
     {}
+    const char* what() const noexcept override
+    {
+        return message.c_str();
+    }
+private:
+    std::string message;
 };
 
 //
-bool TypeChecker::check(AstNode* node)
+bool TypeChecker::check( std::shared_ptr<AstNode> node )
 {
     try {
         visitAstNode(node);
     }
-    catch(TypeError& e) {
+    catch( TypeError& e ) {
         std::cerr << "Տիպի սխալ։ " << e.what() << std::endl;
         return false;
     }
@@ -27,27 +33,27 @@ bool TypeChecker::check(AstNode* node)
 }
 
 //
-void TypeChecker::visitProgram(Program* node)
+void TypeChecker::visitProgram( std::shared_ptr<Program> node )
 {
     for( auto si : node->members )
         visitAstNode(si);
 }
 
 //
-void TypeChecker::visitSubroutine(Subroutine* node)
+void TypeChecker::visitSubroutine( std::shared_ptr<Subroutine> node )
 {
     visitAstNode(node->body);
 }
 
 //
-void TypeChecker::visitSequence(Sequence* node)
+void TypeChecker::visitSequence( std::shared_ptr<Sequence> node )
 {
     for( auto si : node->items )
         visitAstNode(si);
 }
 
 //
-void TypeChecker::visitLet(Let* node)
+void TypeChecker::visitLet( std::shared_ptr<Let> node )
 {
     visitAstNode(node->expr);
     if( node->expr->type != node->varptr->type ) {
@@ -59,38 +65,38 @@ void TypeChecker::visitLet(Let* node)
 }
 
 //
-void TypeChecker::visitInput(Input* node)
+void TypeChecker::visitInput( std::shared_ptr<Input> node )
 {}
 
 //
-void TypeChecker::visitPrint(Print* node)
+void TypeChecker::visitPrint( std::shared_ptr<Print> node )
 {
     visitAstNode(node->expr);
 }
 
 //
-void TypeChecker::visitIf(If* node)
+void TypeChecker::visitIf( std::shared_ptr<If> node )
 {
     visitAstNode(node->condition);
     visitAstNode(node->decision);
     visitAstNode(node->alternative);
 
-    if(Type::Number != node->condition->type )
+    if( Type::Number != node->condition->type )
         throw TypeError("Ճյուղավորման հրամանի պայմանի տիպը թվային չէ։");
 }
 
 //
-void TypeChecker::visitWhile(While* node)
+void TypeChecker::visitWhile( std::shared_ptr<While> node )
 {
     visitAstNode(node->condition);
     visitAstNode(node->condition);
 
-    if(Type::Number != node->condition->type )
+    if( Type::Number != node->condition->type )
         throw TypeError("Պայմանով ցիկլի պայմանի տիպը թվային չէ։");
 }
 
 //
-void TypeChecker::visitFor(For* node)
+void TypeChecker::visitFor( std::shared_ptr<For> node )
 {
     visitAstNode(node->begin);
     visitAstNode(node->end);
@@ -107,13 +113,13 @@ void TypeChecker::visitFor(For* node)
 }
 
 //
-void TypeChecker::visitCall(Call* node)
+void TypeChecker::visitCall( std::shared_ptr<Call> node )
 {
     visitApply(node->subrcall);
 }
 
 //
-void TypeChecker::visitApply(Apply* node)
+void TypeChecker::visitApply( std::shared_ptr<Apply> node )
 {
     auto& parameters = node->procptr->parameters;
     auto& arguments = node->arguments;
@@ -133,7 +139,7 @@ void TypeChecker::visitApply(Apply* node)
 }
 
 //
-void TypeChecker::visitBinary(Binary* node)
+void TypeChecker::visitBinary( std::shared_ptr<Binary> node )
 {
     visitAstNode(node->subexpro);
     visitAstNode(node->subexpri);
@@ -157,12 +163,12 @@ void TypeChecker::visitBinary(Binary* node)
         else
             throw TypeError("'" + toString(opc) + "' գործողությունը կիրառելի չէ տեքստերին։");
     }
-
-    throw TypeError("'" + toString(opc) + "' գործողության երկու կողմերում տարբեր տիպեր են։");
+    else
+        throw TypeError("'" + toString(opc) + "' գործողության երկու կողմերում տարբեր տիպեր են։");
 }
 
 //
-void TypeChecker::visitUnary(Unary* node)
+void TypeChecker::visitUnary( std::shared_ptr<Unary> node )
 {
     visitAstNode(node->subexpr);
 
@@ -173,20 +179,26 @@ void TypeChecker::visitUnary(Unary* node)
 }
 
 //
-void TypeChecker::visitVariable(Variable* node)
+void TypeChecker::visitVariable( std::shared_ptr<Variable> node )
 {
     // ճիշտ տիպը նախորոշված է
 }
 
 //
-void TypeChecker::visitText(Text* node)
+void TypeChecker::visitText( std::shared_ptr<Text> node )
 {
     // ճիշտ տիպը նախորոշված է
 }
 
 //
-void TypeChecker::visitNumber(Number* node)
+void TypeChecker::visitNumber( std::shared_ptr<Number> node )
 {
     // ճիշտ տիպը նախորոշված է
+}
+
+void TypeChecker::visitAstNode( std::shared_ptr<AstNode> node )
+{
+    if( nullptr != node )
+        AstVisitor::visitAstNode(node);
 }
 }

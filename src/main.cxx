@@ -17,8 +17,6 @@ bool fileExists(const std::string& filename)
 //
 int main( int argc, char* argv[] )
 {
-    std::cout << "Parsing ..." << std::endl;
-
     if( argc < 2 ) {
         std::cout << "" << std::endl;
         return 0;
@@ -29,16 +27,19 @@ int main( int argc, char* argv[] )
         return 0;
     }
 
+    std::cout << "Parsing ..." << std::endl;
     basic::Parser parser(argv[1]);
-    basic::Program* prog = parser.parse();
+    auto prog = parser.parse();
 
     if( nullptr != prog ) {
+        std::cout << "Type checking ..." << std::endl;
         bool errok = basic::TypeChecker().check(prog);
 
         if( errok ) {
-            std::ofstream sout(std::string(argv[1]) + ".lisp");
-            basic::Lisper(sout).asLisp(prog);
-            sout.close();
+            std::cout << "Lisp ..." << std::endl;
+            //std::ofstream sout(std::string(argv[1]) + ".lisp");
+            basic::Lisper(std::cout).asLisp(prog);
+            //sout.close();
         }
     }
 
