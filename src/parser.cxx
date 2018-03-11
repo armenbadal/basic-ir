@@ -22,7 +22,7 @@ private:
 
 ///
 Parser::Parser( const std::string& filename )
-    : scanner{ filename }
+    : scanner(filename)
 {
     module = std::make_shared<Program>(filename);
 
