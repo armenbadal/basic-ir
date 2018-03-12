@@ -5,9 +5,8 @@
 '  LET f = 3.1415
 'END SUB
 
-SUB h$(x$)
-  LET h$ = "Ok"
-  LET wwwww$ = "YES"
+SUB h$(x$, y)
+  LET a$ = "Ok"
 END SUB
 
 'SUB Main

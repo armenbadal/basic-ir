@@ -28,32 +28,32 @@ std::map<Operation, std::string> mnemonic{
 };
 
 ///
-bool Lisper::asLisp(AstNode* node)
+bool Lisper::asLisp( std::shared_ptr<AstNode> node )
 {
     visitAstNode(node);
     return true;
 }
 
 ///
-void Lisper::visitNumber(Number* node)
+void Lisper::visitNumber( std::shared_ptr<Number> node )
 {
     ooo << "(basic-number " << node->value << ")";
 }
 
 ///
-void Lisper::visitText(Text* node)
+void Lisper::visitText( std::shared_ptr<Text> node )
 {
     ooo << "(basic-text \"" << node->value << "\")";
 }
 
 ///
-void Lisper::visitVariable(Variable* node)
+void Lisper::visitVariable( std::shared_ptr<Variable> node )
 {
     ooo << "(basic-variable \"" << node->name << "\")";
 }
 
 ///
-void Lisper::visitUnary(Unary* node)
+void Lisper::visitUnary( std::shared_ptr<Unary> node )
 {
     ooo << "(basic-unary \"" << mnemonic[node->opcode] << "\" ";
     visitAstNode(node->subexpr);
@@ -61,7 +61,7 @@ void Lisper::visitUnary(Unary* node)
 }
 
 ///
-void Lisper::visitBinary(Binary* node)
+void Lisper::visitBinary( std::shared_ptr<Binary> node )
 {
     ooo << "(basic-binary \"" << mnemonic[node->opcode] << "\"";
     ++indent;
@@ -72,18 +72,18 @@ void Lisper::visitBinary(Binary* node)
 }
 
 ///
-void Lisper::visitApply(Apply* node)
+void Lisper::visitApply( std::shared_ptr<Apply> node )
 {
     ooo << "(basic-apply \"" << node->procptr->name << "\"";
     ++indent;
-    for (auto e : node->arguments)
+    for( auto e : node->arguments )
         visitAstNode(e);
     --indent;
     ooo << ")";
 }
 
 ///
-void Lisper::visitLet(Let* node)
+void Lisper::visitLet( std::shared_ptr<Let> node )
 {
     ooo << "(basic-let (basic-variable \""
         << node->varptr->name << "\") ";
@@ -94,14 +94,14 @@ void Lisper::visitLet(Let* node)
 }
 
 ///
-void Lisper::visitInput(Input* node)
+void Lisper::visitInput( std::shared_ptr<Input> node )
 {
     ooo << "(basic-input (basic-variable \"" << node->prompt 
         << "\") \"" << node->varptr->name << "\")";
 }
 
 ///
-void Lisper::visitPrint(Print* node)
+void Lisper::visitPrint( std::shared_ptr<Print> node )
 {
     ooo << "(basic-print";
     ++indent;
@@ -111,20 +111,20 @@ void Lisper::visitPrint(Print* node)
 }
 
 ///
-void Lisper::visitIf(If* node)
+void Lisper::visitIf( std::shared_ptr<If> node )
 {
     ooo << "(basic-if";
     ++indent;
     visitAstNode(node->condition);
     visitAstNode(node->decision);
-    if (nullptr != node->alternative)
+    if( nullptr != node->alternative )
         visitAstNode(node->alternative);
     ooo << ")";
     --indent;
 }
 
 ///
-void Lisper::visitWhile(While* node)
+void Lisper::visitWhile(  std::shared_ptr<While> node )
 {
     ooo << "(basic-while";
     ++indent;
@@ -135,7 +135,7 @@ void Lisper::visitWhile(While* node)
 }
 
 ///
-void Lisper::visitFor(For* node)
+void Lisper::visitFor( std::shared_ptr<For> node )
 {
     ooo << "(basic-for";
     ++indent;
@@ -149,39 +149,39 @@ void Lisper::visitFor(For* node)
 }
 
 ///
-void Lisper::visitCall(Call* node)
+void Lisper::visitCall( std::shared_ptr<Call> node )
 {
     ooo << "(basic-call \"" << (node->subrcall->procptr->name) << "\"";
     ++indent;
-    for (auto e : node->subrcall->arguments)
+    for( auto e : node->subrcall->arguments )
         visitAstNode(e);
     ooo << ")";
     --indent;
 }
 
 ///
-void Lisper::visitSequence(Sequence* node)
+void Lisper::visitSequence( std::shared_ptr<Sequence> node )
 {
     ooo << "(basic-sequence";
     ++indent;
-    for (auto ei : node->items)
+    for( auto ei : node->items )
         visitAstNode(ei);
     ooo << ")";
     --indent;
 }
 
 ///
-void Lisper::visitSubroutine(Subroutine* node)
+void Lisper::visitSubroutine( std::shared_ptr<Subroutine> node )
 {
     ooo << "(basic-subroutine \"" << node->name << "\"";
     ++indent;
     std::string parlis = "";
-    for (auto& ip : node->parameters) {
+    for( auto& ip : node->parameters ) {
         parlis.append("\"");
         parlis.append(ip);
         parlis.append("\" ");
     }
-    if (!parlis.empty())
+    if( !parlis.empty() )
         parlis.pop_back();
     ooo << std::endl << std::string(2 * indent, ' ')
         << "'(" << parlis << ")";
@@ -191,20 +191,20 @@ void Lisper::visitSubroutine(Subroutine* node)
 }
 
 ///
-void Lisper::visitProgram(Program* node)
+void Lisper::visitProgram( std::shared_ptr<Program> node )
 {
     ooo << "(basic-program \"" << node->filename << "\"";
     ++indent;
-    for (auto si : node->members)
-        if (!si->isBuiltIn)
+    for( auto si : node->members )
+        if( !si->isBuiltIn )
             visitAstNode(si);
     --indent;
     ooo << ")" << std::endl;
 }
 
-void Lisper::visitAstNode(AstNode* node)
+void Lisper::visitAstNode( std::shared_ptr<AstNode> node )
 {
-    if (nullptr == node)
+    if( nullptr == node )
         return;
 
     ooo << std::endl << std::string(2 * indent, ' ');

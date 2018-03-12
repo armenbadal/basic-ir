@@ -16,7 +16,7 @@ int main()
     std::cout << "Parsing ..." << std::endl;
 
     basic::Parser parser("../cases/case09.bas");
-    basic::Program* prog = parser.parse();
+    auto prog = parser.parse();
 
     if( nullptr != prog ) {
         std::cout << "Lisp output..." << std::endl;
@@ -29,8 +29,6 @@ int main()
         llvm::raw_fd_ostream ef("emitted.ll", ec, llvm::sys::fs::F_RW);
         std::cout << "Compiling ..." << std::endl;
         basic::IrEmitter(ef).emitIrCode(prog);
-
-        basic::AstNode::deleteAllocatedNodes();
     }
 
     return 0;

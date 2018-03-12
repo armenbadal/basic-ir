@@ -34,20 +34,20 @@ std::unique_ptr<Module> llvm::parseAssemblyString(
 
 namespace basic {
 ///
-bool IrEmitter::emitIrCode( Program* prog )
+bool IrEmitter::emitIrCode( std::shared_ptr<Program> prog )
 {
     emitProgram(prog);
     return true;
 }
 
 ///
-void IrEmitter::emitProgram( Program* prog )
+void IrEmitter::emitProgram( std::shared_ptr<Program> prog )
 {
-    module = new llvm::Module(prog->filename, context);
+    module = std::make_unique<llvm::Module>(prog->filename, context);
 
     declareLibrary();
 
-    for( Subroutine* si : prog->members )
+    for( auto& si : prog->members )
         emitSubroutine(si);
 
     module->print(llvm::errs(), nullptr);
@@ -55,7 +55,7 @@ void IrEmitter::emitProgram( Program* prog )
 }
 
 //
-void IrEmitter::emitSubroutine( Subroutine* subr )
+void IrEmitter::emitSubroutine( std::shared_ptr<Subroutine> subr )
 {
     // պարամետրերի տիպերի ցուցակի կառուցումը
     std::vector<llvm::Type*> ptypes;
@@ -72,9 +72,12 @@ void IrEmitter::emitSubroutine( Subroutine* subr )
     // ֆունկցիայի տիպը
     auto procty = llvm::FunctionType::get(rtype, ptypes, false);
     // ֆունկցիա օբյեկտը
-    auto fun = llvm::Function::Create(procty, llvm::GlobalValue::ExternalLinkage, subr->name, module);
+    auto fun = llvm::Function::Create(procty,
+        llvm::GlobalValue::ExternalLinkage,
+        subr->name, module.get());
 
-    // եթե սա ներդրված ենթածրագիր է, ապա գեներացնում ենք միայն հայտարարությունը
+    // եթե սա ներդրված ենթածրագիր է, ապա գեներացնում
+    // ենք միայն հայտարարությունը
     if( subr->isBuiltIn )
         return;
 
@@ -91,9 +94,9 @@ void IrEmitter::emitSubroutine( Subroutine* subr )
     // տեքստային օբյեկտների հասցեները
     std::list<llvm::Value*> localtexts;
 
-    // օբյեկտներ բոլոր լոկալ փոփոխականների, պարամետրերի 
+    // բոլոր լոկալ փոփոխականների, պարամետրերի 
     // և վերադարձվող արժեքի համար
-    for( Variable* vi : subr->locals ) {
+    for( auto& vi : subr->locals ) {
         auto vty = llvmType(vi->type);
         auto addr = builder.CreateAlloca(vty, nullptr, vi->name + "_addr");
         varaddresses[vi->name] = addr;
@@ -101,6 +104,7 @@ void IrEmitter::emitSubroutine( Subroutine* subr )
             localtexts.push_back(addr);
     }
 
+    // TODO: վերանայել, ճշտել
     // պարամետրերի արժեքները վերագրել լոկալ օբյեկտներին
     for( auto& arg : fun->args() )
         if( arg.getType()->isPointerTy() ) {
@@ -110,6 +114,7 @@ void IrEmitter::emitSubroutine( Subroutine* subr )
         else
             builder.CreateStore(&arg, varaddresses[arg.getName()]);
 
+    // TODO: վերանայել, ճշտել
     // տեքստային օբյեկտների համար գեներացնել սկզբնական արժեք
     // (սա արվում է վերագրման ժամանակ հին արժեքը ջնջելու և 
     // նորը վերագրելու սիմետրիկությունն ապահովելու համար)
@@ -119,8 +124,9 @@ void IrEmitter::emitSubroutine( Subroutine* subr )
     }
 
     // գեներացնել ֆունկցիայի մարմինը
-    emitSequence(dynamic_cast<Sequence*>(subr->body));
+    emitSequence(std::dynamic_pointer_cast<Sequence>(subr->body));
 
+    // TODO: վերանայել, ճշտել
     // ազատել տեքստային օբյեկտների զբաղեցրած հիշողությունը
     for( auto vp : localtexts )
         auto deva = builder.CreateCall(library["free"], { vp });
@@ -135,18 +141,18 @@ void IrEmitter::emitSubroutine( Subroutine* subr )
 }
 
 ///
-void IrEmitter::emitSequence( Sequence* seq )
+void IrEmitter::emitSequence( std::shared_ptr<Sequence> seq )
 {
-    for( Statement* st : seq->items ) {
+    for( auto& st : seq->items ) {
         switch( st->kind ) {
             case NodeKind::Let:
-                emitLet(dynamic_cast<Let*>(st));
+                emitLet(std::dynamic_pointer_cast<Let>(st));
                 break;
             case NodeKind::Input:
-                emitInput(dynamic_cast<Input*>(st));
+                emitInput(std::dynamic_pointer_cast<Input>(st));
                 break;
             case NodeKind::Print:
-                emitPrint(dynamic_cast<Print*>(st));
+                emitPrint(std::dynamic_pointer_cast<Print>(st));
                 break;
             case NodeKind::If:
                 break;
@@ -163,7 +169,7 @@ void IrEmitter::emitSequence( Sequence* seq )
 }
 
 ///
-void IrEmitter::emitLet( Let* let )
+void IrEmitter::emitLet( std::shared_ptr<Let> let )
 {
     auto val = emitExpression(let->expr);
     auto addr = varaddresses[let->varptr->name];
@@ -179,14 +185,14 @@ void IrEmitter::emitLet( Let* let )
 }
 
 ///
-void IrEmitter::emitInput( Input* inp )
+void IrEmitter::emitInput( std::shared_ptr<Input> inp )
 {
     // կանչել գրադարանային ֆունկցիա
     // input_text() կամ input_number()
 }
 
 ///
-void IrEmitter::emitPrint( Print* pri )
+void IrEmitter::emitPrint( std::shared_ptr<Print> pri )
 {
     // կանչել գրադարանային ֆունկցիա
     // print_text() կամ print_number()
@@ -254,7 +260,7 @@ void IrEmitter::emitWhile(While* whileSt, llvm::BasicBlock* endBB)
 */
 
 //
-void IrEmitter::emitFor( For* sfor )
+void IrEmitter::emitFor( std::shared_ptr<For> sfor )
 {
     // TODO:
     // 1. գեներացնել սկզբնական արժեքի արտահայտությունը,
@@ -310,24 +316,24 @@ void IrEmitter::emitFor( For* sfor )
 
 
 ///
-llvm::Value* IrEmitter::emitExpression( Expression* expr )
+llvm::Value* IrEmitter::emitExpression( std::shared_ptr<Expression> expr )
 {
     llvm::Value* res = nullptr;
 
     switch( expr->kind ) {
         case NodeKind::Number:
-            res = emitNumber(dynamic_cast<Number*>(expr));
+            res = emitNumber(std::dynamic_pointer_cast<Number>(expr));
             break;
         case NodeKind::Text:
-            res = emitText(dynamic_cast<Text*>(expr));
+            res = emitText(std::dynamic_pointer_cast<Text>(expr));
             break;
         case NodeKind::Variable:
-            res = emitLoad(dynamic_cast<Variable*>(expr));
+            res = emitLoad(std::dynamic_pointer_cast<Variable>(expr));
             break;
         case NodeKind::Unary:
             break;
         case NodeKind::Binary:
-            res = emitBinary(dynamic_cast<Binary*>(expr));
+            res = emitBinary(std::dynamic_pointer_cast<Binary>(expr));
             break;
         case NodeKind::Apply:
             break;
@@ -339,7 +345,7 @@ llvm::Value* IrEmitter::emitExpression( Expression* expr )
 }
 
 //
-llvm::Value* IrEmitter::emitText( Text* txt )
+llvm::Value* IrEmitter::emitText( std::shared_ptr<Text> txt )
 {
     // եթե տրված արժեքով տող արդեն սահմանված է գլոբալ
     // տիրույթում, ապա վերադարձնել դրա հասցեն
@@ -356,20 +362,20 @@ llvm::Value* IrEmitter::emitText( Text* txt )
 }
 
 //
-llvm::Constant* IrEmitter::emitNumber( Number* num )
+llvm::Constant* IrEmitter::emitNumber( std::shared_ptr<Number> num )
 {
     return llvm::ConstantFP::get(builder.getDoubleTy(), num->value);
 }
 
 ///
-llvm::LoadInst* IrEmitter::emitLoad( Variable* var )
+llvm::LoadInst* IrEmitter::emitLoad( std::shared_ptr<Variable> var )
 {
     llvm::Value* vaddr = varaddresses[var->name];
     return builder.CreateLoad(vaddr, var->name);
 }
 
 /**/
-llvm::Value* IrEmitter::emitBinary(Binary* bin)
+llvm::Value* IrEmitter::emitBinary( std::shared_ptr<Binary> bin )
 {
     llvm::Value* lhs = emitExpression(bin->subexpro);
     llvm::Value* rhs = emitExpression(bin->subexpri);
@@ -450,10 +456,12 @@ llvm::Value* IrEmitter::emitUnary(Unary* un)
 */
 
 /**/
-void IrEmitter::declareLibSubr( const std::string& name, llvm::ArrayRef<llvm::Type*> patys, llvm::Type* rty )
+void IrEmitter::declareLibSubr( const std::string& name,
+    llvm::ArrayRef<llvm::Type*> patys, llvm::Type* rty )
 {
     auto functy = llvm::FunctionType::get(rty, patys, false);
-    library[name] = llvm::Function::Create(functy, llvm::GlobalValue::ExternalLinkage, name, module);
+    library[name] = llvm::Function::Create(functy, 
+        llvm::GlobalValue::ExternalLinkage, name, module.get());
 }
 
 /**/
@@ -467,6 +475,9 @@ void IrEmitter::declareLibrary()
     declareLibSubr("text_input", {}, _T);
     declareLibSubr("text_print", {_T}, _V);
     declareLibSubr("text_concatenate", {_T, _T}, _T);
+
+    declareLibSubr("number_input", {}, _N);
+    declareLibSubr("number_print", {_N}, _V);
 
     declareLibSubr("malloc", { builder.getInt64Ty() }, _T);
     declareLibSubr("free", {_T}, _V);

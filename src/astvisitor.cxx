@@ -2,56 +2,56 @@
 #include "astvisitor.hxx"
 
 namespace basic {
-void AstVisitor::visitAstNode(AstNode* node)
+void AstVisitor::visitAstNode(  std::shared_ptr<AstNode> node )
 {
-    switch (node->kind) {
+    switch( node->kind ) {
         case NodeKind::Number:
-            visitNumber(dynamic_cast<Number*>(node));
+            visitNumber(std::dynamic_pointer_cast<Number>(node));
             break;
         case NodeKind::Text:
-            visitText(dynamic_cast<Text*>(node));
+            visitText(std::dynamic_pointer_cast<Text>(node));
             break;
         case NodeKind::Variable:
-            visitVariable(dynamic_cast<Variable*>(node));
+            visitVariable(std::dynamic_pointer_cast<Variable>(node));
             break;
         case NodeKind::Unary:
-            visitUnary(dynamic_cast<Unary*>(node));
+            visitUnary(std::dynamic_pointer_cast<Unary>(node));
             break;
         case NodeKind::Binary:
-            visitBinary(dynamic_cast<Binary*>(node));
+            visitBinary(std::dynamic_pointer_cast<Binary>(node));
             break;
         case NodeKind::Apply:
-            visitApply(dynamic_cast<Apply*>(node));
+            visitApply(std::dynamic_pointer_cast<Apply>(node));
             break;
         case NodeKind::Sequence:
-            visitSequence(dynamic_cast<Sequence*>(node));
+            visitSequence(std::dynamic_pointer_cast<Sequence>(node));
             break;
         case NodeKind::Input:
-            visitInput(dynamic_cast<Input*>(node));
+            visitInput(std::dynamic_pointer_cast<Input>(node));
             break;
         case NodeKind::Print:
-            visitPrint(dynamic_cast<Print*>(node));
+            visitPrint(std::dynamic_pointer_cast<Print>(node));
             break;
         case NodeKind::Let:
-            visitLet(dynamic_cast<Let*>(node));
+            visitLet(std::dynamic_pointer_cast<Let>(node));
             break;
         case NodeKind::If:
-            visitIf(dynamic_cast<If*>(node));
+            visitIf(std::dynamic_pointer_cast<If>(node));
             break;
         case NodeKind::While:
-            visitWhile(dynamic_cast<While*>(node));
+            visitWhile(std::dynamic_pointer_cast<While>(node));
             break;
         case NodeKind::For:
-            visitFor(dynamic_cast<For*>(node));
+            visitFor(std::dynamic_pointer_cast<For>(node));
             break;
         case NodeKind::Call:
-            visitCall(dynamic_cast<Call*>(node));
+            visitCall(std::dynamic_pointer_cast<Call>(node));
             break;
         case NodeKind::Subroutine:
-            visitSubroutine(dynamic_cast<Subroutine*>(node));
+            visitSubroutine(std::dynamic_pointer_cast<Subroutine>(node));
             break;
         case NodeKind::Program:
-            visitProgram(dynamic_cast<Program*>(node));
+            visitProgram(std::dynamic_pointer_cast<Program>(node));
             break;
         default:
             break;

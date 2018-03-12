@@ -5,6 +5,7 @@
 #include <list>
 #include <string>
 #include <vector>
+#include <memory>
 
 //
 namespace basic {
@@ -35,19 +36,11 @@ enum class NodeKind : int {
 //! Ծառի հանգույցների բոլոր տեսակներն այս տիպի ընդլայնում են։
 class AstNode {
 public:
-    AstNode();
     virtual ~AstNode() = default;
-
-    //! @brief Ջնջել վերլուծության ընթացքում ստեղծված բոլոր հանգույցները
-    static void deleteAllocatedNodes();
 
 public:
     NodeKind kind = NodeKind::Empty; //!< հանգույցի տեսակը
     unsigned int line = 0;           //!< տողի համարը
-
-private:
-    //! @brief Բոլոր դինամիկ ստեղծված հանգույցների հասցեները
-    static std::list<AstNode*> allocatedNodes;
 };
 
 //! @brief Տվյալների տիպերը
@@ -65,8 +58,8 @@ enum class Type : char {
 //! եթե ավարտվում է '$' նիշով, ապա @c TEXT է, հակառակ
 //! դեպքում՝ @c REAL է։
 //!
-Type typeOf(const std::string& nm);
-std::string toString(Type vl);
+Type typeOf( const std::string& nm );
+std::string toString( Type vl );
 
 //! @brief Արտահայտություն
 class Expression : public AstNode {
@@ -129,21 +122,21 @@ std::string toString(Operation opc);
 class Unary : public Expression {
 public:
     Operation opcode = Operation::None; //!< գործողությոն կոդը
-    Expression* subexpr = nullptr;      //!< օպերանդը
+    std::shared_ptr<Expression> subexpr;      //!< օպերանդը
 
 public:
-    Unary(Operation op, Expression* ex);
+    Unary( Operation op, std::shared_ptr<Expression> ex );
 };
 
 //! @brief Բինար գործողություն
 class Binary : public Expression {
 public:
     Operation opcode = Operation::None; //!< գործողությոն կոդը
-    Expression* subexpro = nullptr;     //!< ձախ օպերանդը
-    Expression* subexpri = nullptr;     //!< աջ օպերանդը
+    std::shared_ptr<Expression> subexpro;     //!< ձախ օպերանդը
+    std::shared_ptr<Expression> subexpri;     //!< աջ օպերանդը
 
 public:
-    Binary(Operation op, Expression* exo, Expression* exi);
+    Binary( Operation op, std::shared_ptr<Expression> exo, std::shared_ptr<Expression> exi );
 };
 
 class Subroutine;
@@ -151,11 +144,11 @@ class Subroutine;
 //! @brief Ֆունկցիայի կանչ (կիրառում)
 class Apply : public Expression {
 public:
-    Subroutine* procptr = nullptr;      //!< կանչվող ենթածրագիրը
-    std::vector<Expression*> arguments; //!< արգումենտները
+    std::shared_ptr<Subroutine> procptr;      //!< կանչվող ենթածրագիրը
+    std::vector<std::shared_ptr<Expression>> arguments; //!< արգումենտները
 
 public:
-    Apply(Subroutine* sp, const std::vector<Expression*>& ags);
+    Apply( std::shared_ptr<Subroutine> sp, const std::vector<std::shared_ptr<Expression>>& ags );
 };
 
 //! @brief Ղեկավարող կառուցվածք (հրաման)
@@ -165,7 +158,7 @@ class Statement : public AstNode {
 //! @brief Հրամանների շարք (հաջորդականություն)
 class Sequence : public Statement {
 public:
-    std::vector<Statement*> items;
+    std::vector<std::shared_ptr<Statement>> items;
 
 public:
     Sequence();
@@ -175,72 +168,74 @@ public:
 class Input : public Statement {
 public:
     std::string prompt = "";    //!< ներմուծման հրավերք
-    Variable* varptr = nullptr; //!< ներմուծվող փոփոխական
+    std::shared_ptr<Variable> varptr; //!< ներմուծվող փոփոխական
 
 public:
-    Input(const std::string& pr, Variable* vp);
+    Input( const std::string& pr, std::shared_ptr<Variable> vp );
 };
 
 //! @brief Տվյալների արտածում
 class Print : public Statement {
 public:
-    Expression* expr = nullptr; //!< արտածվող արտահայտությունը
+    std::shared_ptr<Expression> expr; //!< արտածվող արտահայտությունը
 
 public:
-    Print(Expression* ex);
+    Print( std::shared_ptr<Expression> ex );
 };
 
 //! @brief Վերագրում (միաժամանակ՝ փոփոխականի սահմանում)
 class Let : public Statement {
 public:
-    Variable* varptr = nullptr; //!< փոփոխականը
-    Expression* expr = nullptr; //!< արժեքը
+    std::shared_ptr<Variable> varptr; //!< փոփոխականը
+    std::shared_ptr<Expression> expr; //!< արժեքը
 
 public:
-    Let(Variable* vp, Expression* ex);
+    Let( std::shared_ptr<Variable> vp, std::shared_ptr<Expression> ex );
 };
 
 //! @brief Ճյուղավորում
 class If : public Statement {
 public:
-    Expression* condition = nullptr;  //!< ճյուղավորման պայման
-    Statement* decision = nullptr;    //!< @c then ճյուղը
-    Statement* alternative = nullptr; //!< @c else ճյուղը
+    std::shared_ptr<Expression> condition;  //!< ճյուղավորման պայման
+    std::shared_ptr<Statement> decision;    //!< @c then ճյուղը
+    std::shared_ptr<Statement> alternative; //!< @c else ճյուղը
 
 public:
-    If(Expression* co, Statement* de, Statement* al = nullptr);
+    If( std::shared_ptr<Expression> co, std::shared_ptr<Statement> de, std::shared_ptr<Statement> al = nullptr);
 };
 
 //! @brief Նախապայմանով ցիկլ
 class While : public Statement {
 public:
-    Expression* condition = nullptr; //!< կրկնման պայման
-    Statement* body = nullptr;       //!< ցիկլի մարմինը
+    std::shared_ptr<Expression> condition; //!< կրկնման պայման
+    std::shared_ptr<Statement> body;       //!< ցիկլի մարմինը
 
 public:
-    While(Expression* co, Statement* bo);
+    While( std::shared_ptr<Expression> co, std::shared_ptr<Statement> bo );
 };
 
 //! @brief Պարամետրով ցիկլ
 class For : public Statement {
 public:
-    Variable* parameter = nullptr; //!< ցիկլի պարամետրը
-    Expression* begin = nullptr;   //!< պարամետրի սկզբնակական արժեքը
-    Expression* end = nullptr;     //!< պարամետրի սահմանային արժեքը
-    Expression* step = nullptr;    //!< պարամետրի փոփոխման քայլը
-    Statement* body = nullptr;     //!< ցիկլի մարմինը
+    std::shared_ptr<Variable> parameter; //!< ցիկլի պարամետրը
+    std::shared_ptr<Expression> begin;   //!< պարամետրի սկզբնակական արժեքը
+    std::shared_ptr<Expression> end;     //!< պարամետրի սահմանային արժեքը
+    std::shared_ptr<Expression> step;    //!< պարամետրի փոփոխման քայլը
+    std::shared_ptr<Statement> body;     //!< ցիկլի մարմինը
 
 public:
-    For(Variable* pr, Expression* be, Expression* en, Expression* st, Statement* bo);
+    For( std::shared_ptr<Variable> pr, std::shared_ptr<Expression> be, 
+         std::shared_ptr<Expression> en, std::shared_ptr<Expression> st,
+         std::shared_ptr<Statement> bo );
 };
 
 //! @brief Ենթածրագրի կանչ
 class Call : public Statement {
 public:
-    Apply* subrcall = nullptr;
+    std::shared_ptr<Apply> subrcall;
 
 public:
-    Call(Subroutine* sp, const std::vector<Expression*> as);
+    Call( std::shared_ptr<Subroutine> sp, const std::vector<std::shared_ptr<Expression>>& as );
 };
 
 //! @brief Ենթածրագիր
@@ -256,22 +251,22 @@ public:
     std::string name = "";               //<! անուն
     std::vector<std::string> parameters; //<! պարամետրեր
     bool isBuiltIn = false;              //<! true - ներդրված ենթածրագրերի համար
-    std::vector<Variable*> locals;       //<! լոկալ փոփոխականներ
-    Statement* body = nullptr;           //<! մարմին
+    std::vector<std::shared_ptr<Variable>> locals;       //<! լոկալ փոփոխականներ
+    std::shared_ptr<Statement> body;           //<! մարմին
     bool hasValue = false;               //<! վերադարձնո՞ւմ է արժեքի
 
 public:
-    Subroutine(const std::string& nm, const std::vector<std::string>& ps);
+    Subroutine( const std::string& nm, const std::vector<std::string>& ps );
 };
 
 //! @brief Ծրագիր
 class Program : public AstNode {
 public:
     std::string filename = "";        //!< անունը
-    std::vector<Subroutine*> members; //!< ենթածրագրերի ցուցակը
+    std::vector<std::shared_ptr<Subroutine>> members; //!< ենթածրագրերի ցուցակը
 
 public:
-    Program(const std::string& fn);
+    Program( const std::string& fn );
 };
 
 } // basic
