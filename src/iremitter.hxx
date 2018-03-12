@@ -11,6 +11,7 @@
 #include <memory>
 
 namespace basic {
+
 ///
 class IrEmitter {
 public:
@@ -26,18 +27,16 @@ private:
     void emitProgram( std::shared_ptr<Program> prog );
     void emitSubroutine( std::shared_ptr<Subroutine> subr );
 
-    void emitSequence( std::shared_ptr<Sequence> seq );
-    void emitLet( std::shared_ptr<Let> let );
-    void emitInput( std::shared_ptr<Input> inp );
-    void emitPrint( std::shared_ptr<Print> pri );
-    /*
-    void emitIf(If* ifSt, llvm::BasicBlock* endBB = nullptr);
-    void emitWhile(While* whileSt, llvm::BasicBlock* endBB);
-    */
-    void emitFor( std::shared_ptr<For> sfor );
-    /*
-    void emitCall(Call* cal);
-    */
+    void emitSequence( Sequence* seq );
+    void emitLet( Let* let );
+    void emitInput( Input* inp );
+    void emitPrint( Print* pri );
+
+    //void emitIf(If* ifSt, llvm::BasicBlock* endBB = nullptr);
+    //void emitWhile(While* whileSt, llvm::BasicBlock* endBB);
+
+    void emitFor( For* sfor );
+    //void emitCall(Call* cal);
 
     llvm::Value* emitExpression( std::shared_ptr<Expression> expr );
     llvm::Value* emitBinary( std::shared_ptr<Binary> bin );

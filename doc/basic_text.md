@@ -80,4 +80,3 @@ char *f(const char *x, double y)
 }
 ```
 
-
