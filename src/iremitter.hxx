@@ -21,29 +21,29 @@ public:
     ~IrEmitter()
     {}
 
-    bool emitIrCode( std::shared_ptr<Program> prog );
+    bool emitIrCode( ProgramPtr prog );
 
 private:
-    void emitProgram( std::shared_ptr<Program> prog );
-    void emitSubroutine( std::shared_ptr<Subroutine> subr );
+    void emitProgram( ProgramPtr prog );
+    void emitSubroutine( SubroutinePtr subr );
 
-    void emitSequence( Sequence* seq );
-    void emitLet( Let* let );
-    void emitInput( Input* inp );
-    void emitPrint( Print* pri );
+    void emitSequence( SequencePtr seq );
+    void emitLet( LetPtr let );
+    void emitInput( InputPtr inp );
+    void emitPrint( PrintPtr pri );
 
     //void emitIf(If* ifSt, llvm::BasicBlock* endBB = nullptr);
     //void emitWhile(While* whileSt, llvm::BasicBlock* endBB);
 
-    void emitFor( For* sfor );
+    void emitFor( ForPtr sfor );
     //void emitCall(Call* cal);
 
-    llvm::Value* emitExpression( std::shared_ptr<Expression> expr );
-    llvm::Value* emitBinary( std::shared_ptr<Binary> bin );
-    llvm::Value* emitUnary( std::shared_ptr<Unary> una );
-    llvm::Value* emitText( std::shared_ptr<Text> txt );
-    llvm::Constant* emitNumber( std::shared_ptr<Number> num );
-    llvm::LoadInst* emitLoad( std::shared_ptr<Variable> var );
+    llvm::Value* emitExpression( ExpressionPtr expr );
+    llvm::Value* emitBinary( BinaryPtr bin );
+    llvm::Value* emitUnary( UnaryPtr una );
+    llvm::Value* emitText( TextPtr txt );
+    llvm::Constant* emitNumber( NumberPtr num );
+    llvm::LoadInst* emitLoad( VariablePtr var );
 
     void declareLibSubr( const std::string& name, llvm::ArrayRef<llvm::Type*> patys, llvm::Type* rty );
     void declareLibrary();

@@ -72,7 +72,7 @@ Variable::Variable( const std::string& nm )
 }
 
 //
-Unary::Unary( Operation op, std::shared_ptr<Expression> ex )
+Unary::Unary( Operation op, ExpressionPtr ex )
     : opcode(op), subexpr(ex)
 {
     kind = NodeKind::Unary;
@@ -80,14 +80,14 @@ Unary::Unary( Operation op, std::shared_ptr<Expression> ex )
 }
 
 //
-Binary::Binary( Operation op, std::shared_ptr<Expression> exo, std::shared_ptr<Expression> exi )
+Binary::Binary( Operation op, ExpressionPtr exo, ExpressionPtr exi )
     : opcode(op), subexpro(exo), subexpri(exi)
 {
     kind = NodeKind::Binary;
 }
 
 //
-Apply::Apply( std::shared_ptr<Subroutine> sp, const std::vector<std::shared_ptr<Expression>>& ags )
+Apply::Apply( SubroutinePtr sp, const std::vector<ExpressionPtr>& ags )
     : procptr(sp), arguments(ags)
 {
     kind = NodeKind::Apply;
@@ -100,51 +100,50 @@ Sequence::Sequence()
 }
 
 //
-Input::Input( const std::string& pr, std::shared_ptr<Variable> vp )
+Input::Input( const std::string& pr, VariablePtr vp )
     : prompt(pr), varptr(vp)
 {
     kind = NodeKind::Input;
 }
 
 //
-Print::Print( std::shared_ptr<Expression> ex )
+Print::Print( ExpressionPtr ex )
     : expr(ex)
 {
     kind = NodeKind::Print;
 }
 
 //
-Let::Let( std::shared_ptr<Variable> vp, std::shared_ptr<Expression> ex )
+Let::Let( VariablePtr vp, ExpressionPtr ex )
     : varptr(vp), expr(ex)
 {
     kind = NodeKind::Let;
 }
 
 //
-If::If( std::shared_ptr<Expression> co, std::shared_ptr<Statement> de, std::shared_ptr<Statement> al )
+If::If( ExpressionPtr co, StatementPtr de, StatementPtr al )
     : condition(co), decision(de), alternative(al)
 {
     kind = NodeKind::If;
 }
 
 //
-While::While( std::shared_ptr<Expression> co, std::shared_ptr<Statement> bo )
+While::While( ExpressionPtr co, StatementPtr bo )
     : condition(co), body(bo)
 {
     kind = NodeKind::While;
 }
 
 //
-For::For( std::shared_ptr<Variable> pr, std::shared_ptr<Expression> be,
-          std::shared_ptr<Expression> en, std::shared_ptr<Expression> st,
-          std::shared_ptr<Statement> bo )
+For::For( VariablePtr pr, ExpressionPtr be, ExpressionPtr en,
+          NumberPtr st, StatementPtr bo )
     : parameter(pr), begin(be), end(en), step(st), body(bo)
 {
     kind = NodeKind::For;
 }
 
 //
-Call::Call( std::shared_ptr<Subroutine> sp, const std::vector<std::shared_ptr<Expression>>& as )
+Call::Call( SubroutinePtr sp, const std::vector<ExpressionPtr>& as )
     : subrcall(std::make_shared<Apply>(sp, as))
 {
     kind = NodeKind::Call;
@@ -155,7 +154,7 @@ Subroutine::Subroutine( const std::string& nm, const std::vector<std::string>& p
     : name(nm), parameters(ps)
 {
     kind = NodeKind::Subroutine;
-    locals.push_back(std::make_shared<Variable>(name));
+    //locals.push_back(std::make_shared<Variable>(name));
     for( auto& ps : parameters )
         locals.push_back(std::make_shared<Variable>(ps));
 }

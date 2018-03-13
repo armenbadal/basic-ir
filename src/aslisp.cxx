@@ -28,32 +28,32 @@ std::map<Operation, std::string> mnemonic{
 };
 
 ///
-bool Lisper::asLisp( std::shared_ptr<AstNode> node )
+bool Lisper::asLisp( AstNodePtr node )
 {
     visitAstNode(node);
     return true;
 }
 
 ///
-void Lisper::visitNumber( std::shared_ptr<Number> node )
+void Lisper::visitNumber( NumberPtr node )
 {
     ooo << "(basic-number " << node->value << ")";
 }
 
 ///
-void Lisper::visitText( std::shared_ptr<Text> node )
+void Lisper::visitText( TextPtr node )
 {
     ooo << "(basic-text \"" << node->value << "\")";
 }
 
 ///
-void Lisper::visitVariable( std::shared_ptr<Variable> node )
+void Lisper::visitVariable( VariablePtr node )
 {
     ooo << "(basic-variable \"" << node->name << "\")";
 }
 
 ///
-void Lisper::visitUnary( std::shared_ptr<Unary> node )
+void Lisper::visitUnary( UnaryPtr node )
 {
     ooo << "(basic-unary \"" << mnemonic[node->opcode] << "\" ";
     visitAstNode(node->subexpr);
@@ -61,7 +61,7 @@ void Lisper::visitUnary( std::shared_ptr<Unary> node )
 }
 
 ///
-void Lisper::visitBinary( std::shared_ptr<Binary> node )
+void Lisper::visitBinary( BinaryPtr node )
 {
     ooo << "(basic-binary \"" << mnemonic[node->opcode] << "\"";
     ++indent;
@@ -72,7 +72,7 @@ void Lisper::visitBinary( std::shared_ptr<Binary> node )
 }
 
 ///
-void Lisper::visitApply( std::shared_ptr<Apply> node )
+void Lisper::visitApply( ApplyPtr node )
 {
     ooo << "(basic-apply \"" << node->procptr->name << "\"";
     ++indent;
@@ -83,7 +83,7 @@ void Lisper::visitApply( std::shared_ptr<Apply> node )
 }
 
 ///
-void Lisper::visitLet( std::shared_ptr<Let> node )
+void Lisper::visitLet( LetPtr node )
 {
     ooo << "(basic-let (basic-variable \""
         << node->varptr->name << "\") ";
@@ -94,14 +94,14 @@ void Lisper::visitLet( std::shared_ptr<Let> node )
 }
 
 ///
-void Lisper::visitInput( std::shared_ptr<Input> node )
+void Lisper::visitInput( InputPtr node )
 {
     ooo << "(basic-input (basic-variable \"" << node->prompt 
         << "\") \"" << node->varptr->name << "\")";
 }
 
 ///
-void Lisper::visitPrint( std::shared_ptr<Print> node )
+void Lisper::visitPrint( PrintPtr node )
 {
     ooo << "(basic-print";
     ++indent;
@@ -111,7 +111,7 @@ void Lisper::visitPrint( std::shared_ptr<Print> node )
 }
 
 ///
-void Lisper::visitIf( std::shared_ptr<If> node )
+void Lisper::visitIf( IfPtr node )
 {
     ooo << "(basic-if";
     ++indent;
@@ -124,7 +124,7 @@ void Lisper::visitIf( std::shared_ptr<If> node )
 }
 
 ///
-void Lisper::visitWhile(  std::shared_ptr<While> node )
+void Lisper::visitWhile(  WhilePtr node )
 {
     ooo << "(basic-while";
     ++indent;
@@ -135,7 +135,7 @@ void Lisper::visitWhile(  std::shared_ptr<While> node )
 }
 
 ///
-void Lisper::visitFor( std::shared_ptr<For> node )
+void Lisper::visitFor( ForPtr node )
 {
     ooo << "(basic-for";
     ++indent;
@@ -149,7 +149,7 @@ void Lisper::visitFor( std::shared_ptr<For> node )
 }
 
 ///
-void Lisper::visitCall( std::shared_ptr<Call> node )
+void Lisper::visitCall( CallPtr node )
 {
     ooo << "(basic-call \"" << (node->subrcall->procptr->name) << "\"";
     ++indent;
@@ -160,7 +160,7 @@ void Lisper::visitCall( std::shared_ptr<Call> node )
 }
 
 ///
-void Lisper::visitSequence( std::shared_ptr<Sequence> node )
+void Lisper::visitSequence( SequencePtr node )
 {
     ooo << "(basic-sequence";
     ++indent;
@@ -171,7 +171,7 @@ void Lisper::visitSequence( std::shared_ptr<Sequence> node )
 }
 
 ///
-void Lisper::visitSubroutine( std::shared_ptr<Subroutine> node )
+void Lisper::visitSubroutine( SubroutinePtr node )
 {
     ooo << "(basic-subroutine \"" << node->name << "\"";
     ++indent;
@@ -191,7 +191,7 @@ void Lisper::visitSubroutine( std::shared_ptr<Subroutine> node )
 }
 
 ///
-void Lisper::visitProgram( std::shared_ptr<Program> node )
+void Lisper::visitProgram( ProgramPtr node )
 {
     ooo << "(basic-program \"" << node->filename << "\"";
     ++indent;
@@ -202,7 +202,7 @@ void Lisper::visitProgram( std::shared_ptr<Program> node )
     ooo << ")" << std::endl;
 }
 
-void Lisper::visitAstNode( std::shared_ptr<AstNode> node )
+void Lisper::visitAstNode( AstNodePtr node )
 {
     if( nullptr == node )
         return;
