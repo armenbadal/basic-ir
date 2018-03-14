@@ -94,6 +94,8 @@ void IrEmitter::emitSubroutine( SubroutinePtr subr )
     // տեքստային օբյեկտների հասցեները
     std::list<llvm::Value*> localtexts;
 
+    // TODO: մաքրել varaddresses ցուցակը
+    
     // բոլոր լոկալ փոփոխականների, պարամետրերի 
     // և վերադարձվող արժեքի համար
     for( auto& vi : subr->locals ) {
@@ -174,6 +176,12 @@ void IrEmitter::emitLet( LetPtr let )
     auto val = emitExpression(let->expr);
     auto addr = varaddresses[let->varptr->name];
     if( Type::Text == let->varptr->type ) {
+        // TODO: եթե վերագրման աջ կողմում ֆունկցիայի կանչ է կամ
+        // տեքստերի կցման `&` գործողություն, ապա ոչ թե պատճենել
+        // ժամանակավոր օբյեկտը, այլ միանգամից օգտագործել այն
+
+        // TODO: տեքստի պատճենումը կատարել միայն տեքստային լիտերալներից
+        // կամ այլ տեքստային փոփոխականներից
         auto e0 = builder.CreateCall(library["text_clone"], {val});
         builder.CreateCall(library["free"], addr);
         builder.CreateStore(e0, addr);
