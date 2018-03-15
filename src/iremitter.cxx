@@ -50,6 +50,8 @@ void IrEmitter::emitProgram( ProgramPtr prog )
     for( auto& si : prog->members )
         emitSubroutine(si);
 
+	// TODO: աշխատեցնել verify pass
+
     module->print(llvm::errs(), nullptr);
     //module->print(mOut, nullptr);
 }
@@ -91,10 +93,11 @@ void IrEmitter::emitSubroutine( SubroutinePtr subr )
         arg.setName(subr->parameters[ix]);
     }
 
+    // մաքրել varaddresses ցուցակը
+    varaddresses.clear();
+
     // տեքստային օբյեկտների հասցեները
     std::list<llvm::Value*> localtexts;
-
-    // TODO: մաքրել varaddresses ցուցակը
     
     // բոլոր լոկալ փոփոխականների, պարամետրերի 
     // և վերադարձվող արժեքի համար
@@ -106,32 +109,37 @@ void IrEmitter::emitSubroutine( SubroutinePtr subr )
             localtexts.push_back(addr);
     }
 
-    // TODO: վերանայել, ճշտել
     // պարամետրերի արժեքները վերագրել լոկալ օբյեկտներին
     for( auto& arg : fun->args() )
         if( arg.getType()->isPointerTy() ) {
             auto parval = builder.CreateCall(library["text_clone"], { &arg });
             builder.CreateStore(parval, varaddresses[arg.getName()]);
+            localtexts.remove(varaddresses[arg.getName()]);
         }
         else
             builder.CreateStore(&arg, varaddresses[arg.getName()]);
 
-    // TODO: վերանայել, ճշտել
     // տեքստային օբյեկտների համար գեներացնել սկզբնական արժեք
     // (սա արվում է վերագրման ժամանակ հին արժեքը ջնջելու և 
     // նորը վերագրելու սիմետրիկությունն ապահովելու համար)
+    auto one = builder.getInt64(1);
     for( auto vp : localtexts ) {
-        auto deva = builder.CreateCall(library["malloc"], { builder.getInt64(1) });
+        auto deva = builder.CreateCall(library["malloc"], { one });
         builder.CreateStore(deva, vp);
     }
 
     // գեներացնել ֆունկցիայի մարմինը
     emitSequence(std::dynamic_pointer_cast<Sequence>(subr->body));
 
-    // TODO: վերանայել, ճշտել
     // ազատել տեքստային օբյեկտների զբաղեցրած հիշողությունը
-    for( auto vp : localtexts )
-        auto deva = builder.CreateCall(library["free"], { vp });
+    for( auto vi : subr->locals ) {
+        if( Type::Number == vi->type )
+            continue;
+        if( vi->name == subr->name )
+            continue;
+        auto addr = varaddresses[vi->name];
+        auto deva = builder.CreateCall(library["free"], { addr });
+    }
 
     // վերադարձվող արժեք
     if( rtype->isVoidTy() )
