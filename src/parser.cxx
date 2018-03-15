@@ -40,7 +40,7 @@ Parser::~Parser()
 {}
 
 ///
-std::shared_ptr<Program> Parser::parse()
+ProgramPtr Parser::parse()
 {
     try {
         parseProgram();
@@ -142,13 +142,13 @@ void Parser::parseSubroutine()
 //
 // Statements = NewLines { (Let | Input | Print | If | While | For | Call) NewLines }.
 //
-std::shared_ptr<Statement> Parser::parseStatements()
+StatementPtr Parser::parseStatements()
 {
     parseNewLines();
 
     auto sequ = std::make_shared<Sequence>();
     while( true ) {
-        std::shared_ptr<Statement> stat;
+        StatementPtr stat;
         unsigned int line = lookahead.line;
         if( lookahead.is(Token::Let) )
             stat = parseLet();
@@ -177,7 +177,7 @@ std::shared_ptr<Statement> Parser::parseStatements()
 //
 // Let = 'LET' IDENT '=' Expression.
 //
-std::shared_ptr<Statement> Parser::parseLet()
+StatementPtr Parser::parseLet()
 {
     unsigned int pos = lookahead.line;
 
@@ -201,7 +201,7 @@ std::shared_ptr<Statement> Parser::parseLet()
 //
 // Input = 'INPUT' IDENT.
 //
-std::shared_ptr<Statement> Parser::parseInput()
+StatementPtr Parser::parseInput()
 {
     match(Token::Input);
     std::string prom = "";
@@ -220,7 +220,7 @@ std::shared_ptr<Statement> Parser::parseInput()
 //
 // Print = 'PRINT' Expression.
 //
-std::shared_ptr<Statement> Parser::parsePrint()
+StatementPtr Parser::parsePrint()
 {
     match(Token::Print);
     auto exo = parseExpression();
@@ -232,7 +232,7 @@ std::shared_ptr<Statement> Parser::parsePrint()
 //   {'ELSEIF' Expression 'THEN' Statements }
 //   ['ELSE' Statements] 'END' 'IF'.
 //
-std::shared_ptr<Statement> Parser::parseIf()
+StatementPtr Parser::parseIf()
 {
     match(Token::If);
     auto cond = parseExpression();
@@ -270,7 +270,7 @@ std::shared_ptr<Statement> Parser::parseIf()
 //
 // While = 'WHILE' Expression Statements 'END' 'WHILE'.
 //
-std::shared_ptr<Statement> Parser::parseWhile()
+StatementPtr Parser::parseWhile()
 {
     match(Token::While);
     auto cond = parseExpression();
@@ -284,7 +284,7 @@ std::shared_ptr<Statement> Parser::parseWhile()
 // For = 'FOR' IDENT '=' Expression 'TO' Expression ['STEP' NUMBER]
 //    Statements 'END' 'FOR'.
 //
-std::shared_ptr<Statement> Parser::parseFor()
+StatementPtr Parser::parseFor()
 {
     match(Token::For);
     auto par = lookahead.value;
@@ -319,12 +319,13 @@ std::shared_ptr<Statement> Parser::parseFor()
 //
 // Call = 'CALL' IDENT [ExpressionList].
 //
-std::shared_ptr<Statement> Parser::parseCall()
+StatementPtr Parser::parseCall()
 {
     match(Token::Call);
     auto name = lookahead.value;
     match(Token::Identifier);
-    std::vector<std::shared_ptr<Expression>> args;
+    std::vector<ExpressionPtr> args;
+
     if( lookahead.is({ Token::Number, Token::Text, Token::Identifier, 
         Token::Sub, Token::Not, Token::LeftPar }) ) {
         auto exo = parseExpression();
@@ -373,7 +374,7 @@ Operation opCode( Token tok )
 //
 // Expression = Addition [('=' | '<>' | '>' | '>=' | '<' | '<=') Addition].
 //
-std::shared_ptr<Expression> Parser::parseExpression()
+ExpressionPtr Parser::parseExpression()
 {
     auto res = parseAddition();
     if( lookahead.is({ Token::Eq, Token::Ne, Token::Gt, Token::Ge, Token::Lt, Token::Le }) ) {
@@ -388,7 +389,7 @@ std::shared_ptr<Expression> Parser::parseExpression()
 //
 // Addition = Multiplication {('+' | '-' | '&' | 'OR') Multiplication}.
 //
-std::shared_ptr<Expression> Parser::parseAddition()
+ExpressionPtr Parser::parseAddition()
 {
     auto res = parseMultiplication();
     while( lookahead.is({ Token::Add, Token::Sub, Token::Amp, Token::Or }) ) {
@@ -403,7 +404,7 @@ std::shared_ptr<Expression> Parser::parseAddition()
 //
 // Multiplication = Power {('*' | '/' | '\' | 'AND') Power}.
 //
-std::shared_ptr<Expression> Parser::parseMultiplication()
+ExpressionPtr Parser::parseMultiplication()
 {
     auto res = parsePower();
     while( lookahead.is({ Token::Mul, Token::Div, Token::Mod, Token::And }) ) {
@@ -418,7 +419,7 @@ std::shared_ptr<Expression> Parser::parseMultiplication()
 //
 // Power = Factor ['^' Power].
 //
-std::shared_ptr<Expression> Parser::parsePower()
+ExpressionPtr Parser::parsePower()
 {
     auto res = parseFactor();
     if( lookahead.is(Token::Pow) ) {
@@ -433,7 +434,7 @@ std::shared_ptr<Expression> Parser::parsePower()
 // Factor = NUMBER | TEXT | IDENT | '(' Expression ')'
 //     | IDENT '(' [ExpressionList] ')'.
 //
-std::shared_ptr<Expression> Parser::parseFactor()
+ExpressionPtr Parser::parseFactor()
 {
     // NUMBER
     if( lookahead.is(Token::Number) ) {
@@ -469,7 +470,7 @@ std::shared_ptr<Expression> Parser::parseFactor()
         auto name = lookahead.value;
         match(Token::Identifier);
         if( lookahead.is(Token::LeftPar) ) {
-            std::vector<std::shared_ptr<Expression>> args;
+            std::vector<ExpressionPtr> args;
             match(Token::LeftPar);
             auto exo = parseExpression();
             args.push_back(exo);
@@ -534,7 +535,7 @@ void Parser::declareBuiltIn( const std::string& nm, const std::vector<std::strin
 }
 
 //
-std::shared_ptr<Variable> Parser::getVariable( const std::string& nm, bool rval )
+VariablePtr Parser::getVariable( const std::string& nm, bool rval )
 {
     auto subr = module->members.back();
     auto& locals = subr->locals;
@@ -557,8 +558,8 @@ std::shared_ptr<Variable> Parser::getVariable( const std::string& nm, bool rval 
 }
 
 //
-std::shared_ptr<Subroutine> Parser::getSubroutine( const std::string& nm, 
-    const std::vector<std::shared_ptr<Expression>>& ags, bool func )
+SubroutinePtr Parser::getSubroutine( const std::string& nm, 
+    const std::vector<ExpressionPtr>& ags, bool func )
 {
     // որոնել տրված անունով ենթածրագիրը արդեն սահմանվածների մեջ
     auto subrit = std::find_if(module->members.begin(), module->members.end(),

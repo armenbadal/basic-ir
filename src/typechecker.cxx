@@ -19,7 +19,7 @@ private:
 };
 
 //
-bool TypeChecker::check( std::shared_ptr<AstNode> node )
+bool TypeChecker::check( AstNodePtr node )
 {
     try {
         visitAstNode(node);
@@ -33,27 +33,27 @@ bool TypeChecker::check( std::shared_ptr<AstNode> node )
 }
 
 //
-void TypeChecker::visitProgram( std::shared_ptr<Program> node )
+void TypeChecker::visitProgram( ProgramPtr node )
 {
     for( auto si : node->members )
         visitAstNode(si);
 }
 
 //
-void TypeChecker::visitSubroutine( std::shared_ptr<Subroutine> node )
+void TypeChecker::visitSubroutine( SubroutinePtr node )
 {
     visitAstNode(node->body);
 }
 
 //
-void TypeChecker::visitSequence( std::shared_ptr<Sequence> node )
+void TypeChecker::visitSequence( SequencePtr node )
 {
     for( auto si : node->items )
         visitAstNode(si);
 }
 
 //
-void TypeChecker::visitLet( std::shared_ptr<Let> node )
+void TypeChecker::visitLet( LetPtr node )
 {
     visitAstNode(node->expr);
     if( node->expr->type != node->varptr->type ) {
@@ -65,17 +65,17 @@ void TypeChecker::visitLet( std::shared_ptr<Let> node )
 }
 
 //
-void TypeChecker::visitInput( std::shared_ptr<Input> node )
+void TypeChecker::visitInput( InputPtr node )
 {}
 
 //
-void TypeChecker::visitPrint( std::shared_ptr<Print> node )
+void TypeChecker::visitPrint( PrintPtr node )
 {
     visitAstNode(node->expr);
 }
 
 //
-void TypeChecker::visitIf( std::shared_ptr<If> node )
+void TypeChecker::visitIf( IfPtr node )
 {
     visitAstNode(node->condition);
     visitAstNode(node->decision);
@@ -86,7 +86,7 @@ void TypeChecker::visitIf( std::shared_ptr<If> node )
 }
 
 //
-void TypeChecker::visitWhile( std::shared_ptr<While> node )
+void TypeChecker::visitWhile( WhilePtr node )
 {
     visitAstNode(node->condition);
     visitAstNode(node->condition);
@@ -96,7 +96,7 @@ void TypeChecker::visitWhile( std::shared_ptr<While> node )
 }
 
 //
-void TypeChecker::visitFor( std::shared_ptr<For> node )
+void TypeChecker::visitFor( ForPtr node )
 {
     visitAstNode(node->begin);
     visitAstNode(node->end);
@@ -113,13 +113,13 @@ void TypeChecker::visitFor( std::shared_ptr<For> node )
 }
 
 //
-void TypeChecker::visitCall( std::shared_ptr<Call> node )
+void TypeChecker::visitCall( CallPtr node )
 {
     visitApply(node->subrcall);
 }
 
 //
-void TypeChecker::visitApply( std::shared_ptr<Apply> node )
+void TypeChecker::visitApply( ApplyPtr node )
 {
     auto& parameters = node->procptr->parameters;
     auto& arguments = node->arguments;
@@ -139,7 +139,7 @@ void TypeChecker::visitApply( std::shared_ptr<Apply> node )
 }
 
 //
-void TypeChecker::visitBinary( std::shared_ptr<Binary> node )
+void TypeChecker::visitBinary( BinaryPtr node )
 {
     visitAstNode(node->subexpro);
     visitAstNode(node->subexpri);
@@ -168,7 +168,7 @@ void TypeChecker::visitBinary( std::shared_ptr<Binary> node )
 }
 
 //
-void TypeChecker::visitUnary( std::shared_ptr<Unary> node )
+void TypeChecker::visitUnary( UnaryPtr node )
 {
     visitAstNode(node->subexpr);
 
@@ -179,24 +179,24 @@ void TypeChecker::visitUnary( std::shared_ptr<Unary> node )
 }
 
 //
-void TypeChecker::visitVariable( std::shared_ptr<Variable> node )
+void TypeChecker::visitVariable( VariablePtr node )
 {
     // ճիշտ տիպը նախորոշված է
 }
 
 //
-void TypeChecker::visitText( std::shared_ptr<Text> node )
+void TypeChecker::visitText( TextPtr node )
 {
     // ճիշտ տիպը նախորոշված է
 }
 
 //
-void TypeChecker::visitNumber( std::shared_ptr<Number> node )
+void TypeChecker::visitNumber( NumberPtr node )
 {
     // ճիշտ տիպը նախորոշված է
 }
 
-void TypeChecker::visitAstNode( std::shared_ptr<AstNode> node )
+void TypeChecker::visitAstNode( AstNodePtr node )
 {
     if( nullptr != node )
         AstVisitor::visitAstNode(node);

@@ -12,26 +12,26 @@ namespace basic {
         virtual ~AstVisitor() = default;
 
     protected:
-        virtual void visitProgram( std::shared_ptr<Program> node ) = 0;
-        virtual void visitSubroutine( std::shared_ptr<Subroutine> node ) = 0;
+        virtual void visitProgram( ProgramPtr node ) = 0;
+        virtual void visitSubroutine( SubroutinePtr node ) = 0;
 
-        virtual void visitSequence( std::shared_ptr<Sequence> node ) = 0;
-        virtual void visitLet( std::shared_ptr<Let> node ) = 0;
-        virtual void visitInput( std::shared_ptr<Input> node ) = 0;
-        virtual void visitPrint( std::shared_ptr<Print> node ) = 0;
-        virtual void visitIf( std::shared_ptr<If> node ) = 0;
-        virtual void visitWhile( std::shared_ptr<While> node ) = 0;
-        virtual void visitFor( std::shared_ptr<For> node ) = 0;
-        virtual void visitCall( std::shared_ptr<Call> node ) = 0;
+        virtual void visitSequence( SequencePtr node ) = 0;
+        virtual void visitLet( LetPtr node ) = 0;
+        virtual void visitInput( InputPtr node ) = 0;
+        virtual void visitPrint( PrintPtr node ) = 0;
+        virtual void visitIf( IfPtr node ) = 0;
+        virtual void visitWhile( WhilePtr node ) = 0;
+        virtual void visitFor( ForPtr node ) = 0;
+        virtual void visitCall( CallPtr node ) = 0;
 
-        virtual void visitApply( std::shared_ptr<Apply> node ) = 0;
-        virtual void visitBinary( std::shared_ptr<Binary> node ) = 0;
-        virtual void visitUnary( std::shared_ptr<Unary> node ) = 0;
-        virtual void visitVariable( std::shared_ptr<Variable> node ) = 0;
-        virtual void visitText( std::shared_ptr<Text> node ) = 0;
-        virtual void visitNumber( std::shared_ptr<Number> node ) = 0;
+        virtual void visitApply( ApplyPtr node ) = 0;
+        virtual void visitBinary( BinaryPtr node ) = 0;
+        virtual void visitUnary( UnaryPtr node ) = 0;
+        virtual void visitVariable( VariablePtr node ) = 0;
+        virtual void visitText( TextPtr node ) = 0;
+        virtual void visitNumber( NumberPtr node ) = 0;
 
-        virtual void visitAstNode( std::shared_ptr<AstNode> node );
+        virtual void visitAstNode( AstNodePtr node );
     };
 }
 

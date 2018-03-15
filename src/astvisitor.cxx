@@ -2,7 +2,7 @@
 #include "astvisitor.hxx"
 
 namespace basic {
-void AstVisitor::visitAstNode(  std::shared_ptr<AstNode> node )
+void AstVisitor::visitAstNode(  AstNodePtr node )
 {
     switch( node->kind ) {
         case NodeKind::Number:
@@ -57,4 +57,4 @@ void AstVisitor::visitAstNode(  std::shared_ptr<AstNode> node )
             break;
     }
 }
-}
+} // namespace basic

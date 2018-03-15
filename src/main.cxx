@@ -3,10 +3,12 @@
 #include <iostream>
 #include <sstream>
 
+#include <llvm/Support/FileSystem.h>
+
 #include "aslisp.hxx"
 #include "parser.hxx"
 #include "scanner.hxx"
-#include "typechecker.hxx"
+#include "iremitter.hxx"
 
 bool fileExists(const std::string& filename)
 {
@@ -17,6 +19,11 @@ bool fileExists(const std::string& filename)
 //
 int main( int argc, char* argv[] )
 {
+    std::cout << "Parsing ..." << std::endl;
+
+    basic::Parser parser("../cases/case09.bas");
+    auto prog = parser.parse();
+
     if( argc < 2 ) {
         std::cout << "" << std::endl;
         return 0;
@@ -45,4 +52,3 @@ int main( int argc, char* argv[] )
 
     return 0;
 }
-
