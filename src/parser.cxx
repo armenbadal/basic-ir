@@ -325,6 +325,7 @@ StatementPtr Parser::parseCall()
     auto name = lookahead.value;
     match(Token::Identifier);
     std::vector<ExpressionPtr> args;
+
     if( lookahead.is({ Token::Number, Token::Text, Token::Identifier, 
         Token::Sub, Token::Not, Token::LeftPar }) ) {
         auto exo = parseExpression();
