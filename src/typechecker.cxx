@@ -115,6 +115,8 @@ void TypeChecker::visitFor( ForPtr node )
 //
 void TypeChecker::visitCall( CallPtr node )
 {
+    // TODO: ստուգել, որ կանչվող ենթածրագիրը լինի
+    // պրոցեդուրա (արժեք չվերադարձնի)
     visitApply(node->subrcall);
 }
 

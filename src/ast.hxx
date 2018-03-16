@@ -43,7 +43,7 @@ public:
     unsigned int line = 0;           //!< տողի համարը
 };
 using AstNodePtr = std::shared_ptr<AstNode>;
-
+  
 //! @brief Տվյալների տիպերը
 //!
 //! @c Void -ն օգտագործվում է արժեք չվերադարձնող ենթածրագրերի հետ աշխատելիս։
@@ -68,7 +68,7 @@ public:
     Type type = Type::Void;
 };
 using ExpressionPtr = std::shared_ptr<Expression>;
-
+  
 //! @brief Թվային հաստատուն
 class Number : public Expression {
 public:
@@ -285,6 +285,7 @@ public:
     Program( const std::string& fn );
 };
 using ProgramPtr = std::shared_ptr<Program>;
+
 } // basic
 
 #endif // AST_HXX

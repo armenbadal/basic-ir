@@ -154,6 +154,7 @@ Subroutine::Subroutine( const std::string& nm, const std::vector<std::string>& p
     : name(nm), parameters(ps)
 {
     kind = NodeKind::Subroutine;
+    //locals.push_back(std::make_shared<Variable>(name));
     for( auto& ps : parameters )
         locals.push_back(std::make_shared<Variable>(ps));
 }

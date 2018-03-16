@@ -31,7 +31,7 @@ Parser::Parser( const std::string& filename )
     declareBuiltIn("SIN", { "a" }, true);
 
     // տեքստային ֆունկցիաներ
-    declareBuiltIn("MID$", { "a", "b", "c$" }, true);
+    declareBuiltIn("MID$", { "a$", "b", "c" }, true);
     declareBuiltIn("STR$", { "a" }, true);
 }
 
@@ -325,7 +325,6 @@ StatementPtr Parser::parseCall()
     auto name = lookahead.value;
     match(Token::Identifier);
     std::vector<ExpressionPtr> args;
-
     if( lookahead.is({ Token::Number, Token::Text, Token::Identifier, 
         Token::Sub, Token::Not, Token::LeftPar }) ) {
         auto exo = parseExpression();
