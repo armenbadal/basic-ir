@@ -58,4 +58,3 @@ void AstVisitor::visitAstNode(  AstNodePtr node )
     }
 }
 } // namespace basic
-

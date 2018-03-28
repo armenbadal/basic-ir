@@ -42,6 +42,10 @@ void TypeChecker::visitProgram( ProgramPtr node )
 //
 void TypeChecker::visitSubroutine( SubroutinePtr node )
 {
+    if( "Main" == node->name )
+        if( !node->parameters.empty() )
+            throw TypeError("Main ենթածրագիրը պարամետրեր չպետք է ունենա։");
+    
     visitAstNode(node->body);
 }
 
@@ -89,40 +93,57 @@ void TypeChecker::visitIf( IfPtr node )
 void TypeChecker::visitWhile( WhilePtr node )
 {
     visitAstNode(node->condition);
-    visitAstNode(node->condition);
-
     if( Type::Number != node->condition->type )
         throw TypeError("Պայմանով ցիկլի պայմանի տիպը թվային չէ։");
+
+    visitAstNode(node->body);
 }
 
 //
 void TypeChecker::visitFor( ForPtr node )
 {
-    visitAstNode(node->begin);
-    visitAstNode(node->end);
-    visitAstNode(node->body);
-
     if( Type::Number != node->parameter->type )
         throw TypeError("Պարամետրով ցիկլի պարամետրի տիպը թվային չէ։");
 
+    visitAstNode(node->begin);
     if( Type::Number != node->begin->type )
         throw TypeError("Պարամետրով ցիկլի պարամետրի սկզբնական արժեքի տիպը թվային չէ։");
 
-    if (Type::Number != node->end->type)
+    visitAstNode(node->end);
+    if( Type::Number != node->end->type )
         throw TypeError("Պարամետրով ցիկլի պարամետրի վերջնական արժեքի տիպը թվային չէ։");
+
+    if( 0 == node->step->value )
+        throw TypeError("պարամետրով ցիկլի քայլը զրո է։");
+    
+    visitAstNode(node->body);
 }
 
 //
 void TypeChecker::visitCall( CallPtr node )
 {
-    // TODO: ստուգել, որ կանչվող ենթածրագիրը լինի
-    // պրոցեդուրա (արժեք չվերադարձնի)
+    // Խուժան քայլ։ Քանի որ Call-ը նույն Apply-ն է, և
+    // տիպերի ստուգումը կատարվում է Apply օբյեկտի համար,
+    // պետք է ժամանակավորապես փոխել կանչվող ենթածրագրի
+    // hasValue դաշտը։
+    auto proc = node->subrcall->procptr;
+
+    bool hv = proc->hasValue;
+    proc->hasValue = true;
+
     visitApply(node->subrcall);
+
+    // վերականգնել հին արժեքը
+    proc->hasValue = hv;
 }
 
 //
 void TypeChecker::visitApply( ApplyPtr node )
 {
+    // Ստուգել, որ կանչվող ենթածրագիրը արժեք վերադարձնի։
+    if( !node->procptr->hasValue )
+        throw TypeError(node->procptr->name + " ենթածրագիրն արժեք չի վերադարձնում։");
+
     auto& parameters = node->procptr->parameters;
     auto& arguments = node->arguments;
 
@@ -174,7 +195,7 @@ void TypeChecker::visitUnary( UnaryPtr node )
 {
     visitAstNode(node->subexpr);
 
-    if( Type::Number != node->type )
+    if( Type::Number != node->subexpr->type )
         throw TypeError("Ունար գործողության օպերանդը թվային չէ։");
 
     node->type = Type::Number;

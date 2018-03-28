@@ -34,6 +34,6 @@ private:
 
     void visitAstNode( AstNodePtr node ) override;
 };
-}
+} // basic
 
 #endif // TYPE_CHECKER_HXX

@@ -20,11 +20,8 @@ public:
     using TypeVector = std::vector<IrType*>;
 
 public:
-    IrEmitter( llvm::raw_fd_ostream& out )
-        : context(), builder(context), outstream(out)
-    {}
-    ~IrEmitter()
-    {}
+    IrEmitter();
+    ~IrEmitter() = default;
 
     bool emitIrCode( ProgramPtr prog );
 
@@ -32,13 +29,14 @@ private:
     void emitProgram( ProgramPtr prog );
     void emitSubroutine( SubroutinePtr subr );
 
+    void emitStatement( StatementPtr st );
     void emitSequence( SequencePtr seq );
     void emitLet( LetPtr let );
     void emitInput( InputPtr inp );
     void emitPrint( PrintPtr pri );
-    //void emitIf(If* ifSt, llvm::BasicBlock* endBB = nullptr);
+    void emitIf( IfPtr sif );
     void emitFor( ForPtr sfor );
-    //void emitWhile(While* whileSt, llvm::BasicBlock* endBB);
+    void emitWhile( WhilePtr swhi );
     void emitCall( CallPtr cal );
 
     llvm::Value* emitExpression( ExpressionPtr expr );
@@ -49,12 +47,19 @@ private:
     llvm::Constant* emitNumber( NumberPtr num );
     llvm::LoadInst* emitLoad( VariablePtr var );
 
+    //! @brief BASIC-IR տիպից կառուցում է LLVM տիպ։
     llvm::Type* llvmType( Type type );
-    void declareFunction( const String& name, const TypeVector& patys,
-        IrType* rty, bool external = false );
-    void declareLibrary();
+
+    //! @brief Ճշտում է հերթական BasicBlock-ի դիրքը։
+    void setCurrentBlock( llvm::Function* fun, llvm::BasicBlock* bl );
+
+    void prepareLibrary();
+    llvm::Constant* LF( const String& name );
+    llvm::Constant* UF( const String& name );
+
     void declareSubroutines( ProgramPtr prog );
     void defineSubroutines( ProgramPtr prog );
+    bool createsTempText( ExpressionPtr expr );
 
 private:
     llvm::LLVMContext context;
@@ -62,9 +67,32 @@ private:
 
     std::unique_ptr<llvm::Module> module = nullptr;
 
-    llvm::raw_fd_ostream& outstream;
+    ////llvm::raw_fd_ostream& outstream;
 
+    //! @brief Գրադարանային ֆունկցիաների ցուցակն է։
+    //!
+    //! Բանալին ֆունկցիայի անունն է, իսկ արժեքը ֆունկցիայի տիպն է՝
+    //! որպես @c FunctionType ցուցիչ։ Այս ցուցակում պետք է գրանցվեն,
+    //! բոլոր այն ֆունկցիաները, որոնք կոդի գեներատորն օգտագործելու է։
+    std::unordered_map<String,llvm::FunctionType*> library;
+
+    //! @brief Տեքստային հաստատունների ցուցակն է։
+    //!
+    //! Երբ պետք է գեներացվի հղում տեքստային հաստատունին, @c emitText
+    //! մեթոդը նախ այդ հաստատունի հասցեն փնտրում է այս ցուցակում։ 
+    //! Եթե տվյալ հաստատունն արդեն սահմանված է, ապա օգտագործվում
+    //! է դրա հասցեն, հակառակ դեպքում՝ սահմանվում է նորը։
     std::unordered_map<String,llvm::Value*> globaltexts;
+
+    //! @brief Ֆունկցիայի լոկալ անունների ցուցակն է։
+    //!
+    //! Սա օգտագործվում է բոլոր այն դեպքերում, երբ պետք է իդենտիֆիկատորը
+    //! կապել @c Value ցուցիչի հետ։ Քանի որ վերլուծության վերջում արդեն 
+    //! հայտնի են ենթածրագրում օգտագործված բոլոր անունները և դրանք 
+    //! գրանցված են @c Subroutine օբյեկտի @c locals ցուցակում, ապա կոդի
+    //! գեներացիայի ժամանակ հենց ամենասկզբում ստեղծվում է այս ցուցակը,
+    //! իսկ այն դեպքերում, երբ պետք է հղվել անունին, համապատասխան
+    //! ցուցիչն ընտրվում է այստեղից։
     std::unordered_map<String,llvm::Value*> varaddresses;
 };
 } // namespace basic
