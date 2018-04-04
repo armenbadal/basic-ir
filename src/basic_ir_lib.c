@@ -5,6 +5,24 @@
 #include <stdbool.h>
 
 /*
+  թվային ֆունկցիաներ
+*/
+
+/**/
+double number_input(const char* prompt)
+{
+    return 0;
+}
+
+/**/
+void number_print(double vl)
+{
+    printf("%lf\n", vl);
+}
+
+
+/*
+  տեքստային ֆունկցիաներ
 */
 
 /**/
@@ -16,6 +34,12 @@ char *text_input(const char* prompt)
   char *res = malloc(1 + strlen(buffer));
   strcpy(res, buffer);
   return res;
+}
+
+/**/
+void text_print(const char* vl)
+{
+    printf("%s\n", vl);
 }
 
 /**/
