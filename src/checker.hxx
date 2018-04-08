@@ -1,22 +1,20 @@
 
-#ifndef ASLISP_HXX
-#define ASLISP_HXX
+#ifndef CHECKER_HXX
+#define CHECKER_HXX
 
 #include "ast.hxx"
 #include "astvisitor.hxx"
 
 #include <memory>
-#include <fstream>
+#include <ostream>
 
 namespace basic {
-class Lisper : public AstVisitor {
+class Checker : public AstVisitor {
 public:
-    Lisper( AstNodePtr nd )
-        : node(nd)
-    {}
-    ~Lisper() = default;
-
-    bool emitLisp( const std::string& osn );
+    Checker( AstNodePtr nd );
+    ~Checker() = default;
+    
+    bool check( std::ostream& ooo );
 
 private:
     void visit( ProgramPtr node ) override;
@@ -40,13 +38,11 @@ private:
 
     void visit( AstNodePtr node ) override;
 
-    std::ostream& ooo();
-    
 private:
     AstNodePtr node;
-    std::shared_ptr<std::ofstream> osp;
-    int indent = 0;
 };
 } // basic
 
-#endif // ASLISP_HXX
+#endif // CHECKER_HXX
+
+

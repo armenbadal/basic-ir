@@ -19,10 +19,10 @@ add_executable(basic-ir
 	parser.cxx
 	astvisitor.cxx
 	aslisp.cxx
-	typechecker.cxx
+	checker.cxx
 	iremitter.cxx)
 
-llvm_map_components_to_libnames(llvm_libs support core irreader)
+llvm_map_components_to_libnames(llvm_libs support core irreader linker)
 
 target_link_libraries(basic-ir ${llvm_libs})
 

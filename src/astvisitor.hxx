@@ -12,26 +12,26 @@ public:
     virtual ~AstVisitor() = default;
     
 protected:
-    virtual void visitProgram( ProgramPtr node ) = 0;
-    virtual void visitSubroutine( SubroutinePtr node ) = 0;
+    virtual void visit( ProgramPtr node ) = 0;
+    virtual void visit( SubroutinePtr node ) = 0;
     
-    virtual void visitSequence( SequencePtr node ) = 0;
-    virtual void visitLet( LetPtr node ) = 0;
-    virtual void visitInput( InputPtr node ) = 0;
-    virtual void visitPrint( PrintPtr node ) = 0;
-    virtual void visitIf( IfPtr node ) = 0;
-    virtual void visitWhile( WhilePtr node ) = 0;
-    virtual void visitFor( ForPtr node ) = 0;
-    virtual void visitCall( CallPtr node ) = 0;
+    virtual void visit( SequencePtr node ) = 0;
+    virtual void visit( LetPtr node ) = 0;
+    virtual void visit( InputPtr node ) = 0;
+    virtual void visit( PrintPtr node ) = 0;
+    virtual void visit( IfPtr node ) = 0;
+    virtual void visit( WhilePtr node ) = 0;
+    virtual void visit( ForPtr node ) = 0;
+    virtual void visit( CallPtr node ) = 0;
 
-    virtual void visitApply( ApplyPtr node ) = 0;
-    virtual void visitBinary( BinaryPtr node ) = 0;
-    virtual void visitUnary( UnaryPtr node ) = 0;
-    virtual void visitVariable( VariablePtr node ) = 0;
-    virtual void visitText( TextPtr node ) = 0;
-    virtual void visitNumber( NumberPtr node ) = 0;
+    virtual void visit( ApplyPtr node ) = 0;
+    virtual void visit( BinaryPtr node ) = 0;
+    virtual void visit( UnaryPtr node ) = 0;
+    virtual void visit( VariablePtr node ) = 0;
+    virtual void visit( TextPtr node ) = 0;
+    virtual void visit( NumberPtr node ) = 0;
     
-    virtual void visitAstNode( AstNodePtr node );
+    virtual void visit( AstNodePtr node );
 };
 } // basic
 

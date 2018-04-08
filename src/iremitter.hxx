@@ -20,32 +20,32 @@ public:
     using TypeVector = std::vector<IrType*>;
 
 public:
-    IrEmitter();
+    IrEmitter( ProgramPtr pr );
     ~IrEmitter() = default;
 
-    bool emitIrCode( ProgramPtr prog );
+    bool emitIr( const std::string& onm );
 
 private:
-    void emitProgram( ProgramPtr prog );
-    void emitSubroutine( SubroutinePtr subr );
+    void emit( ProgramPtr prog );
+    void emit( SubroutinePtr subr );
 
-    void emitStatement( StatementPtr st );
-    void emitSequence( SequencePtr seq );
-    void emitLet( LetPtr let );
-    void emitInput( InputPtr inp );
-    void emitPrint( PrintPtr pri );
-    void emitIf( IfPtr sif );
-    void emitFor( ForPtr sfor );
-    void emitWhile( WhilePtr swhi );
-    void emitCall( CallPtr cal );
+    void emit( StatementPtr st );
+    void emit( SequencePtr seq );
+    void emit( LetPtr let );
+    void emit( InputPtr inp );
+    void emit( PrintPtr pri );
+    void emit( IfPtr sif );
+    void emit( ForPtr sfor );
+    void emit( WhilePtr swhi );
+    void emit( CallPtr cal );
 
-    llvm::Value* emitExpression( ExpressionPtr expr );
-    llvm::Value* emitApply( ApplyPtr apy );
-    llvm::Value* emitBinary( BinaryPtr bin );
-    llvm::Value* emitUnary( UnaryPtr una );
-    llvm::Value* emitText( TextPtr txt );
-    llvm::Constant* emitNumber( NumberPtr num );
-    llvm::LoadInst* emitLoad( VariablePtr var );
+    llvm::Value* emit( ExpressionPtr expr );
+    llvm::Value* emit( ApplyPtr apy );
+    llvm::Value* emit( BinaryPtr bin );
+    llvm::Value* emit( UnaryPtr una );
+    llvm::Value* emit( TextPtr txt );
+    llvm::Constant* emit( NumberPtr num );
+    llvm::LoadInst* emit( VariablePtr var );
 
     //! @brief BASIC-IR տիպից կառուցում է LLVM տիպ։
     llvm::Type* llvmType( Type type );
@@ -65,9 +65,11 @@ private:
     llvm::LLVMContext context;
     llvm::IRBuilder<> builder;
 
+    //! @brief Վերլուծված ծրագրի ծառը
+    ProgramPtr prog;
+    
+    //! @brief Կառուցված մոդուլը
     std::unique_ptr<llvm::Module> module = nullptr;
-
-    ////llvm::raw_fd_ostream& outstream;
 
     //! @brief Գրադարանային ֆունկցիաների ցուցակն է։
     //!

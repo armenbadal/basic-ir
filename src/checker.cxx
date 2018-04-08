@@ -1,5 +1,5 @@
 
-#include "typechecker.hxx"
+#include "checker.hxx"
 
 #include <iostream>
 
@@ -19,13 +19,18 @@ private:
 };
 
 //
-bool TypeChecker::check( AstNodePtr node )
+Checker::Checker( AstNodePtr nd )
+    : node(nd)
+{}
+    
+//
+bool Checker::check( std::ostream& ooo )
 {
     try {
-        visitAstNode(node);
+        visit(node);
     }
     catch( TypeError& e ) {
-        std::cerr << "Տիպի սխալ։ " << e.what() << std::endl;
+        ooo << "Տիպի սխալ։ " << e.what() << std::endl;
         return false;
     }
 
@@ -33,33 +38,33 @@ bool TypeChecker::check( AstNodePtr node )
 }
 
 //
-void TypeChecker::visitProgram( ProgramPtr node )
+void Checker::visit( ProgramPtr node )
 {
     for( auto si : node->members )
-        visitAstNode(si);
+        visit(si);
 }
 
 //
-void TypeChecker::visitSubroutine( SubroutinePtr node )
+void Checker::visit( SubroutinePtr node )
 {
     if( "Main" == node->name )
         if( !node->parameters.empty() )
             throw TypeError("Main ենթածրագիրը պարամետրեր չպետք է ունենա։");
     
-    visitAstNode(node->body);
+    visit(node->body);
 }
 
 //
-void TypeChecker::visitSequence( SequencePtr node )
+void Checker::visit( SequencePtr node )
 {
     for( auto si : node->items )
-        visitAstNode(si);
+        visit(si);
 }
 
 //
-void TypeChecker::visitLet( LetPtr node )
+void Checker::visit( LetPtr node )
 {
-    visitAstNode(node->expr);
+    visit(node->expr);
     if( node->expr->type != node->varptr->type ) {
         std::string mes = toString(node->varptr->type)
             + " փոփոխականին վերագրվում է "
@@ -69,58 +74,58 @@ void TypeChecker::visitLet( LetPtr node )
 }
 
 //
-void TypeChecker::visitInput( InputPtr node )
+void Checker::visit( InputPtr node )
 {}
 
 //
-void TypeChecker::visitPrint( PrintPtr node )
+void Checker::visit( PrintPtr node )
 {
-    visitAstNode(node->expr);
+    visit(node->expr);
 }
 
 //
-void TypeChecker::visitIf( IfPtr node )
+void Checker::visit( IfPtr node )
 {
-    visitAstNode(node->condition);
-    visitAstNode(node->decision);
-    visitAstNode(node->alternative);
+    visit(node->condition);
+    visit(node->decision);
+    visit(node->alternative);
 
     if( Type::Number != node->condition->type )
         throw TypeError("Ճյուղավորման հրամանի պայմանի տիպը թվային չէ։");
 }
 
 //
-void TypeChecker::visitWhile( WhilePtr node )
+void Checker::visit( WhilePtr node )
 {
-    visitAstNode(node->condition);
+    visit(node->condition);
     if( Type::Number != node->condition->type )
         throw TypeError("Պայմանով ցիկլի պայմանի տիպը թվային չէ։");
 
-    visitAstNode(node->body);
+    visit(node->body);
 }
 
 //
-void TypeChecker::visitFor( ForPtr node )
+void Checker::visit( ForPtr node )
 {
     if( Type::Number != node->parameter->type )
         throw TypeError("Պարամետրով ցիկլի պարամետրի տիպը թվային չէ։");
 
-    visitAstNode(node->begin);
+    visit(node->begin);
     if( Type::Number != node->begin->type )
         throw TypeError("Պարամետրով ցիկլի պարամետրի սկզբնական արժեքի տիպը թվային չէ։");
 
-    visitAstNode(node->end);
+    visit(node->end);
     if( Type::Number != node->end->type )
         throw TypeError("Պարամետրով ցիկլի պարամետրի վերջնական արժեքի տիպը թվային չէ։");
 
     if( 0 == node->step->value )
         throw TypeError("պարամետրով ցիկլի քայլը զրո է։");
     
-    visitAstNode(node->body);
+    visit(node->body);
 }
 
 //
-void TypeChecker::visitCall( CallPtr node )
+void Checker::visit( CallPtr node )
 {
     // Խուժան քայլ։ Քանի որ Call-ը նույն Apply-ն է, և
     // տիպերի ստուգումը կատարվում է Apply օբյեկտի համար,
@@ -131,14 +136,14 @@ void TypeChecker::visitCall( CallPtr node )
     bool hv = proc->hasValue;
     proc->hasValue = true;
 
-    visitApply(node->subrcall);
+    visit(node->subrcall);
 
     // վերականգնել հին արժեքը
     proc->hasValue = hv;
 }
 
 //
-void TypeChecker::visitApply( ApplyPtr node )
+void Checker::visit( ApplyPtr node )
 {
     // Ստուգել, որ կանչվող ենթածրագիրը արժեք վերադարձնի։
     if( !node->procptr->hasValue )
@@ -150,22 +155,24 @@ void TypeChecker::visitApply( ApplyPtr node )
     if( parameters.size() != arguments.size() )
         throw TypeError("Պարամետրերի ու արգումենտների քանակները հավասար չեն։");
 
-    for( int i = 0; i < arguments.size(); ++i )
+    for( int i = 0; i < arguments.size(); ++i ) {
+        // TODO: check also each parameter
         if( typeOf(parameters[i]) != arguments[i]->type ) {
             std::string mes = std::to_string(i) + "-րդ պարամետրի տիպը "
                 + toString(typeOf(parameters[i])) + " է, իսկ արգումենտի տիպը "
                 + toString(arguments[i]->type) + " է։";
             throw TypeError(mes);
         }
+    }
 
     node->type = typeOf(node->procptr->name);
 }
 
 //
-void TypeChecker::visitBinary( BinaryPtr node )
+void Checker::visit( BinaryPtr node )
 {
-    visitAstNode(node->subexpro);
-    visitAstNode(node->subexpri);
+    visit(node->subexpro);
+    visit(node->subexpri);
 
     Type tyo = node->subexpro->type;
     Type tyi = node->subexpri->type;
@@ -191,9 +198,9 @@ void TypeChecker::visitBinary( BinaryPtr node )
 }
 
 //
-void TypeChecker::visitUnary( UnaryPtr node )
+void Checker::visit( UnaryPtr node )
 {
-    visitAstNode(node->subexpr);
+    visit(node->subexpr);
 
     if( Type::Number != node->subexpr->type )
         throw TypeError("Ունար գործողության օպերանդը թվային չէ։");
@@ -202,26 +209,26 @@ void TypeChecker::visitUnary( UnaryPtr node )
 }
 
 //
-void TypeChecker::visitVariable( VariablePtr node )
+void Checker::visit( VariablePtr node )
 {
     // ճիշտ տիպը նախորոշված է
 }
 
 //
-void TypeChecker::visitText( TextPtr node )
+void Checker::visit( TextPtr node )
 {
     // ճիշտ տիպը նախորոշված է
 }
 
 //
-void TypeChecker::visitNumber( NumberPtr node )
+void Checker::visit( NumberPtr node )
 {
     // ճիշտ տիպը նախորոշված է
 }
 
-void TypeChecker::visitAstNode( AstNodePtr node )
+void Checker::visit( AstNodePtr node )
 {
     if( nullptr != node )
-        AstVisitor::visitAstNode(node);
+        AstVisitor::visit(node);
 }
 }

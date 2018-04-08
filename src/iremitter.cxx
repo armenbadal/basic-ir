@@ -3,59 +3,44 @@
 #include "ast.hxx"
 
 #include <llvm/IR/GlobalValue.h>
-#include <llvm/Support/raw_ostream.h>
 #include <llvm/IR/Verifier.h>
+#include <llvm/IR/LegacyPassManager.h>
+#include <llvm/IR/IRPrintingPasses.h>
+#include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/FileSystem.h>
 
 #include <iostream>
-#include <sstream>
 #include <list>
+#include <sstream>
+#include <system_error>
 
 /* DEBUG */
 #define __dump(_v_) (_v_)->print(llvm::errs(), false)
 
-/*
-// աջակցող գրադարանը բեռնելու համար
-
-std::unique_ptr<Module> llvm::parseAssemblyString(
-    StringRef AsmString,
-    SMDiagnostic& Error,
-    LLVMContext& Context,
-    SlotMapping* Slots = nullptr,
-    bool UpgradeDebugInfo = true,
-    StringRef DataLayoutString = "");
-
-սtd::unique_ptr<Module> llvm::parseAssemblyFile(
-    StringRef Filename,
-    SMDiagnostic& Error,
-    LLVMContext& Context,
-    SlotMapping* Slots = nullptr,
-    bool UpgradeDebugInfo = true,
-    StringRef DataLayoutString = "");
-
-// llvm::Linker դասի օգնությամբ կապակցել գրադարանի ու ծրագրի մոդուլները
-*/
-
 
 namespace basic {
 ///
-IrEmitter::IrEmitter()
-    : context(), builder(context)
+IrEmitter::IrEmitter( ProgramPtr pr )
+    : context(), builder(context), prog(pr)
 {
-    // նախապատրաստել գրադարանակին (սպասարկող) ֆունկցիաները
+    // նախապատրաստել գրադարանային (սպասարկող) ֆունկցիաները
     prepareLibrary();
 }
 
 ///
-bool IrEmitter::emitIrCode( ProgramPtr prog )
+bool IrEmitter::emitIr( const std::string& onm )
 {
     try {
-        emitProgram(prog);
-        // TODO: ստացվող ֆայլի անունը կառուցել .bas ֆայլից
-        // TODO: module-ը արտածել outstream-ի մեջ
-        // օգտագործել PrintModulePass
-        /* DEBUG */ module->print(llvm::errs(), nullptr);
-        // module->print(outstream, nullptr);
+        emit(prog);
+
+        std::error_code erco;
+        llvm::raw_fd_ostream _fout(onm, erco, llvm::sys::fs::F_None);
+
+        llvm::legacy::PassManager passer;
+        passer.add(llvm::createPrintModulePass(_fout, ""));
+        passer.run(*module);
+        
+        ///* DEBUG */ module->print(llvm::errs(), nullptr);
     }
     catch(...) {
         return false;
@@ -65,7 +50,7 @@ bool IrEmitter::emitIrCode( ProgramPtr prog )
 }
 
 ///
-void IrEmitter::emitProgram( ProgramPtr prog )
+void IrEmitter::emit( ProgramPtr prog )
 {
     // ստեղծել LLVM-ի Module օբյեկտ՝ դրա հասցեն պահելով
     // STL գրադարանի unique_ptr-ի մեջ։
@@ -81,11 +66,12 @@ void IrEmitter::emitProgram( ProgramPtr prog )
     //  սահմանել սեփական ֆունկցիաները
     defineSubroutines(prog);
 
-    // TODO: աշխատեցնել verify pass մոդուլի համար
+    // աշխատեցնել verify pass մոդուլի համար
+    llvm::verifyModule(*module);
 }
 
 //
-void IrEmitter::emitSubroutine( SubroutinePtr subr )
+void IrEmitter::emit( SubroutinePtr subr )
 {
     // մոդուլից վերցնել ֆունկցիայի հայտարարությունը դրան
     // մարմին ավելացնելու համար
@@ -147,7 +133,7 @@ void IrEmitter::emitSubroutine( SubroutinePtr subr )
     }
 
     // գեներացնել ենթածրագրի մարմնի հրամանները
-    emitStatement(subr->body);
+    emit(subr->body);
 
     // ազատել տեքստային օբյեկտների զբաղեցրած հիշողությունը
     // Յուրաքանչյուր ֆունկցիայի ավարտին պետք է ազատել
@@ -177,34 +163,34 @@ void IrEmitter::emitSubroutine( SubroutinePtr subr )
 }
 
 ///
-void IrEmitter::emitStatement( StatementPtr st )
+void IrEmitter::emit( StatementPtr st )
 {
     switch( st->kind ) {
         case NodeKind::Apply:
             break;
         case NodeKind::Sequence:
-            emitSequence(std::dynamic_pointer_cast<Sequence>(st));
+            emit(std::dynamic_pointer_cast<Sequence>(st));
             break;
         case NodeKind::Input:
-            emitInput(std::dynamic_pointer_cast<Input>(st));
+            emit(std::dynamic_pointer_cast<Input>(st));
             break;
         case NodeKind::Print:
-            emitPrint(std::dynamic_pointer_cast<Print>(st));
+            emit(std::dynamic_pointer_cast<Print>(st));
             break;
         case NodeKind::Let:
-            emitLet(std::dynamic_pointer_cast<Let>(st));
+            emit(std::dynamic_pointer_cast<Let>(st));
             break;
         case NodeKind::If:
-            emitIf(std::dynamic_pointer_cast<If>(st));
+            emit(std::dynamic_pointer_cast<If>(st));
             break;
         case NodeKind::While:
-            emitWhile(std::dynamic_pointer_cast<While>(st));
+            emit(std::dynamic_pointer_cast<While>(st));
             break;
         case NodeKind::For:
-            emitFor(std::dynamic_pointer_cast<For>(st));
+            emit(std::dynamic_pointer_cast<For>(st));
             break;
         case NodeKind::Call:
-            emitCall(std::dynamic_pointer_cast<Call>(st));
+            emit(std::dynamic_pointer_cast<Call>(st));
             break;
         default:
             break;
@@ -212,16 +198,16 @@ void IrEmitter::emitStatement( StatementPtr st )
 }
 
 ///
-void IrEmitter::emitSequence( SequencePtr seq )
+void IrEmitter::emit( SequencePtr seq )
 {
     for( auto st : seq->items )
-        emitStatement(st);
+        emit(st);
 }
 
 ///
-void IrEmitter::emitLet( LetPtr let )
+void IrEmitter::emit( LetPtr let )
 {
-    auto val = emitExpression(let->expr);
+    auto val = emit(let->expr);
     auto addr = varaddresses[let->varptr->name];
     
     if( Type::Text == let->varptr->type ) {
@@ -234,11 +220,11 @@ void IrEmitter::emitLet( LetPtr let )
 }
 
 ///
-void IrEmitter::emitInput( InputPtr inp )
+void IrEmitter::emit( InputPtr inp )
 {
     // ստանալ հրավերքի տեքստի հասցեն
     auto _probj = std::make_shared<Text>(inp->prompt);
-    auto _pref = emitText(_probj);
+    auto _pref = emit(_probj);
 
     // հաշվարկել ներմուծող ֆունկցիան
     llvm::Constant* input_f = nullptr;
@@ -254,10 +240,10 @@ void IrEmitter::emitInput( InputPtr inp )
 }
 
 ///
-void IrEmitter::emitPrint( PrintPtr pri )
+void IrEmitter::emit( PrintPtr pri )
 {
     // արտածվող արտահայտության կոդը
-    auto _expr = emitExpression(pri->expr);
+    auto _expr = emit(pri->expr);
     
     if( Type::Text == pri->expr->type ) {
         builder.CreateCall(LF("text_print"), {_expr});
@@ -269,7 +255,7 @@ void IrEmitter::emitPrint( PrintPtr pri )
 }
 
 ///
-void IrEmitter::emitIf( IfPtr sif )
+void IrEmitter::emit( IfPtr sif )
 {
     // ընթացիկ ֆունկցիայի դուրս բերում
     auto _fun = builder.GetInsertBlock()->getParent();
@@ -288,7 +274,7 @@ void IrEmitter::emitIf( IfPtr sif )
         auto _cbb = llvm::BasicBlock::Create(context, "", _fun, _eif);
 
         // գեներացնել պայմանը 
-        auto cnd = emitExpression(_if->condition);
+        auto cnd = emit(_if->condition);
         
         // անցում ըստ պայմանի
         builder.CreateCondBr(cnd, _tbb, _cbb);
@@ -296,7 +282,7 @@ void IrEmitter::emitIf( IfPtr sif )
         // then-ի հրամաններ
         setCurrentBlock(_fun, _tbb);
 
-        emitStatement(_if->decision);
+        emit(_if->decision);
         builder.CreateBr(_eif);
 
         // պատրաստվել հաջորդ բլոկին
@@ -308,13 +294,13 @@ void IrEmitter::emitIf( IfPtr sif )
     
     // կա՞ արդյոք else-բլոկ
     if( nullptr != sp )
-        emitStatement(sp);
+        emit(sp);
     
     setCurrentBlock(_fun, _eif);
 }
 
 ///
-void IrEmitter::emitWhile( WhilePtr swhi )
+void IrEmitter::emit( WhilePtr swhi )
 {
     // ընթացիկ ֆունկցիան
     auto _fun = builder.GetInsertBlock()->getParent();
@@ -327,20 +313,20 @@ void IrEmitter::emitWhile( WhilePtr swhi )
     setCurrentBlock(_fun, _cond);
 
     // գեներացնել կրկնման պայմանը
-    auto coex = emitExpression(swhi->condition);
+    auto coex = emit(swhi->condition);
     builder.CreateCondBr(coex, _body, _end);
 
     setCurrentBlock(_fun, _body);
 
     // գեներացնել ցիկլի մարմինը
-    emitStatement(swhi->body);
+    emit(swhi->body);
     builder.CreateBr(_cond);
 
     setCurrentBlock(_fun, _end);
 }
 
 ///
-void IrEmitter::emitFor( ForPtr sfor )
+void IrEmitter::emit( ForPtr sfor )
 {
     // ընթացիկ ֆունկցիան
     auto _fun = builder.GetInsertBlock()->getParent();
@@ -351,11 +337,11 @@ void IrEmitter::emitFor( ForPtr sfor )
 
     auto _param = varaddresses[sfor->parameter->name];
     // գեներացնել սկզբնական արժեքի արտահայտությունը
-    auto _init = emitExpression(sfor->begin);
+    auto _init = emit(sfor->begin);
     // պարամետրին վերագրել սկզբնական արժեքը
     builder.CreateStore(_init, _param);
     // գեներացնել վերջնական արժեքի արտահայտությունը
-    auto _finish = emitExpression(sfor->end);
+    auto _finish = emit(sfor->end);
     // քայլը հաստատուն է
     auto _step = llvm::ConstantFP::get(builder.getDoubleTy(), sfor->step->value);
     
@@ -377,7 +363,7 @@ void IrEmitter::emitFor( ForPtr sfor )
     setCurrentBlock(_fun, _body);
 
     // գեներացնել մարմինը
-    emitStatement(sfor->body);
+    emit(sfor->body);
 
     // պարամետրի արժեքին գումարել քայլի արժեքը
     auto parval = builder.CreateLoad(_param);
@@ -391,35 +377,35 @@ void IrEmitter::emitFor( ForPtr sfor )
 }
 
 ///
-void IrEmitter::emitCall( CallPtr cal )
+void IrEmitter::emit( CallPtr cal )
 {
     // պրոցեդուրայի կանչը նույն ֆունկցիայի կիրառումն է
-    emitApply(cal->subrcall);
+    emit(cal->subrcall);
 }
 
 ///
-llvm::Value* IrEmitter::emitExpression( ExpressionPtr expr )
+llvm::Value* IrEmitter::emit( ExpressionPtr expr )
 {
     llvm::Value* res = nullptr;
 
     switch( expr->kind ) {
         case NodeKind::Number:
-            res = emitNumber(std::dynamic_pointer_cast<Number>(expr));
+            res = emit(std::dynamic_pointer_cast<Number>(expr));
             break;
         case NodeKind::Text:
-            res = emitText(std::dynamic_pointer_cast<Text>(expr));
+            res = emit(std::dynamic_pointer_cast<Text>(expr));
             break;
         case NodeKind::Variable:
-            res = emitLoad(std::dynamic_pointer_cast<Variable>(expr));
+            res = emit(std::dynamic_pointer_cast<Variable>(expr));
             break;
         case NodeKind::Unary:
-            res = emitUnary(std::dynamic_pointer_cast<Unary>(expr));
+            res = emit(std::dynamic_pointer_cast<Unary>(expr));
             break;
         case NodeKind::Binary:
-            res = emitBinary(std::dynamic_pointer_cast<Binary>(expr));
+            res = emit(std::dynamic_pointer_cast<Binary>(expr));
             break;
         case NodeKind::Apply:
-            res = emitApply(std::dynamic_pointer_cast<Apply>(expr));
+            res = emit(std::dynamic_pointer_cast<Apply>(expr));
             break;
         default:
             break;
@@ -429,7 +415,7 @@ llvm::Value* IrEmitter::emitExpression( ExpressionPtr expr )
 }
 
 ///
-llvm::Value* IrEmitter::emitText( TextPtr txt )
+llvm::Value* IrEmitter::emit( TextPtr txt )
 {
     // եթե տրված արժեքով տող արդեն սահմանված է գլոբալ
     // տիրույթում, ապա վերադարձնել դրա հասցեն
@@ -446,14 +432,14 @@ llvm::Value* IrEmitter::emitText( TextPtr txt )
 }
 
 ///
-llvm::Constant* IrEmitter::emitNumber( NumberPtr num )
+llvm::Constant* IrEmitter::emit( NumberPtr num )
 {
     // գեներացնել թվային հաստատուն
     return llvm::ConstantFP::get(builder.getDoubleTy(), num->value);
 }
 
 ///
-llvm::LoadInst* IrEmitter::emitLoad( VariablePtr var )
+llvm::LoadInst* IrEmitter::emit( VariablePtr var )
 {
     // ստանալ փոփոխականի հասցեն ...
     llvm::Value* vaddr = varaddresses[var->name];
@@ -462,12 +448,12 @@ llvm::LoadInst* IrEmitter::emitLoad( VariablePtr var )
 }
 
 ///
-llvm::Value* IrEmitter::emitApply( ApplyPtr apy )
+llvm::Value* IrEmitter::emit( ApplyPtr apy )
 {
     // գեներացնել կանչի արգումենտները
     std::vector<llvm::Value*> argus, temps;
     for( auto& ai : apy->arguments ) {
-        auto ap = emitExpression(ai);
+        auto ap = emit(ai);
         argus.push_back(ap);
         if( createsTempText(ai) )
             temps.push_back(ap);
@@ -487,10 +473,10 @@ llvm::Value* IrEmitter::emitApply( ApplyPtr apy )
 }
 
 ///
-llvm::Value* IrEmitter::emitBinary( BinaryPtr bin )
+llvm::Value* IrEmitter::emit( BinaryPtr bin )
 {
-    llvm::Value* lhs = emitExpression(bin->subexpro);
-    llvm::Value* rhs = emitExpression(bin->subexpri);
+    llvm::Value* lhs = emit(bin->subexpro);
+    llvm::Value* rhs = emit(bin->subexpri);
 
     bool numopers = (Type::Number == bin->subexpro->type)
                  || (Type::Number == bin->subexpri->type);
@@ -568,10 +554,10 @@ llvm::Value* IrEmitter::emitBinary( BinaryPtr bin )
 }
 
 ///
-llvm::Value* IrEmitter::emitUnary( UnaryPtr un )
+llvm::Value* IrEmitter::emit( UnaryPtr un )
 {
     // գեներացնել ենթաարտահայտությունը
-    auto val = emitExpression(un->subexpr);
+    auto val = emit(un->subexpr);
 
     // ունար մինուս (բացասում)
     if( Operation::Sub == un->opcode )
@@ -686,7 +672,7 @@ void IrEmitter::defineSubroutines( ProgramPtr prog )
 {
     for( auto& subr : prog->members )
         if( !subr->isBuiltIn )
-            emitSubroutine(subr);
+            emit(subr);
 }
 
 ///
