@@ -19,13 +19,31 @@
 #include <iostream>
 #include <memory>
 
+#include <unistd.h>
+
 namespace basic {
 
 ///
-bool fileExists(const std::string& filename)
+bool fileExists( const std::string& filename )
 {
     std::ifstream infi(filename);
     return infi.good();
+}
+
+///
+std::string libraryPath()
+{
+    // գրադարանի ֆայլը basic-ir-ի կողքին է, դրա ճանապարհը
+    // գտնելու համար օգտագործել readlink("/proc/self/exe")
+
+    // TODO: ավելացնել արժեքների ստուգումներ
+    
+    const char* cname = "basic-ir";
+    const size_t psize = 1024;
+    char execpath[psize] = { 0 };
+    ssize_t rls = readlink("/proc/self/exe", execpath, psize-1);
+    execpath[rls-sizeof(cname)] = '\0';
+    return std::string(execpath) + "/basic_ir_lib.ll";
 }
 
 ///
@@ -60,10 +78,8 @@ bool compile( const std::string& bas, bool ir, bool lisp )
         llvm::SMDiagnostic d0;
         auto mpro = llvm::parseAssemblyFile(bas + ".ll", d0, context);
         // կարդալ գրադարանի մոդուլը
-        // TODO: գրադարանի ֆայլը basic-ir-ի կողքին է, դրա ճանապարհը
-        // գտնելու համար օգտագործել readlink("/proc/self/exe")
         llvm::SMDiagnostic d1;
-        auto mlib = llvm::parseAssemblyFile("basic_ir_lib.ll", d1, context);
+        auto mlib = llvm::parseAssemblyFile(libraryPath(), d1, context);
         // ստեղծել փուչ մոդուլ
         auto mall = std::make_unique<llvm::Module>(bas + "_all.ll", context);
         // կիրառել Linker::linkModules ստատիկ մեթոդը

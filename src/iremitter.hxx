@@ -57,6 +57,7 @@ private:
     llvm::Constant* LF( const String& name );
     llvm::Constant* UF( const String& name );
 
+    void createEntryPoint();
     void declareSubroutines( ProgramPtr prog );
     void defineSubroutines( ProgramPtr prog );
     bool createsTempText( ExpressionPtr expr );

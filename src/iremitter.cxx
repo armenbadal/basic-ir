@@ -66,6 +66,9 @@ void IrEmitter::emit( ProgramPtr prog )
     //  սահմանել սեփական ֆունկցիաները
     defineSubroutines(prog);
 
+    // ավելացնել մուտքի կետը՝ main()
+    createEntryPoint();
+    
     // աշխատեցնել verify pass մոդուլի համար
     llvm::verifyModule(*module);
 }
@@ -643,6 +646,26 @@ llvm::Constant* IrEmitter::UF( const String& name )
 
     return module->getFunction(name);
 }
+
+///
+void IrEmitter::createEntryPoint()
+{
+    auto ty_ep = llvm::FunctionType::get(builder.getInt32Ty(), {}, false);
+    auto lk_ep = llvm::GlobalValue::ExternalLinkage;
+    auto fc_ep = llvm::Function::Create(ty_ep, lk_ep, "main", module.get());
+
+    auto _st  = llvm::BasicBlock::Create(context, "start", fc_ep);
+    builder.SetInsertPoint(_st);
+
+    // եթե ծրագրավորողը սահմանել է Main անունով ենթածրագիր, ապա
+    // main()-ի մեջ կանչել այն, հակառակ դեպքում main-ը դատարկ է
+    auto _Main = module->getFunction("Main");
+    if( nullptr != _Main )
+        builder.CreateCall(_Main, {});
+    
+    auto rv_ep = llvm::ConstantInt::get(builder.getInt32Ty(), 0);
+    builder.CreateRet(rv_ep);
+}        
 
 ///
 void IrEmitter::declareSubroutines( ProgramPtr prog )
