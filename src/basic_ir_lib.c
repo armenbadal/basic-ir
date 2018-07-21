@@ -11,7 +11,11 @@
 /**/
 double number_input(const char* prompt)
 {
-    return 0;
+    printf("%s ", prompt);
+	double nval = 0.0;
+	scanf("%lf", &nval);
+	while( '\n' != getchar() );
+    return nval;
 }
 
 /**/
@@ -30,9 +34,11 @@ char *text_input(const char* prompt)
 {
   printf("%s ", prompt);
   char buffer[1024] = { 0 };
-  fgets(buffer, 1024, stdin);
-  char *res = malloc(1 + strlen(buffer));
-  strcpy(res, buffer);
+  fgets(buffer, 1023, stdin);
+  size_t slen = strlen(buffer);
+  char *res = malloc(slen);
+  strncpy(res, buffer, slen - 1);
+  res[slen-1] = '\0';
   return res;
 }
 

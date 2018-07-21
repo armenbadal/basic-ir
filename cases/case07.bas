@@ -10,3 +10,12 @@ SUB IsPrime(n)
     LET IsPrime = k <> 2
   END IF
 END SUB
+
+SUB Main
+  LET e0 = IsPrime(17)
+  PRINT e0
+
+  LET e1 = IsPrime(16)
+  PRINT e1
+END SUB
+

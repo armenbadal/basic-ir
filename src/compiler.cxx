@@ -42,7 +42,7 @@ std::string libraryPath()
     const size_t psize = 1024;
     char execpath[psize] = { 0 };
     ssize_t rls = readlink("/proc/self/exe", execpath, psize-1);
-    execpath[rls-sizeof(cname)] = '\0';
+    execpath[rls-strlen(cname)] = '\0';
     return std::string(execpath) + "/basic_ir_lib.ll";
 }
 
@@ -77,6 +77,10 @@ bool compile( const std::string& bas, bool ir, bool lisp )
         // կարդալ մեր մոդուլը
         llvm::SMDiagnostic d0;
         auto mpro = llvm::parseAssemblyFile(bas + ".ll", d0, context);
+		if( d0.getSourceMgr() != nullptr ) {
+		  llvm::errs() << d0.getMessage() << '\n' << d0.getLineContents() << '\n';
+		  return false;
+		}
         // կարդալ գրադարանի մոդուլը
         llvm::SMDiagnostic d1;
         auto mlib = llvm::parseAssemblyFile(libraryPath(), d1, context);

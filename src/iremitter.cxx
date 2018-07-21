@@ -145,12 +145,15 @@ void IrEmitter::emit( SubroutinePtr subr )
     // փոփոխականին կապված արժեքը, որը վերադարձվելու է
     // ֆունկցիային կանչողին
     for( auto vi : subr->locals ) {
-        if( Type::Number == vi->type )
-            continue;
         if( vi->name == subr->name )
             continue;
-        auto addr = varaddresses[vi->name];
-        auto deva = builder.CreateCall(LF("free"), { addr });
+        if( Type::Number == vi->type )
+            continue;
+		if( Type::Text == vi->type ) {
+		  auto addr = builder.CreateLoad(varaddresses[vi->name]);
+		  auto deva = builder.CreateCall(LF("free"), { addr });
+		  
+		}
     }
 
     // վերադարձվող արժեք
@@ -540,12 +543,6 @@ llvm::Value* IrEmitter::emit( BinaryPtr bin )
             else
                 ret = builder.CreateCall(LF("text_le"), {lhs, rhs});
             break;
-        case Operation::And:
-            ret = builder.CreateAnd(lhs, rhs, "and");
-            break;
-        case Operation::Or:
-            ret = builder.CreateOr(lhs, rhs, "or");
-            break;
         case Operation::Conc:
             ret = builder.CreateCall(LF("text_conc"), {lhs, rhs});
             break;
@@ -553,6 +550,24 @@ llvm::Value* IrEmitter::emit( BinaryPtr bin )
             break;
     }
 
+	// TODO: վերենայել այս բլոկը
+    if( Operation::And == bin->opcode || Operation::Or == bin->opcode ) {
+        auto _zero = llvm::ConstantFP::get(builder.getDoubleTy(), 0.0);
+		auto _one = llvm::ConstantFP::get(builder.getDoubleTy(), 1.0);
+
+		__dump(lhs); __dump(rhs); __dump(_zero); __dump(_one);
+		auto _cbvl = builder.CreateFCmpUNE(lhs, _zero);
+		auto _cbvr = builder.CreateFCmpUNE(rhs, _zero);
+		
+		llvm::Value* _logr = nullptr;
+	    if( Operation::And == bin->opcode )
+            _logr = builder.CreateAnd(_cbvl, _cbvr, "and");
+		else if( Operation::Or == bin->opcode )
+            _logr = builder.CreateOr(_cbvl, _cbvr, "or");
+
+		ret = builder.CreateSelect(_logr, _one, _zero);
+	}
+	
     return ret;
 }
 
@@ -566,9 +581,14 @@ llvm::Value* IrEmitter::emit( UnaryPtr un )
     if( Operation::Sub == un->opcode )
         return builder.CreateFNeg(val, "neg");
 
-    // տրամաբանական արժեքի ժխտում
-    if( Operation::Not == un->opcode )
-        return builder.CreateNot(val, "not");
+    // ժխտում
+    if( Operation::Not == un->opcode ) {
+	  auto _zero = llvm::ConstantFP::get(builder.getDoubleTy(), 0.0);
+	  auto _one = llvm::ConstantFP::get(builder.getDoubleTy(), 1.0);
+	  
+	  auto _cbv = builder.CreateFCmpUNE(val, _zero);
+	  return builder.CreateSelect(_cbv, _one, _zero);
+	}
     
     return val;
 }
