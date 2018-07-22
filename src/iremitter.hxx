@@ -97,5 +97,12 @@ private:
     //! իսկ այն դեպքերում, երբ պետք է հղվել անունին, համապատասխան
     //! ցուցիչն ընտրվում է այստեղից։
     std::unordered_map<String,llvm::Value*> varaddresses;
+
+    //! @brief «Զրո» և «մեկ» հաստատունները
+    //!
+    //! Օգտագործվում են բուլյան արժեքներն իրականի և հակառակ
+    //! ձևափոխությունների ժամանակ։
+    llvm::Constant* _zero = nullptr;
+    llvm::Constant* _one = nullptr;
 };
 } // namespace basic

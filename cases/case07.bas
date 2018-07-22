@@ -1,7 +1,9 @@
 
 SUB IsPrime(n)
-  IF (n <= 2) OR (n MOD 2 = 0) THEN
-    LET IsPrime = 1
+  IF n <= 2 THEN
+  	 LET IsPrime = 1
+  ELSEIF n MOD 2 = 0 THEN
+    LET IsPrime = 0
   ELSE
     LET k = 1 + SQR(n)
     WHILE (n MOD k <> 0) AND (k > 2)

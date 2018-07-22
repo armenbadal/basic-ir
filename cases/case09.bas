@@ -11,6 +11,7 @@ END SUB
 
 SUB Main
   LET a$ = "Yes" & "?"
+  PRINT a$
 END SUB
 
 SUB p$(a$, b$, c$)

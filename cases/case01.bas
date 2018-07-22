@@ -13,3 +13,9 @@ SUB max(x, y)
   PRINT x + y
 END SUB
 
+SUB Main
+  PRINT max(6, 1981)
+  PRINT max(6, 1981)
+END SUB
+
+

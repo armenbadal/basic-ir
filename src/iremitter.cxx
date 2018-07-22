@@ -23,6 +23,9 @@ namespace basic {
 IrEmitter::IrEmitter( ProgramPtr pr )
     : context(), builder(context), prog(pr)
 {
+    _zero = llvm::ConstantFP::get(builder.getDoubleTy(), 0.0);
+    _one = llvm::ConstantFP::get(builder.getDoubleTy(), 1.0);
+
     // նախապատրաստել գրադարանային (սպասարկող) ֆունկցիաները
     prepareLibrary();
 }
@@ -172,8 +175,6 @@ void IrEmitter::emit( SubroutinePtr subr )
 void IrEmitter::emit( StatementPtr st )
 {
     switch( st->kind ) {
-        case NodeKind::Apply:
-            break;
         case NodeKind::Sequence:
             emit(std::dynamic_pointer_cast<Sequence>(st));
             break;
@@ -217,7 +218,8 @@ void IrEmitter::emit( LetPtr let )
     auto addr = varaddresses[let->varptr->name];
     
     if( Type::Text == let->varptr->type ) {
-        builder.CreateCall(LF("free"), {addr});
+        auto _dera = builder.CreateLoad(addr);  
+        builder.CreateCall(LF("free"), {_dera});
         if( !createsTempText(let->expr) )
             val = builder.CreateCall(LF("text_clone"), { val });
     }
@@ -281,6 +283,7 @@ void IrEmitter::emit( IfPtr sif )
 
         // գեներացնել պայմանը 
         auto cnd = emit(_if->condition);
+		cnd = builder.CreateFCmpUNE(cnd, _zero);
         
         // անցում ըստ պայմանի
         builder.CreateCondBr(cnd, _tbb, _cbb);
@@ -320,6 +323,7 @@ void IrEmitter::emit( WhilePtr swhi )
 
     // գեներացնել կրկնման պայմանը
     auto coex = emit(swhi->condition);
+	coex = builder.CreateFCmpUNE(coex, _zero);
     builder.CreateCondBr(coex, _body, _end);
 
     setCurrentBlock(_fun, _body);
@@ -466,7 +470,8 @@ llvm::Value* IrEmitter::emit( ApplyPtr apy )
     }
 
     // կանչել ֆունկցիան ու պահել արժեքը
-    auto callee = module->getFunction(apy->procptr->name);
+    //auto callee = module->getFunction(apy->procptr->name);
+	auto callee = UF(apy->procptr->name);
     auto calv = builder.CreateCall(callee, argus);
 
     // մաքրել կանչի ժամանակավոր արգումենտները
@@ -478,6 +483,15 @@ llvm::Value* IrEmitter::emit( ApplyPtr apy )
     return calv;
 }
 
+/*
+Համեմատման ու տրամաբանական գործողությունների համար կոդ գեներացնելիս
+ստացված արդյունքը ստիպված եմ եղել _բուլյան_ (`i1`) արժեքը ձևափոխել 
+_իրական_ (`double`) արժեքի։ Սակայն, քանի որ `IF` հրամանների `WHILE`
+պայմանները պետք է լինեն `i1` տիպի, նորից ստիպված եմ եղել իրական
+արժեքը դարձնել բուլյան։ Սա կարելի է շտկել կամ կոդի գեներացիայի
+ժամանակ, կամ էլ թողնել օպտիմիզատորին։ Առաջին տարբերակն, իհարկե,
+նախընտրելի է։ 
+*/
 ///
 llvm::Value* IrEmitter::emit( BinaryPtr bin )
 {
@@ -486,7 +500,12 @@ llvm::Value* IrEmitter::emit( BinaryPtr bin )
 
     bool numopers = (Type::Number == bin->subexpro->type)
                  || (Type::Number == bin->subexpri->type);
-    
+
+    if( Operation::And == bin->opcode || Operation::Or == bin->opcode ) {
+		lhs = builder.CreateFCmpUNE(lhs, _zero);
+		rhs = builder.CreateFCmpUNE(rhs, _zero);
+	}
+	
     llvm::Value* ret = nullptr;
     switch( bin->opcode ) {
         case Operation::Add:
@@ -543,6 +562,12 @@ llvm::Value* IrEmitter::emit( BinaryPtr bin )
             else
                 ret = builder.CreateCall(LF("text_le"), {lhs, rhs});
             break;
+        case Operation::And:
+            ret = builder.CreateAnd(lhs, rhs, "and");
+            break;
+        case Operation::Or:
+            ret = builder.CreateOr(lhs, rhs, "or");
+            break;
         case Operation::Conc:
             ret = builder.CreateCall(LF("text_conc"), {lhs, rhs});
             break;
@@ -550,24 +575,9 @@ llvm::Value* IrEmitter::emit( BinaryPtr bin )
             break;
     }
 
-	// TODO: վերենայել այս բլոկը
-    if( Operation::And == bin->opcode || Operation::Or == bin->opcode ) {
-        auto _zero = llvm::ConstantFP::get(builder.getDoubleTy(), 0.0);
-		auto _one = llvm::ConstantFP::get(builder.getDoubleTy(), 1.0);
-
-		__dump(lhs); __dump(rhs); __dump(_zero); __dump(_one);
-		auto _cbvl = builder.CreateFCmpUNE(lhs, _zero);
-		auto _cbvr = builder.CreateFCmpUNE(rhs, _zero);
+    if( bin->opcode >= Operation::Eq && bin->opcode <= Operation::Or )
+        ret = builder.CreateSelect(ret, _one, _zero);
 		
-		llvm::Value* _logr = nullptr;
-	    if( Operation::And == bin->opcode )
-            _logr = builder.CreateAnd(_cbvl, _cbvr, "and");
-		else if( Operation::Or == bin->opcode )
-            _logr = builder.CreateOr(_cbvl, _cbvr, "or");
-
-		ret = builder.CreateSelect(_logr, _one, _zero);
-	}
-	
     return ret;
 }
 
@@ -583,9 +593,6 @@ llvm::Value* IrEmitter::emit( UnaryPtr un )
 
     // ժխտում
     if( Operation::Not == un->opcode ) {
-	  auto _zero = llvm::ConstantFP::get(builder.getDoubleTy(), 0.0);
-	  auto _one = llvm::ConstantFP::get(builder.getDoubleTy(), 1.0);
-	  
 	  auto _cbv = builder.CreateFCmpUNE(val, _zero);
 	  return builder.CreateSelect(_cbv, _one, _zero);
 	}
@@ -664,6 +671,9 @@ llvm::Constant* IrEmitter::UF( const String& name )
     if( "STR$" == name )
         return LF("text_str");
 
+    if( "SQR" == name )
+        return LF("sqrt");
+	
     return module->getFunction(name);
 }
 
