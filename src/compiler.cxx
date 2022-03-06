@@ -93,7 +93,7 @@ bool compile( const std::string& bas, bool ir, bool lisp )
         llvm::verifyModule(*mall);
         // կապակցված մոդուլը գրել ֆայլում
         std::error_code erco;
-        llvm::raw_fd_ostream _fout(bas + "_all.ll", erco, llvm::sys::fs::F_None);
+        llvm::raw_fd_ostream _fout(bas + "_all.ll", erco, llvm::sys::fs::OF_None);
 
         llvm::legacy::PassManager passer;
         passer.add(llvm::createPrintModulePass(_fout, ""));

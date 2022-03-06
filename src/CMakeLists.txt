@@ -1,16 +1,20 @@
 
-cmake_minimum_required(VERSION 3.5)
-project(basic-ir)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.18)
 
-find_package(LLVM REQUIRED CONFIG)
+SET(CMAKE_CXX_STANDARD 20)
+SET(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
-add_definitions(-std=c++14)
-add_definitions(-gdwarf-2)
+PROJECT(basic-ir)
 
-include_directories(${LLVM_INCLUDE_DIRS})
-add_definitions(${LLVM_DEFINITIONS})
+FIND_PACKAGE(LLVM REQUIRED CONFIG)
 
-add_executable(basic-ir
+#add_definitions(-std=c++17)
+#add_definitions(-gdwarf-2)
+
+INCLUDE_DIRECTORIES(${LLVM_INCLUDE_DIRS})
+ADD_DEFINITIONS(${LLVM_DEFINITIONS})
+
+ADD_EXECUTABLE(${PROJECT_NAME}
 	main.cxx
 	compiler.cxx
 	ast.cxx
@@ -24,16 +28,15 @@ add_executable(basic-ir
 
 llvm_map_components_to_libnames(llvm_libs support core irreader linker)
 
-target_link_libraries(basic-ir ${llvm_libs})
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${llvm_libs})
 
-
-add_custom_command(
+ADD_CUSTOM_COMMAND(
    OUTPUT ${CMAKE_BINARY_DIR}/basic_ir_lib.ll
    COMMAND clang -S -emit-llvm ${CMAKE_SOURCE_DIR}/basic_ir_lib.c)
 
-add_custom_target(basic-ir-lib ALL DEPENDS basic_ir_lib.ll)
+ADD_CUSTOM_TARGET(basic-ir-lib ALL DEPENDS basic_ir_lib.ll)
 
-add_dependencies(basic-ir basic-ir-lib)
+ADD_DEPENDENCIES(${PROJECT_NAME} basic-ir-lib)
 
 #install(TARGETS basic-ir DESTINATION basic-ir)
 #install(FILES ${CMAKE_BINARY_DIR}/basic_ir_lib.ll DESTINATION basic-ir)

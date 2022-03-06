@@ -11,11 +11,11 @@
 /**/
 double number_input(const char* prompt)
 {
-    printf("%s ", prompt);
+  printf("%s ", prompt);
 	double nval = 0.0;
 	scanf("%lf", &nval);
-	while( '\n' != getchar() );
-    return nval;
+	while( '\n' != getchar() ) {}
+  return nval;
 }
 
 /**/

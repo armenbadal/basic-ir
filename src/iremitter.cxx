@@ -37,7 +37,7 @@ bool IrEmitter::emitIr( const std::string& onm )
         emit(prog);
 
         std::error_code erco;
-        llvm::raw_fd_ostream _fout(onm, erco, llvm::sys::fs::F_None);
+        llvm::raw_fd_ostream _fout(onm, erco, llvm::sys::fs::OF_None);
 
         llvm::legacy::PassManager passer;
         passer.add(llvm::createPrintModulePass(_fout, ""));
@@ -123,11 +123,11 @@ void IrEmitter::emit( SubroutinePtr subr )
     for( auto& arg : fun->args() )
         if( arg.getType()->isPointerTy() ) {
             auto parval = builder.CreateCall(LF("text_clone"), { &arg });
-            builder.CreateStore(parval, varaddresses[arg.getName()]);
-            localtexts.remove(varaddresses[arg.getName()]);
+            builder.CreateStore(parval, varaddresses[arg.getName().str()]);
+            localtexts.remove(varaddresses[arg.getName().str()]);
         }
         else
-            builder.CreateStore(&arg, varaddresses[arg.getName()]);
+            builder.CreateStore(&arg, varaddresses[arg.getName().str()]);
 
     // տեքստային օբյեկտների համար գեներացնել սկզբնական արժեք
     // (սա արվում է վերագրման ժամանակ հին արժեքը ջնջելու և 
@@ -235,7 +235,7 @@ void IrEmitter::emit( InputPtr inp )
     auto _pref = emit(_probj);
 
     // հաշվարկել ներմուծող ֆունկցիան
-    llvm::Constant* input_f = nullptr;
+    llvm::FunctionCallee input_f;
     if( Type::Text == inp->varptr->type )
         input_f = LF("text_input");
     else if( Type::Number == inp->varptr->type )
@@ -657,13 +657,13 @@ void IrEmitter::prepareLibrary()
 }
 
 ///
-llvm::Constant* IrEmitter::LF( const String& name )
+llvm::FunctionCallee IrEmitter::LF( const String& name )
 {
     return module->getOrInsertFunction(name, library[name]);
 }
 
 ///
-llvm::Constant* IrEmitter::UF( const String& name )
+llvm::FunctionCallee IrEmitter::UF( const String& name )
 {
     if( "MID$" == name )
         return LF("text_mid");

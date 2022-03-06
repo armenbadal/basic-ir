@@ -54,8 +54,8 @@ private:
     void setCurrentBlock( llvm::Function* fun, llvm::BasicBlock* bl );
 
     void prepareLibrary();
-    llvm::Constant* LF( const String& name );
-    llvm::Constant* UF( const String& name );
+    llvm::FunctionCallee LF( const String& name );
+    llvm::FunctionCallee UF( const String& name );
 
     void createEntryPoint();
     void declareSubroutines( ProgramPtr prog );
