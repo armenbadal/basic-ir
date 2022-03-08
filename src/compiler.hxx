@@ -2,10 +2,17 @@
 #ifndef COMPILER_HXX
 #define COMPILER_HXX
 
-#include <string>
+#include <filesystem>
 
 namespace basic {
-bool compile( const std::string& bas, bool ir = true, bool lisp = false );
+
+//! @brief Կոմպիլյատորի ֆունկցիան
+//!
+//! @param source Թարգմանվող ֆայլը
+//! @param generateIr Գեներացնել IR կոդը
+//! @param generateLisp Գեներացնել Lisp տեսքը
+//! 
+bool compile(const std::filesystem::path& source, bool generaeIr, bool generateLisp);
 } // basic
 
 #endif // COMPILER_HXX

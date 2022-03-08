@@ -48,12 +48,13 @@ std::string toString(Token sym)
         { Token::Not, "NOT" },
         { Token::Eof, "Eof" }
     };
+
     return names[sym];
 }
 
 //
-Lexeme::Lexeme(Token k, const std::string& v, unsigned int l)
-    : kind(k), value(v), line(l)
+Lexeme::Lexeme(Token k, std::string_view v, unsigned int l)
+    : kind{k}, value{v}, line{l}
 {
 }
 
@@ -83,4 +84,5 @@ std::string Lexeme::toString() const
 {
     return "<" + value + ", " + std::to_string(line) + ">";
 }
+
 } // basic

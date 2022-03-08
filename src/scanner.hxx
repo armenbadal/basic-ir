@@ -2,6 +2,7 @@
 #ifndef SCANNER_HXX
 #define SCANNER_HXX
 
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <map>
@@ -12,21 +13,11 @@
 namespace basic {
 //! @brief Բառային վերլուծիչ
 class Scanner {
-private:
-    //! @brief ծառայողական բառերի ցուցակ
-    static std::map<const std::string,Token> keywords;
-
-private:
-    std::ifstream source; //!< նիշերը կարդալու հոսքը
-    char ch = '\0'; //!< ընթացիկ նիշը
-
-    unsigned int line = 1; //!< ընթացիկ տողը
-
 public:
     //! @brief Բառային վերլուծիչի կոնստրուկտոր
     //!
     //! @param filename Վերլուծվելիք ֆայլի ճանապարհը
-    Scanner( const std::string& filename );
+    Scanner(const std::filesystem::path& filename);
 
     //! @brief Բառային վերլուծիչի դեստրուկտոր
     ~Scanner();
@@ -46,7 +37,18 @@ private:
 
     //! @brief Իդենտիֆիկատոր
     bool scanIdentifier(Lexeme& lex);
+
+private:
+    //! @brief ծառայողական բառերի ցուցակ
+    static std::map<std::string_view,Token> keywords;
+
+private:
+    std::ifstream source; //!< նիշերը կարդալու հոսքը
+    char ch = '\0'; //!< ընթացիկ նիշը
+
+    unsigned int line = 1; //!< ընթացիկ տողը
 };
+
 } // basic
 
 #endif

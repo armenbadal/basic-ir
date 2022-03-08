@@ -5,24 +5,41 @@
 #include <exception>
 #include <iostream>
 
+using namespace std::string_view_literals;
+
 namespace basic {
 //
 class ParseError : public std::exception {
 public:
-    ParseError( const std::string& mes )
-        : message(mes)
+    ParseError(const std::string& mes)
+        : message{mes}
     {}
+
     const char* what() const noexcept override
     {
         return message.c_str();
     }
+
 private:
     std::string message;
 };
 
+
+//
+bool equalNames(std::string_view no, std::string_view ni)
+{
+    std::string_view so = no, si = ni;
+    if( '$' == so.back() )
+        so.remove_suffix(1);
+    if( '$' == si.back() )
+        si.remove_suffix(1);
+    return so == si;
+}
+
+
 ///
-Parser::Parser( const std::string& filename )
-    : scanner(filename)
+Parser::Parser(const std::filesystem::path& filename)
+    : scanner{filename}
 {
     builtins = {
         // թվային ֆունկցիաներ
@@ -520,7 +537,7 @@ void Parser::parseNewLines()
 }
 
 //
-void Parser::match( Token exp )
+void Parser::match(Token exp)
 {
     if( !lookahead.is(exp) )
         throw ParseError("Սպասվում է " + toString(exp) + 
@@ -530,38 +547,38 @@ void Parser::match( Token exp )
 }
 
 //
-VariablePtr Parser::getVariable( const std::string& nm, bool rval )
+VariablePtr Parser::getVariable(std::string_view name, bool rval)
 {
     auto& locals = currentsubr->locals;
 
-    if( rval && equalNames(currentsubr->name, nm) )
+    if( rval && equalNames(currentsubr->name, name) )
         throw ParseError("Ենթածրագրի անունը օգտագործված է որպես փոփոխական։");
 
     auto vpi = std::find_if(locals.begin(), locals.end(),
-        [&nm](auto vp) -> bool { return equalNames(nm, vp->name); });
+        [&name](auto vp) -> bool { return equalNames(name, vp->name); });
     if( locals.end() != vpi )
         return *vpi;
 
     if( rval )
-        throw ParseError(nm + " փոփոխականը դեռ սահմանված չէ։");
+        throw ParseError(std::string{name} + " փոփոխականը դեռ սահմանված չէ։");
 
-    auto varp = std::make_shared<Variable>(nm);
+    auto varp = std::make_shared<Variable>(std::string{name}); // TODO: review this
     locals.push_back(varp);
 
     return varp;
 }
 
 ///
-SubroutinePtr Parser::getSubroutine( const std::string& nm )
+SubroutinePtr Parser::getSubroutine(std::string_view name)
 {
     // որոնել տրված անունով ենթածրագիրը արդեն սահմանվածների մեջ
     for( auto si : module->members )
-        if( equalNames(si->name, nm) )
+        if( equalNames(si->name, name) )
             return si;
 
     // որոնել 
     for( auto& bi : builtins )
-        if( std::get<0>(bi) == nm ) {
+        if( std::get<0>(bi) == name ) {
             // հայտարարել ներդրված ենթածրագիր
             auto sre = std::make_shared<Subroutine>(std::get<0>(bi), std::get<1>(bi));
             sre->isBuiltIn = true;
@@ -578,14 +595,4 @@ SubroutinePtr Parser::getSubroutine( const std::string& nm )
 //        throw ParseError(nm + " պրոցեդուրան արժեք չի վերադարձնում։");
 }
 
-//
-bool equalNames( const std::string& no, const std::string& ni )
-{
-    std::string so = no, si = ni;
-    if( '$' == so.back() )
-        so.pop_back();
-    if( '$' == si.back() )
-        si.pop_back();
-    return so == si;
-}
 } // basic

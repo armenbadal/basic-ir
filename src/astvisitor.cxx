@@ -2,7 +2,7 @@
 #include "astvisitor.hxx"
 
 namespace basic {
-void AstVisitor::visit(  AstNodePtr node )
+void AstVisitor::visit(AstNodePtr node)
 {
     switch( node->kind ) {
         case NodeKind::Number:

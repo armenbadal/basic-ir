@@ -24,76 +24,64 @@
 namespace basic {
 
 ///
-bool fileExists( const std::string& filename )
-{
-    std::ifstream infi(filename);
-    return infi.good();
-}
-
-///
-std::string libraryPath()
-{
-    // գրադարանի ֆայլը basic-ir-ի կողքին է, դրա ճանապարհը
-    // գտնելու համար օգտագործել readlink("/proc/self/exe")
-
-    // TODO: ավելացնել արժեքների ստուգումներ
-    
-    const char* cname = "basic-ir";
-    const size_t psize = 1024;
-    char execpath[psize] = { 0 };
-    ssize_t rls = readlink("/proc/self/exe", execpath, psize-1);
-    execpath[rls-strlen(cname)] = '\0';
-    return std::string(execpath) + "/basic_ir_lib.ll";
-}
-
-///
-bool compile( const std::string& bas, bool ir, bool lisp )
+bool compile(const std::filesystem::path& source, bool generaeIr, bool generateLisp)
 {
     // ստուգել ֆայլի գոյությունը
-    bool filex = fileExists(bas);
-    if( !filex )
+    if( !std::filesystem::exists(source) )
         return false;
     
     // վերլուծություն
-    ProgramPtr prog = Parser(bas).parse();
+    ProgramPtr prog = Parser(source).parse();
     if( nullptr == prog )
         return false;
 
     // տիպերի ստուգում
-    bool errok = Checker(prog).check(std::cerr);
-    if( !errok )
+    if( const auto ce = Checker().check(prog); ce.has_value() ) {
+        // TODO: print error message
         return false;
+    }
 
     // IR կոդի գեներացիա
-    if( ir ) {
-        bool irok = IrEmitter(prog).emitIr(bas + ".ll");
-        if( !irok )
+    if( generaeIr ) {
+        auto irModule = source;
+        irModule.replace_extension("ll");
+        if( !IrEmitter(prog).emitIr(irModule) )
             return false;
 
         // TODO: սա տեղափոխե՞լ առանձին ֆայլ
         // TODO: վերակազմակերպել ֆայլերի անունները
         // կապակցում գրադարանի հետ
         llvm::LLVMContext context;
+
         // կարդալ մեր մոդուլը
         llvm::SMDiagnostic d0;
-        auto mpro = llvm::parseAssemblyFile(bas + ".ll", d0, context);
+        auto mpro = llvm::parseAssemblyFile(irModule.string(), d0, context);
 		if( d0.getSourceMgr() != nullptr ) {
-		  llvm::errs() << d0.getMessage() << '\n' << d0.getLineContents() << '\n';
-		  return false;
+		    llvm::errs() << d0.getMessage() << '\n' << d0.getLineContents() << '\n';
+		    return false;
 		}
+
         // կարդալ գրադարանի մոդուլը
         llvm::SMDiagnostic d1;
-        auto mlib = llvm::parseAssemblyFile(libraryPath(), d1, context);
+        const std::filesystem::path selfPath = llvm::sys::fs::getMainExecutable(nullptr, nullptr);
+        const auto libraryPath = selfPath.parent_path() / "basic_ir_lib.ll";
+        auto mlib = llvm::parseAssemblyFile(libraryPath.string(), d1, context);
+
         // ստեղծել փուչ մոդուլ
-        auto mall = std::make_unique<llvm::Module>(bas + "_all.ll", context);
+        auto irModuleAll = source;
+        irModuleAll.replace_extension("all.ll");
+        auto mall = std::make_unique<llvm::Module>(irModuleAll.string(), context);
+        
         // կիրառել Linker::linkModules ստատիկ մեթոդը
         llvm::Linker::linkModules(*mall, std::move(mpro));
         llvm::Linker::linkModules(*mall, std::move(mlib));
+        
         // ստուգել վերջնական արդյունքը
         llvm::verifyModule(*mall);
+        
         // կապակցված մոդուլը գրել ֆայլում
         std::error_code erco;
-        llvm::raw_fd_ostream _fout(bas + "_all.ll", erco, llvm::sys::fs::OF_None);
+        llvm::raw_fd_ostream _fout(irModuleAll.string(), erco, llvm::sys::fs::OF_None);
 
         llvm::legacy::PassManager passer;
         passer.add(llvm::createPrintModulePass(_fout, ""));
@@ -103,13 +91,13 @@ bool compile( const std::string& bas, bool ir, bool lisp )
     }
 
     // AST-ի գեներացիա Lisp տեսքով
-    if( lisp ) {
-        // TODO: cout-ը փոխարինել ֆայլով
-        bool lispok = Lisper(prog).emitLisp(bas + ".lisp");
-        if( !lispok )
+    if( generateLisp ) {
+        auto lispPath = source;
+        lispPath.replace_extension("lisp");
+        if( !Lisper().emitLisp(prog, lispPath) )
             return false;
     }
-        
+      
     return true;
 }
 

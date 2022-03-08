@@ -1,70 +1,72 @@
 
 #include "ast.hxx"
 
+#include <llvm/ADT/ArrayRef.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/Support/raw_ostream.h>
 
+#include <filesystem>
 #include <iostream>
-#include <sstream>
-#include <unordered_map>
-#include <string>
 #include <memory>
+#include <sstream>
+#include <string>
+#include <unordered_map>
 
 namespace basic {
 
 ///
 class IrEmitter {
 public:
-    using String = std::string;
-    using IrType = llvm::Type;
-    using TypeVector = std::vector<IrType*>;
+    using TypeVector = std::vector<llvm::Type*>;
 
 public:
-    IrEmitter( ProgramPtr pr );
+    IrEmitter(ProgramPtr pr);
     ~IrEmitter() = default;
 
-    bool emitIr( const std::string& onm );
+    bool emitIr(const std::string& onm);
 
 private:
-    void emit( ProgramPtr prog );
-    void emit( SubroutinePtr subr );
+    void emit(ProgramPtr prog);
+    void emit(SubroutinePtr subr);
 
-    void emit( StatementPtr st );
-    void emit( SequencePtr seq );
-    void emit( LetPtr let );
-    void emit( InputPtr inp );
-    void emit( PrintPtr pri );
-    void emit( IfPtr sif );
-    void emit( ForPtr sfor );
-    void emit( WhilePtr swhi );
-    void emit( CallPtr cal );
+    void emit(StatementPtr st);
+    void emit(SequencePtr seq);
+    void emit(LetPtr let);
+    void emit(InputPtr inp);
+    void emit(PrintPtr pri);
+    void emit(IfPtr sif);
+    void emit(ForPtr sfor);
+    void emit(WhilePtr swhi);
+    void emit(CallPtr cal);
 
-    llvm::Value* emit( ExpressionPtr expr );
-    llvm::Value* emit( ApplyPtr apy );
-    llvm::Value* emit( BinaryPtr bin );
-    llvm::Value* emit( UnaryPtr una );
-    llvm::Value* emit( TextPtr txt );
-    llvm::Constant* emit( NumberPtr num );
-    llvm::LoadInst* emit( VariablePtr var );
+    llvm::Value* emit(ExpressionPtr expr);
+    llvm::Value* emit(ApplyPtr apy);
+    llvm::Value* emit(BinaryPtr bin);
+    llvm::Value* emit(UnaryPtr una);
+    llvm::Value* emit(TextPtr txt);
+    llvm::Constant* emit(NumberPtr num);
+    llvm::LoadInst* emit(VariablePtr var);
 
     //! @brief BASIC-IR տիպից կառուցում է LLVM տիպ։
-    llvm::Type* llvmType( Type type );
+    llvm::Type* llvmType(Type type);
 
     //! @brief Ճշտում է հերթական BasicBlock-ի դիրքը։
-    void setCurrentBlock( llvm::Function* fun, llvm::BasicBlock* bl );
+    void setCurrentBlock(llvm::Function* fun, llvm::BasicBlock* bl);
 
     void prepareLibrary();
-    llvm::FunctionCallee LF( const String& name );
-    llvm::FunctionCallee UF( const String& name );
+    llvm::FunctionCallee libraryFunction(std::string_view name);
+    llvm::FunctionCallee userFunction(std::string_view name);
 
     void createEntryPoint();
-    void declareSubroutines( ProgramPtr prog );
-    void defineSubroutines( ProgramPtr prog );
-    bool createsTempText( ExpressionPtr expr );
+    void declareSubroutines(ProgramPtr prog);
+    void defineSubroutines(ProgramPtr prog);
+    bool createsTempText(ExpressionPtr expr);
+    llvm::CallInst* createLibraryFuncCall(std::string_view fname,
+            const llvm::ArrayRef<llvm::Value*>& args);
 
 private:
-    llvm::LLVMContext context;
-    llvm::IRBuilder<> builder;
+    llvm::LLVMContext context{};
+    llvm::IRBuilder<> builder{context};
 
     //! @brief Վերլուծված ծրագրի ծառը
     ProgramPtr prog;
@@ -77,7 +79,7 @@ private:
     //! Բանալին ֆունկցիայի անունն է, իսկ արժեքը ֆունկցիայի տիպն է՝
     //! որպես @c FunctionType ցուցիչ։ Այս ցուցակում պետք է գրանցվեն,
     //! բոլոր այն ֆունկցիաները, որոնք կոդի գեներատորն օգտագործելու է։
-    std::unordered_map<String,llvm::FunctionType*> library;
+    std::unordered_map<std::string,llvm::FunctionType*> library;
 
     //! @brief Տեքստային հաստատունների ցուցակն է։
     //!
@@ -85,7 +87,7 @@ private:
     //! մեթոդը նախ այդ հաստատունի հասցեն փնտրում է այս ցուցակում։ 
     //! Եթե տվյալ հաստատունն արդեն սահմանված է, ապա օգտագործվում
     //! է դրա հասցեն, հակառակ դեպքում՝ սահմանվում է նորը։
-    std::unordered_map<String,llvm::Value*> globaltexts;
+    std::unordered_map<std::string,llvm::Value*> globalTexts;
 
     //! @brief Ֆունկցիայի լոկալ անունների ցուցակն է։
     //!
@@ -96,13 +98,14 @@ private:
     //! գեներացիայի ժամանակ հենց ամենասկզբում ստեղծվում է այս ցուցակը,
     //! իսկ այն դեպքերում, երբ պետք է հղվել անունին, համապատասխան
     //! ցուցիչն ընտրվում է այստեղից։
-    std::unordered_map<String,llvm::Value*> varaddresses;
+    std::unordered_map<std::string,llvm::Value*> varAddresses;
 
     //! @brief «Զրո» և «մեկ» հաստատունները
     //!
     //! Օգտագործվում են բուլյան արժեքներն իրականի և հակառակ
     //! ձևափոխությունների ժամանակ։
-    llvm::Constant* _zero = nullptr;
-    llvm::Constant* _one = nullptr;
+    llvm::Constant* Zero = llvm::ConstantFP::get(builder.getDoubleTy(), 0.0);
+    llvm::Constant* One = llvm::ConstantFP::get(builder.getDoubleTy(), 1.0);
+
 };
 } // namespace basic

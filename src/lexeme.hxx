@@ -61,18 +61,18 @@ std::string toString(Token sym);
 
 //! @brief Լեքսեմի դասը
 //!
-//! Օգտագործվում որպես բառային և շարահյուսական վերլուծիչների 
+//! Օգտագործվում է որպես բառային և շարահյուսական վերլուծիչների 
 //! տվյալների փոխանակման միավոր։
 //!
 class Lexeme {
 public:
     Token kind = Token::None; //!< պիտակը
-    std::string value = ""; //!< տեքստը (լեքսեմը)
-    unsigned int line = 0; //!< տողի համարը
+    std::string value = "";   //!< տեքստը (լեքսեմը)
+    unsigned int line = 0;    //!< տողի համարը
 
 public:
     Lexeme() = default;
-    Lexeme(Token k, const std::string& v, unsigned int l);
+    Lexeme(Token k, std::string_view v, unsigned int l);
 
     bool is(Token exp) const;
     bool is(const std::vector<Token>& exps) const;

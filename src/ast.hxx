@@ -31,6 +31,7 @@ enum class NodeKind : int {
     Program     //!< ծրագիր
 };
 
+
 //! @brief Քերականական ծառի հանգույցի բազային տիպը։
 //!
 //! Ծառի հանգույցների բոլոր տեսակներն այս տիպի ընդլայնում են։
@@ -44,13 +45,14 @@ public:
 };
 using AstNodePtr = std::shared_ptr<AstNode>;
 
+
 //! @brief Տվյալների տիպերը
 //!
 //! @c Void -ն օգտագործվում է արժեք չվերադարձնող ենթածրագրերի հետ աշխատելիս։
 enum class Type : char {
-    Void = 'V',   //!< արժեքի բացակայություն
+    Void =   'V', //!< արժեքի բացակայություն
     Number = 'N', //!< թվային արժեք
-    Text = 'T'    //!< տեքստային արժեք
+    Text =   'T'  //!< տեքստային արժեք
 };
 
 //! @brief Իդենտիֆիկատորի տիպը
@@ -62,12 +64,14 @@ enum class Type : char {
 Type typeOf( const std::string& nm );
 std::string toString( Type vl );
 
+
 //! @brief Արտահայտություն
 class Expression : public AstNode {
 public:
     Type type = Type::Void;
 };
 using ExpressionPtr = std::shared_ptr<Expression>;
+
 
 //! @brief Թվային հաստատուն
 class Number : public Expression {
@@ -84,6 +88,7 @@ public:
 };
 using NumberPtr = std::shared_ptr<Number>;
 
+
 //! @brief Տեքստային հաստատուն
 class Text : public Expression {
 public:
@@ -99,6 +104,7 @@ public:
 };
 using TextPtr = std::shared_ptr<Text>;
   
+
 //! @brief Փոփոխական
 class Variable : public Expression {
 public:
@@ -113,7 +119,8 @@ public:
     }
 };
 using VariablePtr = std::shared_ptr<Variable>;
-  
+
+
 //! @brief Գործողությունների անունները
 enum class Operation {
     None, //!< անորոշ
@@ -153,7 +160,8 @@ public:
     }
 };
 using UnaryPtr = std::shared_ptr<Unary>;
-  
+
+
 //! @brief Բինար գործողություն
 class Binary : public Expression {
 public:
@@ -169,7 +177,8 @@ public:
     }
 };
 using BinaryPtr = std::shared_ptr<Binary>;
-  
+
+
 class Subroutine;
 using SubroutinePtr = std::shared_ptr<Subroutine>;
   
@@ -187,10 +196,12 @@ public:
     }
 };
 using ApplyPtr = std::shared_ptr<Apply>;
-  
+
+
 //! @brief Ղեկավարող կառուցվածք (հրաման)
 class Statement : public AstNode {};
 using StatementPtr = std::shared_ptr<Statement>;
+
 
 //! @brief Հրամանների շարք (հաջորդականություն)
 class Sequence : public Statement {
@@ -204,6 +215,7 @@ public:
     }
 };
 using SequencePtr = std::shared_ptr<Sequence>;
+
 
 //! @brief Տվյալների ներմուծում
 class Input : public Statement {
@@ -220,6 +232,7 @@ public:
 };
 using InputPtr = std::shared_ptr<Input>;
   
+
 //! @brief Տվյալների արտածում
 class Print : public Statement {
 public:
@@ -233,7 +246,8 @@ public:
     }
 };
 using PrintPtr = std::shared_ptr<Print>;
-  
+
+
 //! @brief Վերագրում (միաժամանակ՝ փոփոխականի սահմանում)
 class Let : public Statement {
 public:
@@ -248,6 +262,7 @@ public:
     }
 };
 using LetPtr = std::shared_ptr<Let>;
+
 
 //! @brief Ճյուղավորում
 class If : public Statement {
@@ -264,7 +279,8 @@ public:
     }
 };
 using IfPtr = std::shared_ptr<If>;
-  
+
+
 //! @brief Նախապայմանով ցիկլ
 class While : public Statement {
 public:
@@ -279,7 +295,8 @@ public:
     }
 };
 using WhilePtr = std::shared_ptr<While>;
-  
+
+
 //! @brief Պարամետրով ցիկլ
 class For : public Statement {
 public:
@@ -299,6 +316,7 @@ public:
 };
 using ForPtr = std::shared_ptr<For>;
 
+
 //! @brief Ենթածրագրի կանչ
 class Call : public Statement {
 public:
@@ -312,6 +330,7 @@ public:
     }
 };
 using CallPtr = std::shared_ptr<Call>;
+
 
 //! @brief Ենթածրագիր
 //!
@@ -328,7 +347,7 @@ public:
     bool isBuiltIn = false;              //<! true - ներդրված ենթածրագրերի համար
     std::vector<VariablePtr> locals;     //<! լոկալ փոփոխականներ
     StatementPtr body;                   //<! մարմին
-    bool hasValue = false;               //<! վերադարձնո՞ւմ է արժեքի
+    bool hasValue = false;               //<! վերադարձնո՞ւմ է արժեք
 
 public:
     Subroutine( const std::string& nm, const std::vector<std::string>& ps )
@@ -337,6 +356,7 @@ public:
         kind = NodeKind::Subroutine;
     }
 };
+
 
 //! @brief Ծրագիր
 class Program : public AstNode {
@@ -352,6 +372,7 @@ public:
     }
 };
 using ProgramPtr = std::shared_ptr<Program>;
+
 } // basic
 
 #endif // AST_HXX

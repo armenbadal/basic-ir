@@ -4,29 +4,29 @@
 namespace basic {
 
 ///
-std::map<const std::string, Token> Scanner::keywords{
-    { "SUB", Token::Subroutine },
-    { "LET", Token::Let },
-    { "PRINT", Token::Print },
-    { "INPUT", Token::Input },
-    { "IF", Token::If },
-    { "THEN", Token::Then },
+std::map<std::string_view, Token> Scanner::keywords{
+    { "SUB",    Token::Subroutine },
+    { "LET",    Token::Let },
+    { "PRINT",  Token::Print },
+    { "INPUT",  Token::Input },
+    { "IF",     Token::If },
+    { "THEN",   Token::Then },
     { "ELSEIF", Token::ElseIf },
-    { "ELSE", Token::Else },
-    { "WHILE", Token::While },
-    { "FOR", Token::For },
-    { "TO", Token::To },
-    { "STEP", Token::Step },
-    { "CALL", Token::Call },
-    { "END", Token::End },
-    { "MOD", Token::Mod },
-    { "AND", Token::And },
-    { "OR", Token::Or },
-    { "NOT", Token::Not }
+    { "ELSE",   Token::Else },
+    { "WHILE",  Token::While },
+    { "FOR",    Token::For },
+    { "TO",     Token::To },
+    { "STEP",   Token::Step },
+    { "CALL",   Token::Call },
+    { "END",    Token::End },
+    { "MOD",    Token::Mod },
+    { "AND",    Token::And },
+    { "OR",     Token::Or },
+    { "NOT",    Token::Not }
 };
 
 //
-Scanner::Scanner( const std::string& filename )
+Scanner::Scanner(const std::filesystem::path& filename)
 {
     // ստեղծել (բացել) ֆայլային հոսք
     source.open(filename);

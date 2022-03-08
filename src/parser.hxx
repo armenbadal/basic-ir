@@ -4,37 +4,19 @@
 #include "scanner.hxx"
 
 #include <exception>
-#include <string>
+#include <filesystem>
 #include <memory>
+#include <string>
 #include <tuple>
 
 namespace basic {
 //! @brief Շարահյուսական վերլուծիչը
 class Parser {
-private:
-    //! @brief Վերլուծված ծրագրի ցուցիչը, միաժամանակ նաև
-    //! վերլուծության ծառի արմատը
-    ProgramPtr module;
-
-    //! @brief ընթացիկ վերլուծվող ենթածրագրի ցուցիչը
-    SubroutinePtr currentsubr;
-
-    Scanner scanner;  //!< բառային վերլուծիչը
-    Lexeme lookahead; //!< հերթական լեքսեմը
-    
-    //! @brief անորոշ հղումներ. բանալին ենթածրագրի անունն է,
-    //! իսկ արժեքը դրան հղվող Apply օբյեկտների ցուցակը
-    std::map<std::string,std::list<ApplyPtr>> unresolved;
-
-    //! @brief ներդրված ենթածրագրերի նկարագրությունների ցուցակ
-    using BuiltIn = std::tuple<std::string,std::vector<std::string>,bool>;
-    std::vector<BuiltIn> builtins;
-
 public:
     //! @brief Շարահյուսական վերլուծիչի կոնստրուկտորը
     //!
     //! @param filename - վերլուծվելիք ֆայլի ճանապարհը
-    Parser( const std::string& filename );
+    Parser(const std::filesystem::path& filename);
 
     //! @brief Շարահյուսական վերլուծիչի դեստրուկտորը
     ~Parser();
@@ -104,7 +86,7 @@ private:
     //! @brief Վերլուծում է նոր տողերի անցման նիշերը
     void parseNewLines();
 
-    void match( Token tok );
+    void match(Token tok);
 
     //! @brief Ստեղծում է լոկալ փոփոխական կամ վերադարձնում է արդեն գոյություն
     //! ունեցող փոփոխականի հասցեն
@@ -119,15 +101,33 @@ private:
     //!
     //! @param nm   - փոփոխականի անունը
     //! @param rval - @c true է, եթե փոփոխականը վերագրման աջ կողմում է
-    VariablePtr getVariable( const std::string& nm, bool rval );
+    VariablePtr getVariable(std::string_view name, bool rval);
 
     //! @brief Ենթածրագրի կանչի համար գտնում ու վերադարձնում է ենթածրագիր
     //! օբյեկտի հասցեն, ինչպես նաև ստուգում է արգումենտների ու պարամետրերի
     //! տիպերի համապատասխանությունը։
     //!
     //! @param nm   - ենթածրագրի անունը
-    SubroutinePtr getSubroutine( const std::string& nm );
+    SubroutinePtr getSubroutine(std::string_view name);
+
+private:
+    //! @brief Վերլուծված ծրագրի ցուցիչը, միաժամանակ նաև
+    //! վերլուծության ծառի արմատը
+    ProgramPtr module;
+
+    //! @brief ընթացիկ վերլուծվող ենթածրագրի ցուցիչը
+    SubroutinePtr currentsubr;
+
+    Scanner scanner;  //!< բառային վերլուծիչը
+    Lexeme lookahead; //!< հերթական լեքսեմը
+    
+    //! @brief անորոշ հղումներ. բանալին ենթածրագրի անունն է,
+    //! իսկ արժեքը դրան հղվող Apply օբյեկտների ցուցակը
+    std::map<std::string,std::list<ApplyPtr>> unresolved;
+
+    //! @brief ներդրված ենթածրագրերի նկարագրությունների ցուցակ
+    using BuiltIn = std::tuple<std::string,std::vector<std::string>,bool>;
+    std::vector<BuiltIn> builtins;
 };
 
-bool equalNames( const std::string& no, const std::string& ni );
 } // basic

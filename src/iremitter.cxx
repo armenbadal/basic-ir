@@ -1,4 +1,3 @@
-
 #include "iremitter.hxx"
 #include "ast.hxx"
 
@@ -17,27 +16,23 @@
 /* DEBUG */
 #define __dump(_v_) (_v_)->print(llvm::errs(), false)
 
-
 namespace basic {
 ///
-IrEmitter::IrEmitter( ProgramPtr pr )
-    : context(), builder(context), prog(pr)
+IrEmitter::IrEmitter(ProgramPtr pr)
+    : prog{pr}
 {
-    _zero = llvm::ConstantFP::get(builder.getDoubleTy(), 0.0);
-    _one = llvm::ConstantFP::get(builder.getDoubleTy(), 1.0);
-
     // նախապատրաստել գրադարանային (սպասարկող) ֆունկցիաները
     prepareLibrary();
 }
 
 ///
-bool IrEmitter::emitIr( const std::string& onm )
+bool IrEmitter::emitIr(const std::string& onm)
 {
     try {
         emit(prog);
 
-        std::error_code erco;
-        llvm::raw_fd_ostream _fout(onm, erco, llvm::sys::fs::OF_None);
+        std::error_code ec;
+        llvm::raw_fd_ostream _fout(onm, ec, llvm::sys::fs::OF_None);
 
         llvm::legacy::PassManager passer;
         passer.add(llvm::createPrintModulePass(_fout, ""));
@@ -53,7 +48,7 @@ bool IrEmitter::emitIr( const std::string& onm )
 }
 
 ///
-void IrEmitter::emit( ProgramPtr prog )
+void IrEmitter::emit(ProgramPtr prog)
 {
     // ստեղծել LLVM-ի Module օբյեկտ՝ դրա հասցեն պահելով
     // STL գրադարանի unique_ptr-ի մեջ։
@@ -77,7 +72,7 @@ void IrEmitter::emit( ProgramPtr prog )
 }
 
 //
-void IrEmitter::emit( SubroutinePtr subr )
+void IrEmitter::emit(SubroutinePtr subr)
 {
     // մոդուլից վերցնել ֆունկցիայի հայտարարությունը դրան
     // մարմին ավելացնելու համար
@@ -103,8 +98,8 @@ void IrEmitter::emit( SubroutinePtr subr )
         arg.setName(subr->parameters[ix]);
     }
 
-    // մաքրել varaddresses ցուցակը
-    varaddresses.clear();
+    // մաքրել varAddresses ցուցակը
+    varAddresses.clear();
 
     // տեքստային օբյեկտների հասցեները
     std::list<llvm::Value*> localtexts;
@@ -114,7 +109,7 @@ void IrEmitter::emit( SubroutinePtr subr )
     for( auto& vi : subr->locals ) {
         auto vty = llvmType(vi->type);
         auto addr = builder.CreateAlloca(vty, nullptr, vi->name + "_addr");
-        varaddresses[vi->name] = addr;
+        varAddresses[vi->name] = addr;
         if( Type::Text == vi->type )
             localtexts.push_back(addr);
     }
@@ -122,19 +117,19 @@ void IrEmitter::emit( SubroutinePtr subr )
     // պարամետրերի արժեքները վերագրել լոկալ օբյեկտներին
     for( auto& arg : fun->args() )
         if( arg.getType()->isPointerTy() ) {
-            auto parval = builder.CreateCall(LF("text_clone"), { &arg });
-            builder.CreateStore(parval, varaddresses[arg.getName().str()]);
-            localtexts.remove(varaddresses[arg.getName().str()]);
+            auto parval = createLibraryFuncCall("text_clone", { &arg });
+            builder.CreateStore(parval, varAddresses[arg.getName().str()]);
+            localtexts.remove(varAddresses[arg.getName().str()]);
         }
         else
-            builder.CreateStore(&arg, varaddresses[arg.getName().str()]);
+            builder.CreateStore(&arg, varAddresses[arg.getName().str()]);
 
     // տեքստային օբյեկտների համար գեներացնել սկզբնական արժեք
     // (սա արվում է վերագրման ժամանակ հին արժեքը ջնջելու և 
     // նորը վերագրելու սիմետրիկությունն ապահովելու համար)
     auto one = builder.getInt64(1);
     for( auto vp : localtexts ) {
-        auto deva = builder.CreateCall(LF("malloc"), { one });
+        auto deva = createLibraryFuncCall("malloc", { one });
         builder.CreateStore(deva, vp);
     }
 
@@ -150,12 +145,13 @@ void IrEmitter::emit( SubroutinePtr subr )
     for( auto vi : subr->locals ) {
         if( vi->name == subr->name )
             continue;
+
         if( Type::Number == vi->type )
             continue;
+
 		if( Type::Text == vi->type ) {
-		  auto addr = builder.CreateLoad(varaddresses[vi->name]);
-		  auto deva = builder.CreateCall(LF("free"), { addr });
-		  
+		    auto addr = builder.CreateLoad(llvmType(Type::Text), varAddresses[vi->name]);
+		    createLibraryFuncCall("free", { addr });
 		}
     }
 
@@ -163,7 +159,7 @@ void IrEmitter::emit( SubroutinePtr subr )
     if( fun->getReturnType()->isVoidTy() )
         builder.CreateRetVoid();
     else {
-        auto rv = builder.CreateLoad(varaddresses[subr->name]);
+        auto rv = builder.CreateLoad(fun->getReturnType(), varAddresses[subr->name]);
         builder.CreateRet(rv);
     }
 
@@ -172,7 +168,7 @@ void IrEmitter::emit( SubroutinePtr subr )
 }
 
 ///
-void IrEmitter::emit( StatementPtr st )
+void IrEmitter::emit(StatementPtr st)
 {
     switch( st->kind ) {
         case NodeKind::Sequence:
@@ -205,65 +201,65 @@ void IrEmitter::emit( StatementPtr st )
 }
 
 ///
-void IrEmitter::emit( SequencePtr seq )
+void IrEmitter::emit(SequencePtr seq)
 {
     for( auto st : seq->items )
         emit(st);
 }
 
 ///
-void IrEmitter::emit( LetPtr let )
+void IrEmitter::emit(LetPtr let)
 {
     auto val = emit(let->expr);
-    auto addr = varaddresses[let->varptr->name];
+    auto addr = varAddresses[let->varptr->name];
     
     if( Type::Text == let->varptr->type ) {
-        auto _dera = builder.CreateLoad(addr);  
-        builder.CreateCall(LF("free"), {_dera});
+        auto _dera = builder.CreateLoad(llvmType(Type::Text), addr);  
+        createLibraryFuncCall("free", {_dera});
         if( !createsTempText(let->expr) )
-            val = builder.CreateCall(LF("text_clone"), { val });
+            val = createLibraryFuncCall("text_clone", { val });
     }
 
     builder.CreateStore(val, addr);
 }
 
 ///
-void IrEmitter::emit( InputPtr inp )
+void IrEmitter::emit(InputPtr inp)
 {
     // ստանալ հրավերքի տեքստի հասցեն
     auto _probj = std::make_shared<Text>(inp->prompt);
     auto _pref = emit(_probj);
 
     // հաշվարկել ներմուծող ֆունկցիան
-    llvm::FunctionCallee input_f;
+    std::string_view funcName;
     if( Type::Text == inp->varptr->type )
-        input_f = LF("text_input");
+        funcName = "text_input";
     else if( Type::Number == inp->varptr->type )
-        input_f = LF("number_input");
+        funcName = "number_input";    
 
     // գեներացնել ներմուծող ֆունկցիայի կանչ
-    auto _inp = builder.CreateCall(input_f, {_pref});
+    auto _inp = createLibraryFuncCall(funcName, {_pref});
     // ներմուծված արժեքը վերագրել համապատասխան հասցեին
-    builder.CreateStore(_inp, varaddresses[inp->varptr->name]);
+    builder.CreateStore(_inp, varAddresses[inp->varptr->name]);
 }
 
 ///
-void IrEmitter::emit( PrintPtr pri )
+void IrEmitter::emit(PrintPtr pri)
 {
     // արտածվող արտահայտության կոդը
     auto _expr = emit(pri->expr);
     
     if( Type::Text == pri->expr->type ) {
-        builder.CreateCall(LF("text_print"), {_expr});
+        createLibraryFuncCall("text_print", {_expr});
         if( createsTempText(pri->expr) )
-            builder.CreateCall(LF("free"), {_expr});
+            createLibraryFuncCall("free", {_expr});
     }
     else if( Type::Number == pri->expr->type )
-        builder.CreateCall(LF("number_print"), {_expr});
+        createLibraryFuncCall("number_print", {_expr});
 }
 
 ///
-void IrEmitter::emit( IfPtr sif )
+void IrEmitter::emit(IfPtr sif)
 {
     // ընթացիկ ֆունկցիայի դուրս բերում
     auto _fun = builder.GetInsertBlock()->getParent();
@@ -283,7 +279,7 @@ void IrEmitter::emit( IfPtr sif )
 
         // գեներացնել պայմանը 
         auto cnd = emit(_if->condition);
-		cnd = builder.CreateFCmpUNE(cnd, _zero);
+		cnd = builder.CreateFCmpUNE(cnd, Zero);
         
         // անցում ըստ պայմանի
         builder.CreateCondBr(cnd, _tbb, _cbb);
@@ -309,7 +305,7 @@ void IrEmitter::emit( IfPtr sif )
 }
 
 ///
-void IrEmitter::emit( WhilePtr swhi )
+void IrEmitter::emit(WhilePtr swhi)
 {
     // ընթացիկ ֆունկցիան
     auto _fun = builder.GetInsertBlock()->getParent();
@@ -323,7 +319,7 @@ void IrEmitter::emit( WhilePtr swhi )
 
     // գեներացնել կրկնման պայմանը
     auto coex = emit(swhi->condition);
-	coex = builder.CreateFCmpUNE(coex, _zero);
+	coex = builder.CreateFCmpUNE(coex, Zero);
     builder.CreateCondBr(coex, _body, _end);
 
     setCurrentBlock(_fun, _body);
@@ -336,7 +332,7 @@ void IrEmitter::emit( WhilePtr swhi )
 }
 
 ///
-void IrEmitter::emit( ForPtr sfor )
+void IrEmitter::emit(ForPtr sfor)
 {
     // ընթացիկ ֆունկցիան
     auto _fun = builder.GetInsertBlock()->getParent();
@@ -345,7 +341,7 @@ void IrEmitter::emit( ForPtr sfor )
     auto _body = llvm::BasicBlock::Create(context, "", _fun);
     auto _end = llvm::BasicBlock::Create(context, "", _fun);
 
-    auto _param = varaddresses[sfor->parameter->name];
+    auto _param = varAddresses[sfor->parameter->name];
     // գեներացնել սկզբնական արժեքի արտահայտությունը
     auto _init = emit(sfor->begin);
     // պարամետրին վերագրել սկզբնական արժեքը
@@ -360,12 +356,12 @@ void IrEmitter::emit( ForPtr sfor )
     // եթե պարամետրի արժեքը >= (կամ <=, եթե քայլը բացասական է)
     // վերջնականից, ապա ավարտել ցիկլը
     if( sfor->step->value >= 0.0 ) {
-        auto _pv = builder.CreateLoad(_param);
+        auto _pv = builder.CreateLoad(llvmType(Type::Number), _param);
         auto coex = builder.CreateFCmpOLT(_pv, _finish);
         builder.CreateCondBr(coex, _body, _end);
     }
     else if( sfor->step->value <= 0.0 ) {
-        auto _pv = builder.CreateLoad(_param);
+        auto _pv = builder.CreateLoad(llvmType(Type::Number), _param);
         auto coex = builder.CreateFCmpOGT(_pv, _finish);
         builder.CreateCondBr(coex, _body, _end);
     }
@@ -376,7 +372,7 @@ void IrEmitter::emit( ForPtr sfor )
     emit(sfor->body);
 
     // պարամետրի արժեքին գումարել քայլի արժեքը
-    auto parval = builder.CreateLoad(_param);
+    auto parval = builder.CreateLoad(llvmType(Type::Number), _param);
     auto nwpv = builder.CreateFAdd(parval, _step);
     builder.CreateStore(nwpv, _param);
 
@@ -387,14 +383,14 @@ void IrEmitter::emit( ForPtr sfor )
 }
 
 ///
-void IrEmitter::emit( CallPtr cal )
+void IrEmitter::emit(CallPtr cal)
 {
     // պրոցեդուրայի կանչը նույն ֆունկցիայի կիրառումն է
     emit(cal->subrcall);
 }
 
 ///
-llvm::Value* IrEmitter::emit( ExpressionPtr expr )
+llvm::Value* IrEmitter::emit(ExpressionPtr expr)
 {
     llvm::Value* res = nullptr;
 
@@ -425,40 +421,40 @@ llvm::Value* IrEmitter::emit( ExpressionPtr expr )
 }
 
 ///
-llvm::Value* IrEmitter::emit( TextPtr txt )
+llvm::Value* IrEmitter::emit(TextPtr txt)
 {
     // եթե տրված արժեքով տող արդեն սահմանված է գլոբալ
     // տիրույթում, ապա վերադարձնել դրա հասցեն
-    auto sri = globaltexts.find(txt->value);
-    if( sri != globaltexts.end() )
+    auto sri = globalTexts.find(txt->value);
+    if( sri != globalTexts.end() )
         return sri->second;
 
     // ... հակառակ դեպքում՝ սահմանել նոր գլոբալ տող, դրա հասցեն
     // պահել գլոբալ տողերի ցուցակում և վերադարձնել որպես արժեք
     auto strp = builder.CreateGlobalStringPtr(txt->value, "g_str");
-    globaltexts[txt->value] = strp;
+    globalTexts[txt->value] = strp;
 
     return strp;
 }
 
 ///
-llvm::Constant* IrEmitter::emit( NumberPtr num )
+llvm::Constant* IrEmitter::emit(NumberPtr num)
 {
     // գեներացնել թվային հաստատուն
     return llvm::ConstantFP::get(builder.getDoubleTy(), num->value);
 }
 
 ///
-llvm::LoadInst* IrEmitter::emit( VariablePtr var )
+llvm::LoadInst* IrEmitter::emit(VariablePtr var)
 {
     // ստանալ փոփոխականի հասցեն ...
-    llvm::Value* vaddr = varaddresses[var->name];
+    llvm::Value* vaddr = varAddresses[var->name];
     // ... և գեներացնել արժեքի բեռնման հրահանգ
-    return builder.CreateLoad(vaddr, var->name);
+    return builder.CreateLoad(llvmType(typeOf(var->name)), vaddr, var->name);
 }
 
 ///
-llvm::Value* IrEmitter::emit( ApplyPtr apy )
+llvm::Value* IrEmitter::emit(ApplyPtr apy)
 {
     // գեներացնել կանչի արգումենտները
     std::vector<llvm::Value*> argus, temps;
@@ -471,13 +467,13 @@ llvm::Value* IrEmitter::emit( ApplyPtr apy )
 
     // կանչել ֆունկցիան ու պահել արժեքը
     //auto callee = module->getFunction(apy->procptr->name);
-	auto callee = UF(apy->procptr->name);
+	auto callee = userFunction(apy->procptr->name);
     auto calv = builder.CreateCall(callee, argus);
 
     // մաքրել կանչի ժամանակավոր արգումենտները
     for( auto ai : temps )
         if( ai->getType()->isPointerTy() )
-            builder.CreateCall(LF("free"), { ai });
+            createLibraryFuncCall("free", { ai });
 
     // վերադարձնել կանչի արդյունքը
     return calv;
@@ -493,7 +489,7 @@ _իրական_ (`double`) արժեքի։ Սակայն, քանի որ `IF` հրա
 նախընտրելի է։ 
 */
 ///
-llvm::Value* IrEmitter::emit( BinaryPtr bin )
+llvm::Value* IrEmitter::emit(BinaryPtr bin)
 {
     llvm::Value* lhs = emit(bin->subexpro);
     llvm::Value* rhs = emit(bin->subexpri);
@@ -502,8 +498,8 @@ llvm::Value* IrEmitter::emit( BinaryPtr bin )
                  || (Type::Number == bin->subexpri->type);
 
     if( Operation::And == bin->opcode || Operation::Or == bin->opcode ) {
-		lhs = builder.CreateFCmpUNE(lhs, _zero);
-		rhs = builder.CreateFCmpUNE(rhs, _zero);
+		lhs = builder.CreateFCmpUNE(lhs, Zero);
+		rhs = builder.CreateFCmpUNE(rhs, Zero);
 	}
 	
     llvm::Value* ret = nullptr;
@@ -524,43 +520,43 @@ llvm::Value* IrEmitter::emit( BinaryPtr bin )
             ret = builder.CreateFRem(lhs, rhs, "rem");
             break;
         case Operation::Pow:
-            ret = builder.CreateCall(LF("pow"), {lhs, rhs});
+            ret = createLibraryFuncCall("pow", {lhs, rhs});
             break;
         case Operation::Eq:
             if( numopers )
                 ret = builder.CreateFCmpOEQ(lhs, rhs, "eq");
             else
-                ret = builder.CreateCall(LF("text_eq"), {lhs, rhs});
+                ret = createLibraryFuncCall("text_eq", {lhs, rhs});
             break;
         case Operation::Ne:
             if( numopers )
                 ret = builder.CreateFCmpONE(lhs, rhs, "ne");
             else
-                ret = builder.CreateCall(LF("text_ne"), {lhs, rhs});
+                ret = createLibraryFuncCall("text_ne", {lhs, rhs});
             break;
         case Operation::Gt:
             if( numopers )
                 ret = builder.CreateFCmpOGT(lhs, rhs, "gt");
             else
-                ret = builder.CreateCall(LF("text_gt"), {lhs, rhs});
+                ret = createLibraryFuncCall("text_gt", {lhs, rhs});
             break;
         case Operation::Ge:
             if( numopers )
                 ret = builder.CreateFCmpOGE(lhs, rhs, "ge");
             else
-                ret = builder.CreateCall(LF("text_ge"), {lhs, rhs});
+                ret = createLibraryFuncCall("text_ge", {lhs, rhs});
             break;
         case Operation::Lt:
             if( numopers )
                 ret = builder.CreateFCmpOLT(lhs, rhs, "lt");
             else
-                ret = builder.CreateCall(LF("text_lt"), {lhs, rhs});
+                ret = createLibraryFuncCall("text_lt", {lhs, rhs});
             break;
         case Operation::Le:
             if( numopers )
                 ret = builder.CreateFCmpOLE(lhs, rhs, "le");
             else
-                ret = builder.CreateCall(LF("text_le"), {lhs, rhs});
+                ret = createLibraryFuncCall("text_le", {lhs, rhs});
             break;
         case Operation::And:
             ret = builder.CreateAnd(lhs, rhs, "and");
@@ -569,20 +565,20 @@ llvm::Value* IrEmitter::emit( BinaryPtr bin )
             ret = builder.CreateOr(lhs, rhs, "or");
             break;
         case Operation::Conc:
-            ret = builder.CreateCall(LF("text_conc"), {lhs, rhs});
+            ret = createLibraryFuncCall("text_conc", {lhs, rhs});
             break;
         default:
             break;
     }
 
     if( bin->opcode >= Operation::Eq && bin->opcode <= Operation::Or )
-        ret = builder.CreateSelect(ret, _one, _zero);
+        ret = builder.CreateSelect(ret, One, Zero);
 		
     return ret;
 }
 
 ///
-llvm::Value* IrEmitter::emit( UnaryPtr un )
+llvm::Value* IrEmitter::emit(UnaryPtr un)
 {
     // գեներացնել ենթաարտահայտությունը
     auto val = emit(un->subexpr);
@@ -593,15 +589,15 @@ llvm::Value* IrEmitter::emit( UnaryPtr un )
 
     // ժխտում
     if( Operation::Not == un->opcode ) {
-	  auto _cbv = builder.CreateFCmpUNE(val, _zero);
-	  return builder.CreateSelect(_cbv, _one, _zero);
+	  auto _cbv = builder.CreateFCmpUNE(val, Zero);
+	  return builder.CreateSelect(_cbv, One, Zero);
 	}
     
     return val;
 }
 
 ///
-void IrEmitter::setCurrentBlock( llvm::Function* fun, llvm::BasicBlock* bl )
+void IrEmitter::setCurrentBlock(llvm::Function* fun, llvm::BasicBlock* bl)
 {
     auto _cbb = builder.GetInsertBlock();
 
@@ -657,22 +653,22 @@ void IrEmitter::prepareLibrary()
 }
 
 ///
-llvm::FunctionCallee IrEmitter::LF( const String& name )
+llvm::FunctionCallee IrEmitter::libraryFunction(std::string_view name)
 {
-    return module->getOrInsertFunction(name, library[name]);
+    return module->getOrInsertFunction(name, library[std::string{name}]);
 }
 
 ///
-llvm::FunctionCallee IrEmitter::UF( const String& name )
+llvm::FunctionCallee IrEmitter::userFunction(std::string_view name)
 {
     if( "MID$" == name )
-        return LF("text_mid");
+        return libraryFunction("text_mid");
 
     if( "STR$" == name )
-        return LF("text_str");
+        return libraryFunction("text_str");
 
     if( "SQR" == name )
-        return LF("sqrt");
+        return libraryFunction("sqrt");
 	
     return module->getFunction(name);
 }
@@ -698,7 +694,7 @@ void IrEmitter::createEntryPoint()
 }        
 
 ///
-void IrEmitter::declareSubroutines( ProgramPtr prog )
+void IrEmitter::declareSubroutines(ProgramPtr prog)
 {
     for( auto& subr : prog->members ) {
         // պարամետրերի տիպերի ցուցակի կառուցումը
@@ -707,11 +703,9 @@ void IrEmitter::declareSubroutines( ProgramPtr prog )
             ptypes.push_back(llvmType(typeOf(pr)));
 
         // վերադարձվող արժեքի տիպը
-        llvm::Type* rtype = nullptr;
-        if( subr->hasValue )
-            rtype = llvmType(typeOf(subr->name));
-        else
-            rtype = builder.getVoidTy();
+        llvm::Type* rtype = subr->hasValue ? 
+                llvmType(typeOf(subr->name)) :
+                builder.getVoidTy();
 
         // ստեղծել ֆունկցիայի հայտարարությունը
         auto functy = llvm::FunctionType::get(rtype, ptypes, false);
@@ -721,7 +715,7 @@ void IrEmitter::declareSubroutines( ProgramPtr prog )
 }
 
 ///
-void IrEmitter::defineSubroutines( ProgramPtr prog )
+void IrEmitter::defineSubroutines(ProgramPtr prog)
 {
     for( auto& subr : prog->members )
         if( !subr->isBuiltIn )
@@ -729,7 +723,7 @@ void IrEmitter::defineSubroutines( ProgramPtr prog )
 }
 
 ///
-llvm::Type* IrEmitter::llvmType( Type type )
+llvm::Type* IrEmitter::llvmType(Type type)
 {
     if( Type::Number == type )
         return builder.getDoubleTy();
@@ -741,7 +735,7 @@ llvm::Type* IrEmitter::llvmType( Type type )
 }
 
 ///
-bool IrEmitter::createsTempText( ExpressionPtr expr )
+bool IrEmitter::createsTempText(ExpressionPtr expr)
 {
     // թվային արտահայտությունը ժամանակավոր օբյեկտ չի ստեղծում
     if( Type::Number == expr->type )
@@ -753,4 +747,12 @@ bool IrEmitter::createsTempText( ExpressionPtr expr )
 
     return true;
 }
+
+///
+llvm::CallInst* IrEmitter::createLibraryFuncCall(std::string_view fname, 
+            const llvm::ArrayRef<llvm::Value*>& args)
+{
+    return builder.CreateCall(libraryFunction(fname), args);
+}
+
 } // namespace llvm
