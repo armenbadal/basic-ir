@@ -13,6 +13,8 @@ enum class Token : int {
     Number,     //!< թվային հաստատուն
     Text,       //!< տեքստային հաստատուն
     Identifier, //!< իդենտիֆիկատոր
+    True,       //!< TRUE հաստատունը
+    False,      //!< FALSE հաստատունը
 
     Subroutine, //!< SUB
     Input,      //!< INPUT

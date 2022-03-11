@@ -3,6 +3,7 @@
 
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/Value.h>
 #include <llvm/Support/raw_ostream.h>
 
 #include <filesystem>
@@ -17,6 +18,7 @@ namespace basic {
 ///
 class IrEmitter {
 public:
+    using Value = llvm::Value;
     using TypeVector = std::vector<llvm::Type*>;
 
 public:
@@ -99,6 +101,11 @@ private:
     //! իսկ այն դեպքերում, երբ պետք է հղվել անունին, համապատասխան
     //! ցուցիչն ընտրվում է այստեղից։
     std::unordered_map<std::string,llvm::Value*> varAddresses;
+
+    //! @brief IR֊ը գեներացնելիս օգտագործվող տիպերը
+    llvm::Type* VoidType = builder.getVoidTy();
+    llvm::Type* NumberType = builder.getDoubleTy();
+    llvm::Type* TextType = builder.getInt8PtrTy();
 
     //! @brief «Զրո» և «մեկ» հաստատունները
     //!

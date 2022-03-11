@@ -29,9 +29,9 @@ private:
 bool equalNames(std::string_view no, std::string_view ni)
 {
     std::string_view so = no, si = ni;
-    if( '$' == so.back() )
+    if( '$' == so.back() || '?' == so.back() )
         so.remove_suffix(1);
-    if( '$' == si.back() )
+    if( '$' == si.back() || '?' == si.back() )
         si.remove_suffix(1);
     return so == si;
 }

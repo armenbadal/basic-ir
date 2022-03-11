@@ -17,7 +17,7 @@ public:
     //! @brief Բառային վերլուծիչի կոնստրուկտոր
     //!
     //! @param filename Վերլուծվելիք ֆայլի ճանապարհը
-    Scanner(const std::filesystem::path& filename);
+    explicit Scanner(const std::filesystem::path& filename);
 
     //! @brief Բառային վերլուծիչի դեստրուկտոր
     ~Scanner();

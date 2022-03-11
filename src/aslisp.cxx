@@ -41,6 +41,11 @@ bool Lisper::emitLisp(AstNodePtr node, const std::filesystem::path& file)
     return true;
 }
 
+void Lisper::visit(BooleanPtr node)
+{
+    os << "(basic-number " << (node->value ? "T" : "NIL") << ")";
+}
+
 ///
 void Lisper::visit(NumberPtr node)
 {

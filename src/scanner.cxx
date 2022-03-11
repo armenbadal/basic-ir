@@ -22,7 +22,9 @@ std::map<std::string_view, Token> Scanner::keywords{
     { "MOD",    Token::Mod },
     { "AND",    Token::And },
     { "OR",     Token::Or },
-    { "NOT",    Token::Not }
+    { "NOT",    Token::Not },
+    { "TRUE",   Token::True },
+    { "FALSE",  Token::False }
 };
 
 //
@@ -223,16 +225,20 @@ bool Scanner::scanIdentifier(Lexeme& lex)
         lex.value.push_back(ch);
         source >> ch;
     }
-    // եթե հանդիպել է «$», ապա դա էլ կցել լեքսեմի արժեքին
-    if( ch == '$' ) {
+
+    // եթե հանդիպել է «$» կամ «?», ապա դա էլ կցել լեքսեմի արժեքին
+    if( ch == '$' || ch == '?' ) {
+        lex.value.push_back(ch);
         source >> ch;
-        lex.value.push_back('$');
     }
+
     // լեքսեմի արժեքը փնտրել ծառայողական բառերի ցուցակում
     auto ival = keywords.find(lex.value);
     // եթե գտնվել է, ապա վերադարձնել համապատասխան պիտակը,
     // հակառակ դեպքում վերադարձնել իդենտիֆիկատորի պիտակ
     lex.kind = ival == keywords.end() ? Token::Identifier : ival->second;
+    
     return true;
 }
+
 } // basic

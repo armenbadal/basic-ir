@@ -11,6 +11,8 @@ std::string toString(Token sym)
         { Token::None, "None" },
         { Token::Number, "Number" },
         { Token::Text, "Text" },
+        { Token::True, "TRUE" },
+        { Token::False, "FALSE" },
         { Token::Identifier, "IDENT" },
         { Token::Subroutine, "SUB" },
         { Token::Input, "INPUT" },

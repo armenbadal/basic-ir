@@ -150,7 +150,7 @@ void IrEmitter::emit(SubroutinePtr subr)
             continue;
 
 		if( Type::Text == vi->type ) {
-		    auto addr = builder.CreateLoad(llvmType(Type::Text), varAddresses[vi->name]);
+		    auto addr = builder.CreateLoad(TextType, varAddresses[vi->name]);
 		    createLibraryFuncCall("free", { addr });
 		}
     }
@@ -214,7 +214,7 @@ void IrEmitter::emit(LetPtr let)
     auto addr = varAddresses[let->varptr->name];
     
     if( Type::Text == let->varptr->type ) {
-        auto _dera = builder.CreateLoad(llvmType(Type::Text), addr);  
+        auto _dera = builder.CreateLoad(TextType, addr);  
         createLibraryFuncCall("free", {_dera});
         if( !createsTempText(let->expr) )
             val = createLibraryFuncCall("text_clone", { val });
@@ -356,12 +356,12 @@ void IrEmitter::emit(ForPtr sfor)
     // եթե պարամետրի արժեքը >= (կամ <=, եթե քայլը բացասական է)
     // վերջնականից, ապա ավարտել ցիկլը
     if( sfor->step->value >= 0.0 ) {
-        auto _pv = builder.CreateLoad(llvmType(Type::Number), _param);
+        auto _pv = builder.CreateLoad(NumberType, _param);
         auto coex = builder.CreateFCmpOLT(_pv, _finish);
         builder.CreateCondBr(coex, _body, _end);
     }
     else if( sfor->step->value <= 0.0 ) {
-        auto _pv = builder.CreateLoad(llvmType(Type::Number), _param);
+        auto _pv = builder.CreateLoad(NumberType, _param);
         auto coex = builder.CreateFCmpOGT(_pv, _finish);
         builder.CreateCondBr(coex, _body, _end);
     }
@@ -372,7 +372,7 @@ void IrEmitter::emit(ForPtr sfor)
     emit(sfor->body);
 
     // պարամետրի արժեքին գումարել քայլի արժեքը
-    auto parval = builder.CreateLoad(llvmType(Type::Number), _param);
+    auto parval = builder.CreateLoad(NumberType, _param);
     auto nwpv = builder.CreateFAdd(parval, _step);
     builder.CreateStore(nwpv, _param);
 
@@ -450,7 +450,7 @@ llvm::LoadInst* IrEmitter::emit(VariablePtr var)
     // ստանալ փոփոխականի հասցեն ...
     llvm::Value* vaddr = varAddresses[var->name];
     // ... և գեներացնել արժեքի բեռնման հրահանգ
-    return builder.CreateLoad(llvmType(typeOf(var->name)), vaddr, var->name);
+    return builder.CreateLoad(llvmType(var->type), vaddr, var->name);
 }
 
 ///
@@ -726,12 +726,12 @@ void IrEmitter::defineSubroutines(ProgramPtr prog)
 llvm::Type* IrEmitter::llvmType(Type type)
 {
     if( Type::Number == type )
-        return builder.getDoubleTy();
+        return NumberType;
 
     if( Type::Text == type )
-        return builder.getInt8PtrTy();
+        return TextType;
 
-    return builder.getVoidTy();
+    return VoidType;
 }
 
 ///

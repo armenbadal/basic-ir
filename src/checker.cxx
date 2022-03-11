@@ -84,18 +84,18 @@ void Checker::visit(PrintPtr node)
 void Checker::visit(IfPtr node)
 {
     visit(node->condition);
+    if( Type::Boolean != node->condition->type )
+        throw TypeError("Ճյուղավորման հրամանի պայմանի տիպը թվային չէ։");
+
     visit(node->decision);
     visit(node->alternative);
-
-    if( Type::Number != node->condition->type )
-        throw TypeError("Ճյուղավորման հրամանի պայմանի տիպը թվային չէ։");
 }
 
 //
 void Checker::visit(WhilePtr node)
 {
     visit(node->condition);
-    if( Type::Number != node->condition->type )
+    if( Type::Boolean != node->condition->type )
         throw TypeError("Պայմանով ցիկլի պայմանի տիպը թվային չէ։");
 
     visit(node->body);
@@ -176,9 +176,25 @@ void Checker::visit(BinaryPtr node)
     Operation opc = node->opcode;
 
     // տիպերի ստուգում և որոշում
+    if( Type::Boolean == tyo && Type::Boolean == tyi ) {
+        const bool allowed = opc == Operation::And ||
+                             opc == Operation::Or ||
+                             opc == Operation::Eq ||
+                             opc == Operation::Ne;
+        if( !allowed )
+            throw TypeError{"'" + toString(opc) + "' գործողությունը կիրառելի չէ տրամաբանական արժեքներին։"};
+
+        node->type = Type::Boolean;
+    }
     if( Type::Number == tyo && Type::Number == tyi ) {
-        if( Operation::Conc == opc )
-            throw TypeError("'&' գործողությունը կիրառելի չէ թվերին։");
+        const bool notAllowed = opc == Operation::Conc ||
+                                opc == Operation::And ||
+                                opc == Operation::Or;
+        if( notAllowed )
+            throw TypeError("'" + toString(opc) + "' գործողությունը կիրառելի չէ թվերին։");
+
+        if( opc >= Operation::Eq && opc <= Operation::Le )
+            node->type = Type::Boolean;
 
         node->type = Type::Number;
     }
@@ -186,7 +202,7 @@ void Checker::visit(BinaryPtr node)
         if( Operation::Conc == opc )
             node->type = Type::Text;
         else if( opc >= Operation::Eq && opc <= Operation::Le )
-            node->type = Type::Number;
+            node->type = Type::Boolean;
         else
             throw TypeError("'" + toString(opc) + "' գործողությունը կիրառելի չէ տեքստերին։");
     }
@@ -219,6 +235,12 @@ void Checker::visit(TextPtr node)
 
 //
 void Checker::visit(NumberPtr node)
+{
+    // ճիշտ տիպը նախորոշված է
+}
+
+//
+void Checker::visit(BooleanPtr node)
 {
     // ճիշտ տիպը նախորոշված է
 }

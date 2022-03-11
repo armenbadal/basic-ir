@@ -33,6 +33,7 @@ private:
     void visit(VariablePtr node) override;
     void visit(TextPtr node) override;
     void visit(NumberPtr node) override;
+    void visit(BooleanPtr node) override;
 
     void visit(AstNodePtr node) override;
     

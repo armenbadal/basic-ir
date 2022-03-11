@@ -5,6 +5,9 @@ namespace basic {
 void AstVisitor::visit(AstNodePtr node)
 {
     switch( node->kind ) {
+        case NodeKind::Boolean:
+            visit(std::dynamic_pointer_cast<Boolean>(node));
+            break;
         case NodeKind::Number:
             visit(std::dynamic_pointer_cast<Number>(node));
             break;

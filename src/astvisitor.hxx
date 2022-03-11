@@ -30,6 +30,7 @@ protected:
     virtual void visit(VariablePtr node) = 0;
     virtual void visit(TextPtr node) = 0;
     virtual void visit(NumberPtr node) = 0;
+    virtual void visit(BooleanPtr node) = 0;
     
     virtual void visit( AstNodePtr node );
 };

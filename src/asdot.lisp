@@ -125,4 +125,8 @@
 	(ast-node cnum (format nil "NUMBER: ~a" value))
 	cnum))
 
+(defun basic-boolean (value)
+  (let ((cnum (new-index)))
+	(ast-node cnum (format nil "BOOLEAN: ~a" value))
+	cnum))
 

@@ -10,21 +10,21 @@ std::string toString( Operation opc )
 {
     static std::map<Operation,std::string> names{
         { Operation::None, "None" },
-        { Operation::Add, "+" },
-        { Operation::Sub, "-" },
-        { Operation::Mul, "*" },
-        { Operation::Div, "/" },
-        { Operation::Mod, "\\" },
-        { Operation::Pow, "^" },
-        { Operation::Eq, "=" },
-        { Operation::Ne, "<>" },
-        { Operation::Gt, ">" },
-        { Operation::Ge, ">=" },
-        { Operation::Lt, "<" },
-        { Operation::Le, "<=" },
-        { Operation::And, "AND" },
-        { Operation::Or, "OR" },
-        { Operation::Not, "NOT" },
+        { Operation::Add,   "+" },
+        { Operation::Sub,   "-" },
+        { Operation::Mul,   "*" },
+        { Operation::Div,   "/" },
+        { Operation::Mod,   "\\" },
+        { Operation::Pow,   "^" },
+        { Operation::Eq,   "=" },
+        { Operation::Ne,   "<>" },
+        { Operation::Gt,   ">" },
+        { Operation::Ge,   ">=" },
+        { Operation::Lt,   "<" },
+        { Operation::Le,   "<=" },
+        { Operation::And,  "AND" },
+        { Operation::Or,   "OR" },
+        { Operation::Not,  "NOT" },
         { Operation::Conc, "&" }
     };
     return names[opc];
@@ -38,6 +38,9 @@ Type typeOf( const std::string& nm )
 
 std::string toString( Type vl )
 {
+    if( Type::Boolean == vl )
+        return "BOOLEAN";
+
     if( Type::Number == vl )
         return "NUMBER";
 
