@@ -26,6 +26,7 @@ namespace basic {
 ///
 bool compile(const std::filesystem::path& source, bool generaeIr, bool generateLisp)
 {
+std::clog << source.string() << std::endl;
     // ստուգել ֆայլի գոյությունը
     if( !std::filesystem::exists(source) )
         return false;
@@ -37,7 +38,8 @@ bool compile(const std::filesystem::path& source, bool generaeIr, bool generateL
 
     // տիպերի ստուգում
     if( const auto ce = Checker().check(prog); ce.has_value() ) {
-        // TODO: print error message
+        std::cerr <<  "TODO: print error message\n";
+        std::cerr << ce.value() << std::endl;
         return false;
     }
 
@@ -45,7 +47,8 @@ bool compile(const std::filesystem::path& source, bool generaeIr, bool generateL
     if( generaeIr ) {
         auto irModule = source;
         irModule.replace_extension("ll");
-        if( !IrEmitter(prog).emitIr(irModule) )
+
+        if( !IrEmitter().emitIr(prog, irModule) )
             return false;
 
         // TODO: սա տեղափոխե՞լ առանձին ֆայլ

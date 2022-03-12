@@ -22,10 +22,10 @@ public:
     using TypeVector = std::vector<llvm::Type*>;
 
 public:
-    IrEmitter(ProgramPtr pr);
+    IrEmitter();
     ~IrEmitter() = default;
 
-    bool emitIr(const std::string& onm);
+    bool emitIr(ProgramPtr prog, const std::filesystem::path& onm);
 
 private:
     void emit(ProgramPtr prog);
@@ -47,7 +47,8 @@ private:
     llvm::Value* emit(UnaryPtr una);
     llvm::Value* emit(TextPtr txt);
     llvm::Constant* emit(NumberPtr num);
-    llvm::LoadInst* emit(VariablePtr var);
+    llvm::Constant* emit(BooleanPtr num);
+    llvm::UnaryInstruction* emit(VariablePtr var);
 
     //! @brief BASIC-IR տիպից կառուցում է LLVM տիպ։
     llvm::Type* llvmType(Type type);
@@ -104,6 +105,7 @@ private:
 
     //! @brief IR֊ը գեներացնելիս օգտագործվող տիպերը
     llvm::Type* VoidType = builder.getVoidTy();
+    llvm::Type* BooleanType = builder.getInt1Ty();
     llvm::Type* NumberType = builder.getDoubleTy();
     llvm::Type* TextType = builder.getInt8PtrTy();
 
@@ -113,6 +115,5 @@ private:
     //! ձևափոխությունների ժամանակ։
     llvm::Constant* Zero = llvm::ConstantFP::get(builder.getDoubleTy(), 0.0);
     llvm::Constant* One = llvm::ConstantFP::get(builder.getDoubleTy(), 1.0);
-
 };
 } // namespace basic

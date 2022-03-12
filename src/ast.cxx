@@ -6,7 +6,7 @@
 
 namespace basic {
 //
-std::string toString( Operation opc )
+const std::string toString(Operation opc)
 {
     static std::map<Operation,std::string> names{
         { Operation::None, "None" },
@@ -30,21 +30,38 @@ std::string toString( Operation opc )
     return names[opc];
 }
 
-//
-Type typeOf( const std::string& nm )
+// 
+bool Expression::is(Type ty)
 {
-    return nm.back() == '$' ? Type::Text : Type::Number;
+    return type == ty;
 }
 
-std::string toString( Type vl )
+bool Expression::isNot(Type ty)
 {
-    if( Type::Boolean == vl )
+    return !is(type);
+}
+
+//
+Type typeOf(std::string_view name)
+{
+    if( name.back() == '?' )
+        return Type::Boolean;
+
+    if( name.back() == '$' )
+        return Type::Textual;
+        
+    return Type::Numeric;
+}
+
+const std::string toString(Type ty)
+{
+    if( Type::Boolean == ty )
         return "BOOLEAN";
 
-    if( Type::Number == vl )
+    if( Type::Numeric == ty )
         return "NUMBER";
 
-    if( Type::Text == vl )
+    if( Type::Textual == ty )
         return "TEXT";
 
     return "VOID";

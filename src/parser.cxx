@@ -51,7 +51,7 @@ Parser::Parser(const std::filesystem::path& filename)
         BuiltIn{"STR$", {"a"}, true}
     };
 
-    module = std::make_shared<Program>(filename);
+    module = node<Program>(filename.string());
 }
 
 ///
@@ -139,12 +139,12 @@ void Parser::parseSubroutine()
         match(Token::RightPar);
     }
 
-    currentsubr = std::make_shared<Subroutine>(name, params);
+    currentsubr = node<Subroutine>(name, params);
     module->members.push_back(currentsubr);
 
 	// պարամետրերն ավելացնել ենթածրագրի լոկալ անունների ցուցակում
 	for( auto& ps : currentsubr->parameters )
-        currentsubr->locals.push_back(std::make_shared<Variable>(ps));
+        currentsubr->locals.push_back(node<Variable>(ps));
 
     // մարմին
     currentsubr->body = parseStatements();
@@ -157,7 +157,7 @@ void Parser::parseSubroutine()
     auto apit = unresolved.find(name);
     if( apit != unresolved.end() ) {
         for( auto& ap : apit->second )
-            ap->procptr = currentsubr;
+            ap->callee = currentsubr;
         unresolved.erase(apit);
     }
 }
@@ -169,7 +169,7 @@ StatementPtr Parser::parseStatements()
 {
     parseNewLines();
 
-    auto sequ = std::make_shared<Sequence>();
+    auto sequ = node<Sequence>();
     while( true ) {
         StatementPtr stat;
         unsigned int line = lookahead.line;
@@ -217,7 +217,7 @@ StatementPtr Parser::parseLet()
     if( vnm == currentsubr->name )
         currentsubr->hasValue = true;
 
-    return std::make_shared<Let>(varp, exo);
+    return node<Let>(varp, exo);
 }
 
 //
@@ -236,7 +236,7 @@ StatementPtr Parser::parseInput()
     match(Token::Identifier);
 
     auto varp = getVariable(vnm, false);
-    return std::make_shared<Input>(prom, varp);
+    return node<Input>(prom, varp);
 }
 
 //
@@ -246,7 +246,7 @@ StatementPtr Parser::parsePrint()
 {
     match(Token::Print);
     auto exo = parseExpression();
-    return std::make_shared<Print>(exo);
+    return node<Print>(exo);
 }
 
 //
@@ -260,7 +260,7 @@ StatementPtr Parser::parseIf()
     auto cond = parseExpression();
     match(Token::Then);
     auto deci = parseStatements();
-    auto sif = std::make_shared<If>(cond, deci);
+    auto sif = node<If>(cond, deci);
 
     auto it = sif;
     while( lookahead.is(Token::ElseIf) ) {
@@ -268,7 +268,7 @@ StatementPtr Parser::parseIf()
         auto cone = parseExpression();
         match(Token::Then);
         auto dece = parseStatements();
-        auto eif = std::make_shared<If>(cone, dece);
+        auto eif = node<If>(cone, dece);
         it->alternative = eif;
         it = eif;
     }
@@ -295,7 +295,7 @@ StatementPtr Parser::parseWhile()
     auto body = parseStatements();
     match(Token::End);
     match(Token::While);
-    return std::make_shared<While>(cond, body);
+    return node<While>(cond, body);
 }
 
 //
@@ -325,13 +325,13 @@ StatementPtr Parser::parseFor()
         if( neg )
             spvl = -spvl;
     }
-    auto sp = std::make_shared<Number>(spvl);
+    auto sp = node<Number>(spvl);
     auto vp = getVariable(par, false);
     auto dy = parseStatements();
     match(Token::End);
     match(Token::For);
 
-    return std::make_shared<For>(vp, be, en, sp, dy);
+    return node<For>(vp, be, en, sp, dy);
 }
 
 //
@@ -355,13 +355,13 @@ StatementPtr Parser::parseCall()
         }
     }
 
-    auto caller = std::make_shared<Call>(nullptr, args);
+    auto caller = node<Call>(nullptr, args);
 
     auto callee = getSubroutine(name);
     if( nullptr == callee )
-        unresolved[name].push_back(caller->subrcall);
+        unresolved[name].push_back(caller->subrCall);
 
-    caller->subrcall->procptr = callee;
+    caller->subrCall->callee = callee;
 
     return caller;
 }
@@ -399,7 +399,7 @@ ExpressionPtr Parser::parseExpression()
         auto opc = opCode(lookahead.kind);
         match(lookahead.kind);
         auto exo = parseAddition();
-        res = std::make_shared<Binary>(opc, res, exo);
+        res = node<Binary>(opc, res, exo);
     }
     return res;
 }
@@ -414,7 +414,7 @@ ExpressionPtr Parser::parseAddition()
         auto opc = opCode(lookahead.kind);
         match(lookahead.kind);
         auto exo = parseMultiplication();
-        res = std::make_shared<Binary>(opc, res, exo);
+        res = node<Binary>(opc, res, exo);
     }
     return res;
 }
@@ -429,7 +429,7 @@ ExpressionPtr Parser::parseMultiplication()
         auto opc = opCode(lookahead.kind);
         match(lookahead.kind);
         auto exo = parsePower();
-        res = std::make_shared<Binary>(opc, res, exo);
+        res = node<Binary>(opc, res, exo);
     }
     return res;
 }
@@ -443,7 +443,7 @@ ExpressionPtr Parser::parsePower()
     if( lookahead.is(Token::Pow) ) {
         match(Token::Pow);
         auto exo = parseFactor();
-        res = std::make_shared<Binary>(Operation::Pow, res, exo);
+        res = node<Binary>(Operation::Pow, res, exo);
     }
     return res;
 }
@@ -454,18 +454,28 @@ ExpressionPtr Parser::parsePower()
 //
 ExpressionPtr Parser::parseFactor()
 {
+    // TRUE կամ FALSE
+    if( lookahead.is(Token::True) ) {
+        match(Token::True);
+        return node<Boolean>(true);
+    } 
+    else if( lookahead.is(Token::False) ) {
+        match(Token::False);
+        return node<Boolean>(false);
+    }
+
     // NUMBER
     if( lookahead.is(Token::Number) ) {
         auto lex = lookahead.value;
         match(Token::Number);
-        return std::make_shared<Number>(std::stod(lex));
+        return node<Number>(std::stod(lex));
     }
 
     // TEXT
     if( lookahead.is(Token::Text) ) {
         auto lex = lookahead.value;
         match(Token::Text);
-        return std::make_shared<Text>(lex);
+        return node<Text>(lex);
     }
 
     // ('-' | 'NOT') Factor
@@ -480,7 +490,7 @@ ExpressionPtr Parser::parseFactor()
             match(Token::Not);
         }
         auto exo = parseFactor();
-        return std::make_shared<Unary>(opc, exo);
+        return node<Unary>(opc, exo);
     }
 
     // IDENT ['(' [ExpressionList] ')']
@@ -490,8 +500,9 @@ ExpressionPtr Parser::parseFactor()
         if( lookahead.is(Token::LeftPar) ) {
             std::vector<ExpressionPtr> args;
             match(Token::LeftPar);
-            if( lookahead.is({ Token::Number, Token::Text, Token::Identifier, 
-                               Token::Sub, Token::Not, Token::LeftPar }) ) {
+            if( lookahead.is({ Token::True, Token::False, Token::Number, 
+                               Token::Text, Token::Identifier, Token::Sub, 
+                               Token::Not, Token::LeftPar }) ) {
                 auto exo = parseExpression();
                 args.push_back(exo);
                 while( lookahead.is(Token::Comma) ) {
@@ -502,14 +513,14 @@ ExpressionPtr Parser::parseFactor()
             }
             match(Token::RightPar);
 
-            auto applyer = std::make_shared<Apply>(nullptr, args);
+            auto applyer = node<Apply>(nullptr, args);
             applyer->type = typeOf(name);
 
             auto callee = getSubroutine(name);
             if( nullptr == callee )
                 unresolved[name].push_back(applyer);
 
-            applyer->procptr = callee;
+            applyer->callee = callee;
 
             return applyer;
         }
@@ -562,7 +573,7 @@ VariablePtr Parser::getVariable(std::string_view name, bool rval)
     if( rval )
         throw ParseError(std::string{name} + " փոփոխականը դեռ սահմանված չէ։");
 
-    auto varp = std::make_shared<Variable>(std::string{name}); // TODO: review this
+    auto varp = node<Variable>(name); // TODO: review this
     locals.push_back(varp);
 
     return varp;
@@ -580,7 +591,7 @@ SubroutinePtr Parser::getSubroutine(std::string_view name)
     for( auto& bi : builtins )
         if( std::get<0>(bi) == name ) {
             // հայտարարել ներդրված ենթածրագիր
-            auto sre = std::make_shared<Subroutine>(std::get<0>(bi), std::get<1>(bi));
+            auto sre = node<Subroutine>(std::get<0>(bi), std::get<1>(bi));
             sre->isBuiltIn = true;
             sre->hasValue = std::get<2>(bi);
             module->members.push_back(sre);

@@ -28,7 +28,7 @@ std::map<Operation, std::string> mnemonic{
 };
 
 ///
-bool Lisper::emitLisp(AstNodePtr node, const std::filesystem::path& file)
+bool Lisper::emitLisp(NodePtr node, const std::filesystem::path& file)
 {
     os = std::ofstream{file};
     if( !os )
@@ -43,7 +43,7 @@ bool Lisper::emitLisp(AstNodePtr node, const std::filesystem::path& file)
 
 void Lisper::visit(BooleanPtr node)
 {
-    os << "(basic-number " << (node->value ? "T" : "NIL") << ")";
+    os << "(basic-boolean " << (node->value ? "T" : "NIL") << ")";
 }
 
 ///
@@ -77,8 +77,8 @@ void Lisper::visit(BinaryPtr node)
 {
     os << "(basic-binary \"" << mnemonic[node->opcode] << "\"";
     ++indent;
-    visit(node->subexpro);
-    visit(node->subexpri);
+    visit(node->left);
+    visit(node->right);
     --indent;
     os << ")";
 }
@@ -86,7 +86,7 @@ void Lisper::visit(BinaryPtr node)
 ///
 void Lisper::visit(ApplyPtr node)
 {
-    os << "(basic-apply \"" << node->procptr->name << "\"";
+    os << "(basic-apply \"" << node->callee->name << "\"";
     ++indent;
     for( auto e : node->arguments )
         visit(e);
@@ -98,7 +98,7 @@ void Lisper::visit(ApplyPtr node)
 void Lisper::visit(LetPtr node)
 {
     os << "(basic-let (basic-variable \""
-          << node->varptr->name << "\") ";
+          << node->place->name << "\") ";
     ++indent;
     visit(node->expr);
     --indent;
@@ -163,9 +163,9 @@ void Lisper::visit(ForPtr node)
 ///
 void Lisper::visit(CallPtr node)
 {
-    os << "(basic-call \"" << (node->subrcall->procptr->name) << "\"";
+    os << "(basic-call \"" << (node->subrCall->callee->name) << "\"";
     ++indent;
-    for( auto e : node->subrcall->arguments )
+    for( auto e : node->subrCall->arguments )
         visit(e);
     os << ")";
     --indent;
@@ -215,7 +215,7 @@ void Lisper::visit(ProgramPtr node)
 }
 
 ///
-void Lisper::visit(AstNodePtr node)
+void Lisper::visit(NodePtr node)
 {
     if( nullptr == node )
         return;

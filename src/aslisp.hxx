@@ -12,7 +12,7 @@
 namespace basic {
 class Lisper : public AstVisitor {
 public:
-    bool emitLisp(AstNodePtr node, const std::filesystem::path& file);
+    bool emitLisp(NodePtr node, const std::filesystem::path& file);
 
 private:
     void visit(ProgramPtr node) override;
@@ -35,7 +35,7 @@ private:
     void visit(NumberPtr node) override;
     void visit(BooleanPtr node) override;
 
-    void visit(AstNodePtr node) override;
+    void visit(NodePtr node) override;
     
 private:
     std::ofstream os;

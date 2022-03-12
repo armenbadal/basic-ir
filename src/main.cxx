@@ -6,9 +6,9 @@
 
 int main(int argc, char* argv[])
 {
-    // basic::compile("../cases/case01.bas", true, true);
-    if( argc > 1 )
-        basic::compile(argv[1], true, true);
+    basic::compile("../cases/case17.bas", true, true);
+    //if( argc > 1 )
+    //    std::cout << basic::compile(argv[1], true, true) << std::endl;
 
     return 0;
 }

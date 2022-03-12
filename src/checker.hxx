@@ -12,7 +12,7 @@
 namespace basic {
 class Checker : public AstVisitor {
 public:
-    std::optional<std::string> check(AstNodePtr node);
+    std::optional<std::string> check(NodePtr node);
 
 private:
     void visit(ProgramPtr node) override;
@@ -35,7 +35,7 @@ private:
     void visit(NumberPtr node) override;
     void visit(BooleanPtr node) override;
 
-    void visit(AstNodePtr node) override;
+    void visit(NodePtr node) override;
 };
 } // basic
 

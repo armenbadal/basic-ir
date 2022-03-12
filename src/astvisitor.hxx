@@ -32,7 +32,7 @@ protected:
     virtual void visit(NumberPtr node) = 0;
     virtual void visit(BooleanPtr node) = 0;
     
-    virtual void visit( AstNodePtr node );
+    virtual void visit( NodePtr node );
 };
 } // basic
 

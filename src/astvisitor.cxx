@@ -2,8 +2,11 @@
 #include "astvisitor.hxx"
 
 namespace basic {
-void AstVisitor::visit(AstNodePtr node)
+void AstVisitor::visit(NodePtr node)
 {
+    if( nullptr == node )
+        return;
+
     switch( node->kind ) {
         case NodeKind::Boolean:
             visit(std::dynamic_pointer_cast<Boolean>(node));
@@ -60,4 +63,5 @@ void AstVisitor::visit(AstNodePtr node)
             break;
     }
 }
+
 } // namespace basic

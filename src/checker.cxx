@@ -7,9 +7,14 @@ namespace basic {
 //
 class TypeError : public std::exception {
 public:
-    TypeError( const std::string& mes )
-        : message(mes)
+    TypeError(std::string_view mes)
+        : message{std::string{mes}}
     {}
+
+    TypeError(Operation opcode, std::string_view mes)
+    {
+        message = "'" + toString(opcode) + "' " + std::string{mes};
+    }
 
     const char* what() const noexcept override
     {
@@ -22,7 +27,7 @@ private:
 
     
 //
-std::optional<std::string> Checker::check(AstNodePtr node)
+std::optional<std::string> Checker::check(NodePtr node)
 {
     try {
         visit(node);
@@ -62,11 +67,11 @@ void Checker::visit(SequencePtr node)
 void Checker::visit(LetPtr node)
 {
     visit(node->expr);
-    if( node->expr->type != node->varptr->type ) {
-        std::string mes = toString(node->varptr->type)
+    if( node->expr->type != node->place->type ) {
+        std::string mes = toString(node->place->type)
             + " փոփոխականին վերագրվում է "
             + toString(node->expr->type) + " արժեք։";
-        throw TypeError(mes);
+        throw TypeError{mes};
     }
 }
 
@@ -84,7 +89,7 @@ void Checker::visit(PrintPtr node)
 void Checker::visit(IfPtr node)
 {
     visit(node->condition);
-    if( Type::Boolean != node->condition->type )
+    if( node->condition->isNot(Type::Boolean) )
         throw TypeError("Ճյուղավորման հրամանի պայմանի տիպը թվային չէ։");
 
     visit(node->decision);
@@ -104,15 +109,15 @@ void Checker::visit(WhilePtr node)
 //
 void Checker::visit(ForPtr node)
 {
-    if( Type::Number != node->parameter->type )
+    if( Type::Numeric != node->parameter->type )
         throw TypeError("Պարամետրով ցիկլի պարամետրի տիպը թվային չէ։");
 
     visit(node->begin);
-    if( Type::Number != node->begin->type )
+    if( Type::Numeric != node->begin->type )
         throw TypeError("Պարամետրով ցիկլի պարամետրի սկզբնական արժեքի տիպը թվային չէ։");
 
     visit(node->end);
-    if( Type::Number != node->end->type )
+    if( Type::Numeric != node->end->type )
         throw TypeError("Պարամետրով ցիկլի պարամետրի վերջնական արժեքի տիպը թվային չէ։");
 
     if( 0 == node->step->value )
@@ -128,12 +133,12 @@ void Checker::visit(CallPtr node)
     // տիպերի ստուգումը կատարվում է Apply օբյեկտի համար,
     // պետք է ժամանակավորապես փոխել կանչվող ենթածրագրի
     // hasValue դաշտը։
-    auto proc = node->subrcall->procptr;
+    auto proc = node->subrCall->callee;
 
     bool hv = proc->hasValue;
     proc->hasValue = true;
 
-    visit(node->subrcall);
+    visit(node->subrCall);
 
     // վերականգնել հին արժեքը
     proc->hasValue = hv;
@@ -143,10 +148,10 @@ void Checker::visit(CallPtr node)
 void Checker::visit(ApplyPtr node)
 {
     // Ստուգել, որ կանչվող ենթածրագիրը արժեք վերադարձնի։
-    if( !node->procptr->hasValue )
-        throw TypeError(node->procptr->name + " ենթածրագիրն արժեք չի վերադարձնում։");
+    if( !node->callee->hasValue )
+        throw TypeError(node->callee->name + " ենթածրագիրն արժեք չի վերադարձնում։");
 
-    auto& parameters = node->procptr->parameters;
+    auto& parameters = node->callee->parameters;
     auto& arguments = node->arguments;
 
     if( parameters.size() != arguments.size() )
@@ -162,52 +167,52 @@ void Checker::visit(ApplyPtr node)
         }
     }
 
-    node->type = typeOf(node->procptr->name);
+    node->type = typeOf(node->callee->name);
 }
 
 //
 void Checker::visit(BinaryPtr node)
 {
-    visit(node->subexpro);
-    visit(node->subexpri);
+    visit(node->left);
+    visit(node->right);
 
-    Type tyo = node->subexpro->type;
-    Type tyi = node->subexpri->type;
+    Type tyLeft = node->left->type;
+    Type tyRight = node->right->type;
     Operation opc = node->opcode;
 
     // տիպերի ստուգում և որոշում
-    if( Type::Boolean == tyo && Type::Boolean == tyi ) {
+    if( Type::Boolean == tyLeft && Type::Boolean == tyRight ) {
         const bool allowed = opc == Operation::And ||
                              opc == Operation::Or ||
                              opc == Operation::Eq ||
                              opc == Operation::Ne;
         if( !allowed )
-            throw TypeError{"'" + toString(opc) + "' գործողությունը կիրառելի չէ տրամաբանական արժեքներին։"};
+            throw TypeError{opc, "գործողությունը կիրառելի չէ տրամաբանական արժեքներին։"};
 
         node->type = Type::Boolean;
     }
-    if( Type::Number == tyo && Type::Number == tyi ) {
+    else if( Type::Numeric == tyLeft && Type::Numeric == tyRight ) {
         const bool notAllowed = opc == Operation::Conc ||
                                 opc == Operation::And ||
                                 opc == Operation::Or;
         if( notAllowed )
-            throw TypeError("'" + toString(opc) + "' գործողությունը կիրառելի չէ թվերին։");
+            throw TypeError{opc, "գործողությունը կիրառելի չէ թվերին։"};
 
         if( opc >= Operation::Eq && opc <= Operation::Le )
             node->type = Type::Boolean;
 
-        node->type = Type::Number;
+        node->type = Type::Numeric;
     }
-    else if( Type::Text == tyo && Type::Text == tyi ) {
+    else if( Type::Textual == tyLeft && Type::Textual == tyRight ) {
         if( Operation::Conc == opc )
-            node->type = Type::Text;
+            node->type = Type::Textual;
         else if( opc >= Operation::Eq && opc <= Operation::Le )
             node->type = Type::Boolean;
         else
-            throw TypeError("'" + toString(opc) + "' գործողությունը կիրառելի չէ տեքստերին։");
+            throw TypeError{opc, "գործողությունը կիրառելի չէ տեքստերին։"};
     }
     else
-        throw TypeError("'" + toString(opc) + "' գործողության երկու կողմերում տարբեր տիպեր են։");
+        throw TypeError{opc, "գործողության երկու կողմերում տարբեր տիպեր են։"};
 }
 
 //
@@ -215,10 +220,10 @@ void Checker::visit(UnaryPtr node)
 {
     visit(node->subexpr);
 
-    if( Type::Number != node->subexpr->type )
+    if( node->subexpr->isNot(Type::Numeric) )
         throw TypeError("Ունար գործողության օպերանդը թվային չէ։");
 
-    node->type = Type::Number;
+    node->type = Type::Numeric;
 }
 
 //
@@ -245,9 +250,9 @@ void Checker::visit(BooleanPtr node)
     // ճիշտ տիպը նախորոշված է
 }
 
-void Checker::visit(AstNodePtr node)
+void Checker::visit(NodePtr node)
 {
-    if( nullptr != node )
-        AstVisitor::visit(node);
+    AstVisitor::visit(node);
 }
-}
+
+} // namespace basic
