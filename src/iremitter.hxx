@@ -18,14 +18,9 @@ namespace basic {
 ///
 class IrEmitter {
 public:
-    using Value = llvm::Value;
-    using TypeVector = std::vector<llvm::Type*>;
-
-public:
     IrEmitter();
-    ~IrEmitter() = default;
 
-    bool emitIr(ProgramPtr prog, const std::filesystem::path& onm);
+    bool emit(ProgramPtr prog, const std::filesystem::path& onm);
 
 private:
     void emit(ProgramPtr prog);
@@ -52,6 +47,7 @@ private:
 
     //! @brief BASIC-IR տիպից կառուցում է LLVM տիպ։
     llvm::Type* llvmType(Type type);
+    llvm::Type* llvmType(std::string_view name);
 
     //! @brief Ճշտում է հերթական BasicBlock-ի դիրքը։
     void setCurrentBlock(llvm::Function* fun, llvm::BasicBlock* bl);
@@ -104,16 +100,10 @@ private:
     std::unordered_map<std::string,llvm::Value*> varAddresses;
 
     //! @brief IR֊ը գեներացնելիս օգտագործվող տիպերը
-    llvm::Type* VoidType = builder.getVoidTy();
-    llvm::Type* BooleanType = builder.getInt1Ty();
-    llvm::Type* NumberType = builder.getDoubleTy();
-    llvm::Type* TextType = builder.getInt8PtrTy();
-
-    //! @brief «Զրո» և «մեկ» հաստատունները
-    //!
-    //! Օգտագործվում են բուլյան արժեքներն իրականի և հակառակ
-    //! ձևափոխությունների ժամանակ։
-    llvm::Constant* Zero = llvm::ConstantFP::get(builder.getDoubleTy(), 0.0);
-    llvm::Constant* One = llvm::ConstantFP::get(builder.getDoubleTy(), 1.0);
+    llvm::Type* VoidTy = builder.getVoidTy();
+    llvm::Type* BooleanTy = builder.getInt1Ty();
+    llvm::Type* NumericTy = builder.getDoubleTy();
+    llvm::Type* TextualTy = builder.getInt8PtrTy();
 };
+
 } // namespace basic

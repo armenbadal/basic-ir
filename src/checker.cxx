@@ -90,7 +90,7 @@ void Checker::visit(IfPtr node)
 {
     visit(node->condition);
     if( node->condition->isNot(Type::Boolean) )
-        throw TypeError("Ճյուղավորման հրամանի պայմանի տիպը թվային չէ։");
+        throw TypeError("Ճյուղավորման հրամանի պայմանի տիպը բուլյան չէ։");
 
     visit(node->decision);
     visit(node->alternative);
@@ -100,8 +100,8 @@ void Checker::visit(IfPtr node)
 void Checker::visit(WhilePtr node)
 {
     visit(node->condition);
-    if( Type::Boolean != node->condition->type )
-        throw TypeError("Պայմանով ցիկլի պայմանի տիպը թվային չէ։");
+    if( node->condition->isNot(Type::Boolean) )
+        throw TypeError("Պայմանով ցիկլի պայմանի տիպը բուլյան չէ։");
 
     visit(node->body);
 }
@@ -109,19 +109,19 @@ void Checker::visit(WhilePtr node)
 //
 void Checker::visit(ForPtr node)
 {
-    if( Type::Numeric != node->parameter->type )
+    if( node->parameter->isNot(Type::Numeric) )
         throw TypeError("Պարամետրով ցիկլի պարամետրի տիպը թվային չէ։");
 
     visit(node->begin);
-    if( Type::Numeric != node->begin->type )
+    if( node->parameter->isNot(Type::Numeric) )
         throw TypeError("Պարամետրով ցիկլի պարամետրի սկզբնական արժեքի տիպը թվային չէ։");
 
     visit(node->end);
-    if( Type::Numeric != node->end->type )
+    if( node->parameter->isNot(Type::Numeric) )
         throw TypeError("Պարամետրով ցիկլի պարամետրի վերջնական արժեքի տիպը թվային չէ։");
 
     if( 0 == node->step->value )
-        throw TypeError("պարամետրով ցիկլի քայլը զրո է։");
+        throw TypeError("Պարամետրով ցիկլի քայլը զրո է։");
     
     visit(node->body);
 }
@@ -220,10 +220,15 @@ void Checker::visit(UnaryPtr node)
 {
     visit(node->subexpr);
 
-    if( node->subexpr->isNot(Type::Numeric) )
-        throw TypeError("Ունար գործողության օպերանդը թվային չէ։");
+    if( Operation::Not == node->opcode && node->subexpr->isNot(Type::Boolean) )
+        throw TypeError("Ժխտման գործողության օպերանդը բուլյան չէ։");
+    else
+        node->type = Type::Boolean;
 
-    node->type = Type::Numeric;
+    if( Operation::Sub == node->opcode && node->subexpr->isNot(Type::Numeric) )
+        throw TypeError("Բացասման գործողության օպերանդը թվային չէ։");
+    else
+        node->type = Type::Numeric;
 }
 
 //

@@ -48,7 +48,7 @@ std::clog << source.string() << std::endl;
         auto irModule = source;
         irModule.replace_extension("ll");
 
-        if( !IrEmitter().emitIr(prog, irModule) )
+        if( !IrEmitter().emit(prog, irModule) )
             return false;
 
         // TODO: սա տեղափոխե՞լ առանձին ֆայլ

@@ -28,6 +28,4 @@
 *.app
 
 build
-*.ll
 *.s
-*.bas.lisp

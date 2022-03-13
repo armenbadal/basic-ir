@@ -226,17 +226,19 @@ StatementPtr Parser::parseLet()
 StatementPtr Parser::parseInput()
 {
     match(Token::Input);
+
     std::string prom = "?";
     if( lookahead.is(Token::Text) ) {
         prom = lookahead.value;
         match(Token::Text);
         match(Token::Comma);
     }
+
     auto vnm = lookahead.value;
     match(Token::Identifier);
 
     auto varp = getVariable(vnm, false);
-    return node<Input>(prom, varp);
+    return node<Input>(node<Text>(prom), varp);
 }
 
 //

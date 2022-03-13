@@ -235,13 +235,13 @@ using SequencePtr = std::shared_ptr<Sequence>;
 //! @brief Տվյալների ներմուծում
 class Input : public Statement {
 public:
-    Input(std::string_view pr, VariablePtr vp)
+    Input(TextPtr pr, VariablePtr vp)
         : Statement{NodeKind::Input},
-          prompt{pr}, varptr{vp}
+          prompt{pr}, place{vp}
     {}
 
-    std::string prompt;  //!< ներմուծման հրավերք
-    VariablePtr varptr;  //!< ներմուծվող փոփոխական
+    TextPtr prompt;      //!< ներմուծման հրավերք
+    VariablePtr place;   //!< ներմուծվող փոփոխական
 };
 using InputPtr = std::shared_ptr<Input>;
   

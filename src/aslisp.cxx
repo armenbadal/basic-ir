@@ -108,8 +108,9 @@ void Lisper::visit(LetPtr node)
 ///
 void Lisper::visit(InputPtr node)
 {
-    os << "(basic-input (basic-variable \"" << node->prompt 
-        << "\") \"" << node->varptr->name << "\")";
+    os << "(basic-input (basic-variable \"";
+    visit(node->prompt);
+    os << "\") \"" << node->place->name << "\")";
 }
 
 ///
