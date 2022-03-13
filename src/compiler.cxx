@@ -19,25 +19,37 @@
 #include <iostream>
 #include <memory>
 
-#include <unistd.h>
-
 namespace basic {
 
 ///
 bool compile(const std::filesystem::path& source, bool generaeIr, bool generateLisp)
 {
-std::clog << source.string() << std::endl;
+    const std::filesystem::path selfPath = llvm::sys::fs::getMainExecutable(nullptr, nullptr);
+    const auto libraryPath = selfPath.parent_path() / "basic_ir_lib.ll";
+
+    llvm::LLVMContext context;
+
+    llvm::SMDiagnostic d1;
+    std::unique_ptr<llvm::Module> libraryModule = 
+            llvm::parseAssemblyFile(libraryPath.string(), d1, context);
+
+    // const llvm::Module::FunctionListType& functions = libraryModule->getFunctionList();
+    // for( const auto& func : functions )
+    //     if( !func.isDeclaration() )
+    //         std::clog << func.getName().str() << std::endl;
+
+
     // ստուգել ֆայլի գոյությունը
     if( !std::filesystem::exists(source) )
         return false;
     
     // վերլուծություն
-    ProgramPtr prog = Parser(source).parse();
-    if( nullptr == prog )
+    ProgramPtr program = Parser(source).parse();
+    if( nullptr == program )
         return false;
 
     // տիպերի ստուգում
-    if( const auto ce = Checker().check(prog); ce.has_value() ) {
+    if( const auto ce = Checker().check(program); ce.has_value() ) {
         std::cerr <<  "TODO: print error message\n";
         std::cerr << ce.value() << std::endl;
         return false;
@@ -48,13 +60,12 @@ std::clog << source.string() << std::endl;
         auto irModule = source;
         irModule.replace_extension("ll");
 
-        if( !IrEmitter().emit(prog, irModule) )
+        if( !IrEmitter().emit(program, irModule) )
             return false;
 
         // TODO: սա տեղափոխե՞լ առանձին ֆայլ
         // TODO: վերակազմակերպել ֆայլերի անունները
         // կապակցում գրադարանի հետ
-        llvm::LLVMContext context;
 
         // կարդալ մեր մոդուլը
         llvm::SMDiagnostic d0;
@@ -66,8 +77,6 @@ std::clog << source.string() << std::endl;
 
         // կարդալ գրադարանի մոդուլը
         llvm::SMDiagnostic d1;
-        const std::filesystem::path selfPath = llvm::sys::fs::getMainExecutable(nullptr, nullptr);
-        const auto libraryPath = selfPath.parent_path() / "basic_ir_lib.ll";
         auto mlib = llvm::parseAssemblyFile(libraryPath.string(), d1, context);
 
         // ստեղծել փուչ մոդուլ
@@ -97,12 +106,12 @@ std::clog << source.string() << std::endl;
     if( generateLisp ) {
         auto lispPath = source;
         lispPath.replace_extension("lisp");
-        if( !Lisper().emitLisp(prog, lispPath) )
+        if( !Lisper().emitLisp(program, lispPath) )
             return false;
     }
       
     return true;
 }
 
-} // basic
+} // namespace basic
 
