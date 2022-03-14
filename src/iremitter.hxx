@@ -53,6 +53,7 @@ private:
     void setCurrentBlock(llvm::Function* fun, llvm::BasicBlock* bl);
 
     void prepareLibrary();
+    llvm::FunctionType* createFunctionType(std::string_view signature);
     llvm::FunctionCallee libraryFunction(std::string_view name);
     llvm::FunctionCallee userFunction(std::string_view name);
 

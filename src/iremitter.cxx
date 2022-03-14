@@ -366,12 +366,10 @@ void IrEmitter::emit(ForPtr sfor)
     // վերջնականից, ապա ավարտել ցիկլը
     auto* parVal = builder.CreateLoad(NumericTy, param);
     llvm::Value* coex = nullptr;
-    if( sfor->step->value > 0.0 ) {
+    if( sfor->step->value > 0.0 )
         coex = builder.CreateFCmpOLT(parVal, finish);
-    }
-    else if( sfor->step->value < 0.0 ) {
+    else if( sfor->step->value < 0.0 )
         coex = builder.CreateFCmpOGT(parVal, finish);
-    }
     builder.CreateCondBr(coex, bodyBlock, endFor);
 
     setCurrentBlock(func, bodyBlock);
@@ -451,14 +449,14 @@ llvm::Value* IrEmitter::emit(TextPtr txt)
 llvm::Constant* IrEmitter::emit(NumberPtr num)
 {
     // գեներացնել թվային հաստատուն
-    return llvm::ConstantFP::get(builder.getDoubleTy(), num->value);
+    return llvm::ConstantFP::get(NumericTy, num->value);
 }
 
 ///
 llvm::Constant* IrEmitter::emit(BooleanPtr bv)
 {
     // գեներացնել տրամաբանական հաստատուն
-    return llvm::ConstantInt::getBool(builder.getInt1Ty(), bv->value);
+    return llvm::ConstantInt::getBool(BooleanTy, bv->value);
 }
 
 ///
@@ -492,7 +490,7 @@ llvm::Value* IrEmitter::emit(ApplyPtr apy)
     // կանչել ֆունկցիան ու պահել արժեքը
     //auto callee = module->getFunction(apy->procptr->name);
 	auto callee = userFunction(apy->callee->name);
-    auto calv = builder.CreateCall(callee, argus);
+    auto* calv = builder.CreateCall(callee, argus);
 
     // մաքրել կանչի ժամանակավոր արգումենտները
     for( auto* ai : temps )
@@ -503,15 +501,6 @@ llvm::Value* IrEmitter::emit(ApplyPtr apy)
     return calv;
 }
 
-/*
-Համեմատման ու տրամաբանական գործողությունների համար կոդ գեներացնելիս
-ստացված արդյունքը ստիպված եմ եղել _բուլյան_ (`i1`) արժեքը ձևափոխել 
-_իրական_ (`double`) արժեքի։ Սակայն, քանի որ `IF` հրամանների `WHILE`
-պայմանները պետք է լինեն `i1` տիպի, նորից ստիպված եմ եղել իրական
-արժեքը դարձնել բուլյան։ Սա կարելի է շտկել կամ կոդի գեներացիայի
-ժամանակ, կամ էլ թողնել օպտիմիզատորին։ Առաջին տարբերակն, իհարկե,
-նախընտրելի է։ 
-*/
 ///
 llvm::Value* IrEmitter::emit(BinaryPtr bin)
 {
@@ -643,10 +632,10 @@ void IrEmitter::setCurrentBlock(llvm::Function* fun, llvm::BasicBlock* bl)
 ///
 void IrEmitter::prepareLibrary()
 {
-    auto* _V = builder.getVoidTy();
-    auto* _B = builder.getInt1Ty();
-    auto* _N = builder.getDoubleTy();
-    auto* _T = builder.getInt8PtrTy();
+    auto* _V = VoidTy;
+    auto* _B = BooleanTy;
+    auto* _N = NumericTy;
+    auto* _T = TextualTy;
 
     // տեքստային ֆունկցիաներ
     library["text_clone"] = llvm::FunctionType::get(_T, {_T}, false);
@@ -676,6 +665,29 @@ void IrEmitter::prepareLibrary()
 }
 
 ///
+llvm::FunctionType* IrEmitter::createFunctionType(std::string_view signature)
+{
+    // REVIEW
+    static std::unordered_map<char,llvm::Type*> typeMapping{
+        { 'V', VoidTy },
+        { 'B', BooleanTy },
+        { 'N', NumericTy },
+        { 'T', TextualTy }
+    };
+
+    auto* returnType = typeMapping[signature[0]];
+
+    signature.remove_prefix(2); // drop return type and '('
+    signature.remove_suffix(1); // drop ')'
+
+    llvm::SmallVector<llvm::Type*> paramTypes;
+    for( const char t : signature )
+        paramTypes.push_back(typeMapping[t]);
+
+    return llvm::FunctionType::get(returnType, paramTypes, false);
+}
+
+///
 llvm::FunctionCallee IrEmitter::libraryFunction(std::string_view name)
 {
     return module->getOrInsertFunction(name, library[std::string{name}]);
@@ -701,9 +713,9 @@ void IrEmitter::createEntryPoint()
 {
     auto* Int32Ty = builder.getInt32Ty();
 
-    auto mainType = llvm::FunctionType::get(Int32Ty, {}, false);
+    auto* mainType = llvm::FunctionType::get(Int32Ty, {}, false);
     const auto linkage = llvm::GlobalValue::ExternalLinkage;
-    auto mainFunc = llvm::Function::Create(mainType, linkage, "main", module.get());
+    auto* mainFunc = llvm::Function::Create(mainType, linkage, "main", module.get());
 
     auto* start  = llvm::BasicBlock::Create(context, "start", mainFunc);
     builder.SetInsertPoint(start);
