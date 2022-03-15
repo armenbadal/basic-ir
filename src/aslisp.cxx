@@ -108,9 +108,9 @@ void Lisper::visit(LetPtr node)
 ///
 void Lisper::visit(InputPtr node)
 {
-    os << "(basic-input (basic-variable \"";
+    os << "(basic-input (basic-variable ";
     visit(node->prompt);
-    os << "\") \"" << node->place->name << "\")";
+    os << " \"" << node->place->name << "\")";
 }
 
 ///
@@ -210,7 +210,7 @@ void Lisper::visit(ProgramPtr node)
     ++indent;
     for( auto si : node->members )
         if( !si->isBuiltIn )
-            visit(si);
+            visit(std::dynamic_pointer_cast<Node>(si));
     --indent;
     os << ")" << std::endl;
 }

@@ -632,59 +632,48 @@ void IrEmitter::setCurrentBlock(llvm::Function* fun, llvm::BasicBlock* bl)
 ///
 void IrEmitter::prepareLibrary()
 {
-    auto* _V = VoidTy;
-    auto* _B = BooleanTy;
-    auto* _N = NumericTy;
-    auto* _T = TextualTy;
-
     // տեքստային ֆունկցիաներ
-    library["text_clone"] = llvm::FunctionType::get(_T, {_T}, false);
-    library["text_input"] = llvm::FunctionType::get(_T, {_T}, false);
-    library["text_print"] = llvm::FunctionType::get(_V, {_T}, false);
-    library["text_conc"] = llvm::FunctionType::get(_T, {_T, _T}, false);
-    library["text_mid"] = llvm::FunctionType::get(_T, {_T, _N, _N}, false);
-    library["text_str"] = llvm::FunctionType::get(_T, {_N}, false);
-    library["text_eq"] = llvm::FunctionType::get(_B, {_T, _T}, false);
-    library["text_ne"] = llvm::FunctionType::get(_B, {_T, _T}, false);
-    library["text_gt"] = llvm::FunctionType::get(_B, {_T, _T}, false);
-    library["text_ge"] = llvm::FunctionType::get(_B, {_T, _T}, false);
-    library["text_lt"] = llvm::FunctionType::get(_B, {_T, _T}, false);
-    library["text_le"] = llvm::FunctionType::get(_B, {_T, _T}, false);
+    declareLibraryFunction("text_clone", "T(T)");
+    declareLibraryFunction("text_input", "T(T)");
+    declareLibraryFunction("text_print", "V(T)");
+    declareLibraryFunction("text_conc", "T(TT)");
+    declareLibraryFunction("text_mid", "T(TNN)");
+    declareLibraryFunction("text_str", "T(N)");
+    declareLibraryFunction("text_eq", "B(TT)");
+    declareLibraryFunction("text_ne", "B(TT)");
+    declareLibraryFunction("text_gt", "B(TT)");
+    declareLibraryFunction("text_ge", "B(TT)");
+    declareLibraryFunction("text_lt", "B(TT)");
+    declareLibraryFunction("text_le", "B(TT)");
 
     // թվային ֆունկցիաներ
-    library["number_input"] = llvm::FunctionType::get(_N, {_T}, false);
-    library["number_print"] = llvm::FunctionType::get(_V, {_N}, false);
+    declareLibraryFunction("number_input", "N(T)");
+    declareLibraryFunction("number_print", "V(N)");
 
     // մաթեմատիկական ֆունկցիաներ
-    library["pow"] = llvm::FunctionType::get(_N, {_N, _N}, false);
-    library["sqrt"] = llvm::FunctionType::get(_N, {_N}, false);
+    declareLibraryFunction("pow", "N(NN)");
+    declareLibraryFunction("sqrt", "N(N)");
 
     // հիշողության ֆունկցիաներ
-    library["malloc"] = llvm::FunctionType::get(_T, {builder.getInt64Ty()}, false);
-    library["free"] = llvm::FunctionType::get(_V, {_T}, false);
+    library["malloc"] = llvm::FunctionType::get(
+            builder.getInt8PtrTy(), {builder.getInt64Ty()}, false);
+    library["free"] = llvm::FunctionType::get(
+            VoidTy, {builder.getInt8PtrTy()}, false);
 }
 
 ///
-llvm::FunctionType* IrEmitter::createFunctionType(std::string_view signature)
+void IrEmitter::declareLibraryFunction(std::string_view name, std::string_view signature)
 {
-    // REVIEW
-    static std::unordered_map<char,llvm::Type*> typeMapping{
-        { 'V', VoidTy },
-        { 'B', BooleanTy },
-        { 'N', NumericTy },
-        { 'T', TextualTy }
-    };
-
-    auto* returnType = typeMapping[signature[0]];
+    auto* returnType = llvmType(static_cast<Type>(signature[0]));
 
     signature.remove_prefix(2); // drop return type and '('
     signature.remove_suffix(1); // drop ')'
 
     llvm::SmallVector<llvm::Type*> paramTypes;
     for( const char t : signature )
-        paramTypes.push_back(typeMapping[t]);
+        paramTypes.push_back(llvmType(static_cast<Type>(t)));
 
-    return llvm::FunctionType::get(returnType, paramTypes, false);
+    library[std::string{name}] = llvm::FunctionType::get(returnType, paramTypes, false);
 }
 
 ///
