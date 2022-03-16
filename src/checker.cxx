@@ -1,7 +1,9 @@
 
 #include "checker.hxx"
 
-#include <iostream>
+#include <exception>
+#include <memory>
+#include <string_view>
 
 namespace basic {
 //

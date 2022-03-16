@@ -1,7 +1,5 @@
-
 #include "ast.hxx"
 
-#include <iostream>
 #include <map>
 
 namespace basic {

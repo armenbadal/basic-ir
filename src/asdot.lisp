@@ -129,4 +129,3 @@
   (let ((cnum (new-index)))
 	(ast-node cnum (format nil "BOOLEAN: ~a" value))
 	cnum))
-

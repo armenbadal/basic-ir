@@ -3,11 +3,13 @@
 #include "lexeme.hxx"
 #include "scanner.hxx"
 
-#include <exception>
 #include <filesystem>
-#include <memory>
+#include <list>
+#include <map>
 #include <string>
+#include <string_view>
 #include <tuple>
+#include <vector>
 
 namespace basic {
 //! @brief Շարահյուսական վերլուծիչը

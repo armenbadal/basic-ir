@@ -3,6 +3,7 @@
 #define LEXEME_HXX
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace basic {

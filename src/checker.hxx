@@ -5,9 +5,8 @@
 #include "ast.hxx"
 #include "astvisitor.hxx"
 
-#include <memory>
 #include <optional>
-#include <ostream>
+#include <string>
 
 namespace basic {
 class Checker : public AstVisitor {

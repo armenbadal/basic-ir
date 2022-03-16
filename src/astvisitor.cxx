@@ -1,7 +1,10 @@
 
 #include "astvisitor.hxx"
 
+#include <memory>
+
 namespace basic {
+
 void AstVisitor::visit(NodePtr node)
 {
     if( nullptr == node )

@@ -1,6 +1,9 @@
 
 #include "scanner.hxx"
 
+#include <cctype>
+#include <string>
+
 namespace basic {
 
 ///

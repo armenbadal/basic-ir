@@ -4,8 +4,6 @@
 
 #include "ast.hxx"
 
-#include <memory>
-
 namespace basic {
 class AstVisitor {
 public:

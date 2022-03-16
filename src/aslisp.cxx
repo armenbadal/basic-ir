@@ -2,8 +2,9 @@
 #include "aslisp.hxx"
 
 #include <map>
-#include <sstream>
+#include <memory>
 #include <string>
+#include <vector>
 
 namespace basic {
 ///

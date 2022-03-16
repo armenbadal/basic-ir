@@ -15,7 +15,6 @@
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/SourceMgr.h>
 
-#include <fstream>
 #include <iostream>
 #include <memory>
 

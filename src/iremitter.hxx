@@ -3,15 +3,24 @@
 
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/Value.h>
-#include <llvm/Support/raw_ostream.h>
+#include <llvm/IR/LLVMContext.h>
 
 #include <filesystem>
-#include <iostream>
 #include <memory>
-#include <sstream>
 #include <string>
+#include <string_view>
 #include <unordered_map>
+
+namespace llvm {
+class BasicBlock;
+class CallInst;
+class Constant;
+class Function;
+class Module;
+class Type;
+class UnaryInstruction;
+class Value;
+} // namespace llvm
 
 namespace basic {
 
