@@ -1,0 +1,86 @@
+digraph G {
+  node [fontsize=10, shape=box, width=0.2, height=0.3, margin=0.04, ordering=out]
+  
+  subgraph cluster_Gcd {
+    astnode_30[label="SUBROUTINE: Gcd(x, y)"];
+    astnode_30 -> astnode_29;
+    astnode_1[label="VARIABLE: x"];
+    astnode_2[label="VARIABLE: y"];
+    astnode_3[label="BINARY: MUL"];
+    astnode_3 -> astnode_1;
+    astnode_3 -> astnode_2;
+    astnode_4[label="NUMBER: 0"];
+    astnode_5[label="'NE'"];
+    astnode_5 -> astnode_3;
+    astnode_5 -> astnode_4;
+    astnode_6[label="VARIABLE: x"];
+    astnode_7[label="VARIABLE: y"];
+    astnode_8[label="BINARY: GT"];
+    astnode_8 -> astnode_6;
+    astnode_8 -> astnode_7;
+    astnode_9[label="VARIABLE: x"];
+    astnode_10[label="VARIABLE: x"];
+    astnode_11[label="VARIABLE: y"];
+    astnode_12[label="BINARY: SUB"];
+    astnode_12 -> astnode_10;
+    astnode_12 -> astnode_11;
+    astnode_13[label="LET"];
+    astnode_13 -> astnode_9;
+    astnode_13 -> astnode_12;
+    astnode_14[label="SEQUENCE"];
+    astnode_14 -> astnode_13;
+    astnode_15[label="VARIABLE: y"];
+    astnode_16[label="VARIABLE: y"];
+    astnode_17[label="VARIABLE: x"];
+    astnode_18[label="BINARY: SUB"];
+    astnode_18 -> astnode_16;
+    astnode_18 -> astnode_17;
+    astnode_19[label="LET"];
+    astnode_19 -> astnode_15;
+    astnode_19 -> astnode_18;
+    astnode_20[label="SEQUENCE"];
+    astnode_20 -> astnode_19;
+    astnode_21[label="IF"];
+    astnode_21 -> astnode_8;
+    astnode_21 -> astnode_14;
+    astnode_21 -> astnode_20;
+    astnode_22[label="SEQUENCE"];
+    astnode_22 -> astnode_21;
+    astnode_23[label="WHILE"];
+    astnode_23 -> astnode_5;
+    astnode_23 -> astnode_22;
+    astnode_24[label="VARIABLE: Gcd"];
+    astnode_25[label="VARIABLE: x"];
+    astnode_26[label="VARIABLE: y"];
+    astnode_27[label="BINARY: ADD"];
+    astnode_27 -> astnode_25;
+    astnode_27 -> astnode_26;
+    astnode_28[label="LET"];
+    astnode_28 -> astnode_24;
+    astnode_28 -> astnode_27;
+    astnode_29[label="SEQUENCE"];
+    astnode_29 -> astnode_23;
+    astnode_29 -> astnode_28;
+  }
+
+  subgraph cluster_Main {
+    astnode_37[label="SUBROUTINE։ Main"];
+    astnode_37 -> astnode_36;
+    astnode_31[label="NUMBER: 18"];
+    astnode_32[label="NUMBER: 192"];
+    astnode_33[label="APPLY"];
+    astnode_34[label="Gcd"];
+    astnode_33 -> astnode_34;
+    astnode_33 -> astnode_31;
+    astnode_33 -> astnode_32;
+    astnode_35[label="PRINT"];
+    astnode_35 -> astnode_33;
+    astnode_36[label="SEQUENCE"];
+    astnode_36 -> astnode_35;
+  }
+
+  astnode_38[label="PROGRAM"];
+  astnode_38 -> astnode_30;
+  astnode_38 -> astnode_37;
+}
+

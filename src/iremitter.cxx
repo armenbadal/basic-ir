@@ -502,7 +502,6 @@ llvm::Value* IrEmitter::emit(ApplyPtr apy)
     }
 
     // կանչել ֆունկցիան ու պահել արժեքը
-    //auto callee = module->getFunction(apy->procptr->name);
 	auto callee = userFunction(apy->callee->name);
     auto* calv = builder.CreateCall(callee, argus);
 

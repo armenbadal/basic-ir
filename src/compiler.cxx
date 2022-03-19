@@ -23,11 +23,13 @@ namespace basic {
 ///
 bool compile(const std::filesystem::path& source, bool generaeIr, bool generateLisp)
 {
-    const std::filesystem::path selfPath = llvm::sys::fs::getMainExecutable(nullptr, nullptr);
+    const std::filesystem::path selfPath = 
+            llvm::sys::fs::getMainExecutable(nullptr, nullptr);
     const auto libraryPath = selfPath.parent_path() / "basic_ir_lib.ll";
 
     llvm::LLVMContext context;
 
+    // կարդալ գրադարանի մոդուլը
     llvm::SMDiagnostic d1;
     std::unique_ptr<llvm::Module> libraryModule = 
             llvm::parseAssemblyFile(libraryPath.string(), d1, context);
@@ -68,35 +70,31 @@ bool compile(const std::filesystem::path& source, bool generaeIr, bool generateL
 
         // կարդալ մեր մոդուլը
         llvm::SMDiagnostic d0;
-        auto mpro = llvm::parseAssemblyFile(irModule.string(), d0, context);
+        auto programModule = llvm::parseAssemblyFile(irModule.string(), d0, context);
 		if( d0.getSourceMgr() != nullptr ) {
 		    llvm::errs() << d0.getMessage() << '\n' << d0.getLineContents() << '\n';
 		    return false;
 		}
 
-        // կարդալ գրադարանի մոդուլը
-        llvm::SMDiagnostic d1;
-        auto mlib = llvm::parseAssemblyFile(libraryPath.string(), d1, context);
-
         // ստեղծել փուչ մոդուլ
         auto irModuleAll = source;
         irModuleAll.replace_extension("all.ll");
-        auto mall = std::make_unique<llvm::Module>(irModuleAll.string(), context);
+        auto linkedModule = std::make_unique<llvm::Module>(irModuleAll.string(), context);
         
         // կիրառել Linker::linkModules ստատիկ մեթոդը
-        llvm::Linker::linkModules(*mall, std::move(mpro));
-        llvm::Linker::linkModules(*mall, std::move(mlib));
-        
-        // ստուգել վերջնական արդյունքը
-        llvm::verifyModule(*mall);
+        llvm::Linker::linkModules(*linkedModule, std::move(programModule));
+        llvm::Linker::linkModules(*linkedModule, std::move(libraryModule));
         
         // կապակցված մոդուլը գրել ֆայլում
-        std::error_code erco;
-        llvm::raw_fd_ostream _fout(irModuleAll.string(), erco, llvm::sys::fs::OF_None);
+        std::error_code ec;
+        llvm::raw_fd_ostream _fout(irModuleAll.string(), ec, llvm::sys::fs::OF_None);
+        if( !ec )
+            return false;
 
         llvm::legacy::PassManager passer;
+        passer.add(llvm::createVerifierPass()); // ստուգել վերջնական արդյունքը
         passer.add(llvm::createPrintModulePass(_fout, ""));
-        passer.run(*mall);
+        passer.run(*linkedModule);
         
         ///* DEBUG */ mall->print(llvm::errs(), nullptr);
     }

@@ -8,11 +8,67 @@
 
 Այս հիերարխիայում մասնակցող բոլոր տիպերի համար պետք է գեներացնենք LLVM֊ի միջանկյալ ներկայացման՝ IR, կոդ։
 
-Վերլուծության արդյունքում կառուցված AST֊ի արմատում միշտ «Ծրագիր» (`Program`), տիպի օբյեկտ է, որի որդիները «Ենթածրագիր» (`Subroutune`), տիպի օբյեկտներ են, որոնց որդիներն էլ, իրենց հերթին, «Հրամաններ» (`Statement`) կամ «Արտահայտություններ» (`Expression`) են: Օրինակ
+Վերլուծության արդյունքում կառուցված AST֊ի արմատում միշտ «Ծրագիր» (`Program`), տիպի օբյեկտ է, որի որդիները «Ենթածրագիր» (`Subroutune`), տիպի օբյեկտներ են, որոնց որդիներն էլ, իրենց հերթին, «Հրամաններ» (`Statement`) կամ «Արտահայտություններ» (`Expression`) են: Օրինակ, բոլորիս քաջ հայտնի հետևյալ ծրագրից․
 
+```BASIC
+SUB Gcd(x, y)
+    WHILE x * y <> 0
+        IF x > y THEN
+            LET x = x - y
+        ELSE
+            LET y = y - x
+        END IF
+    END WHILE
+    LET Gcd = x + y
+END SUB
 
-կոդը  `emit(ProgramPtr)` մեթոդը։ Վերջինս, ծրագրի բոլոր ենթածրագրերի համար կանչելու է `emit(SubroutinePtr)` մեթոդները։ Ռեկուրսիվ կանչերի այս շղթան շարունակվելու է մինչև ծառի տերևների դերում հանդիպող հանգույցների համար սահմանված `emit(...)` մեթոդների կանչերը։
+SUB Main
+    PRINT Gcd(18, 192)
+END SUB
+```
 
+գեներացվելու է վերացական շարահյուսական ծառ՝ մոտավորապես այսպիսի տեքսի․
+
+![Gcd ծրագրի AST֊ը](basic-gcd-ast.jpeg)
+
+Համարենք, որ ծառի հանգույցներից միջանկյալ ներկայացման կոդ գեներացնելու համար ունենք `emit(...)` անունով մեթոդների խումբ։ Այդ մեթոդներն իրարից տարբերվում են պարամետրի, իսկ երբեմն նաև՝ վերադարձվող արժեքի տիպերով։ Մեր բերած օրինակի ծառի համար `emit(...)` մեթոդների կանչը կունենա այսպիսի հաջորդականություն․
+
+```C++
+emit(Program)
+  emit(Subroutine)
+    emit(Sequence)
+      emit(While)
+        emit(Binary)
+          emit(Binary)
+            emit(Variable)
+            emit(Variable)
+          emit(Number)
+        emit(Sequence)
+          emit(If)
+            emit(Binary)
+              emit(Variable)
+              emit(variable)
+            emit(Sequence)
+              emit(Let)
+                emit(Binary)
+                  emit(Variable)
+                  emit(Variable)
+            emit(Sequence)
+              emit(Let)
+                emit(Binary)
+                  emit(Variable)
+                  emit(Variable)
+      emit(Let)
+        emit(Binary)
+          emit(Variable)
+          emit(Variable)
+  emit(Subroutine)
+    emit(Sequence)
+      emit(Print)
+        emit(Apply)
+          emit(Number)
+          emit(Number)
+```
 
 
 ## IrEmitter դասը
