@@ -5,7 +5,6 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 
-#include <filesystem>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -27,9 +26,9 @@ namespace basic {
 ///
 class IrEmitter {
 public:
-    IrEmitter();
+    IrEmitter(llvm::LLVMContext& cx, llvm::Module& md);
 
-    bool emit(ProgramPtr prog, const std::filesystem::path& onm);
+    bool emitFor(ProgramPtr prog);
 
 private:
     void emit(ProgramPtr prog);
@@ -74,14 +73,14 @@ private:
             const llvm::ArrayRef<llvm::Value*>& args);
 
 private:
-    llvm::LLVMContext context{};
-    llvm::IRBuilder<> builder{context};
+    llvm::LLVMContext& context;
+    llvm::IRBuilder<> builder;
 
     //! @brief Վերլուծված ծրագրի ծառը
     ProgramPtr prog;
     
     //! @brief Կառուցված մոդուլը
-    std::unique_ptr<llvm::Module> module = nullptr;
+    llvm::Module& module;
 
     //! @brief Գրադարանային ֆունկցիաների ցուցակն է։
     //!

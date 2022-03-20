@@ -12,6 +12,7 @@
 #include <llvm/IR/GlobalValue.h>
 #include <llvm/IR/InstrTypes.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/Module.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Verifier.h>
@@ -27,31 +28,45 @@
 #include <utility>
 #include <vector>
 
-/* DEBUG */
-#define __dump(_v_) (_v_)->print(llvm::errs(), false)
+#include <iostream>
+
+class tracer {
+public:
+    tracer(std::string_view text)
+    {
+        indent += 2;
+        std::clog << std::string(indent, ' ') 
+                  << "emit(" << text << ")"
+                  << std::endl;
+    }
+
+    ~tracer()
+    {
+        indent -= 2;
+    }
+
+private:
+    static inline unsigned int indent = 0;
+};
+
+//#define __trace__(t) tracer _t((#t))
+#define __trace__(t) (void)(#t)
 
 namespace basic {
 ///
-IrEmitter::IrEmitter()
+IrEmitter::IrEmitter(llvm::LLVMContext& cx, llvm::Module& md)
+    : context{cx}, builder{context}, module{md}
 {
     // նախապատրաստել գրադարանային (սպասարկող) ֆունկցիաները
     prepareLibrary();
 }
 
 ///
-bool IrEmitter::emit(ProgramPtr prog, const std::filesystem::path& onm)
+bool IrEmitter::emitFor(ProgramPtr prog)
 {
     try {
         emit(prog);
-
-        std::error_code ec;
-        llvm::raw_fd_ostream _fout(onm.string(), ec, llvm::sys::fs::OF_None);
-
-        llvm::legacy::PassManager passer;
-        passer.add(llvm::createPrintModulePass(_fout, ""));
-        passer.run(*module);
-        
-        ///* DEBUG */ module->print(llvm::errs(), nullptr);
+        llvm::verifyModule(module);
     }
     catch(...) {
         return false;
@@ -63,9 +78,7 @@ bool IrEmitter::emit(ProgramPtr prog, const std::filesystem::path& onm)
 ///
 void IrEmitter::emit(ProgramPtr prog)
 {
-    // ստեղծել LLVM-ի Module օբյեկտ՝ դրա հասցեն պահելով
-    // STL գրադարանի unique_ptr-ի մեջ։
-    module = std::make_unique<llvm::Module>(prog->filename, context);
+    __trace__(Program);
 
     // սեփական ֆունկցիաների հայտարարությունն ու սահմանումը
     // հարմար է առանձնացնել, որպեսզի Apply և Call գործողությունների
@@ -79,17 +92,15 @@ void IrEmitter::emit(ProgramPtr prog)
 
     // ավելացնել մուտքի կետը՝ main()
     createEntryPoint();
-    
-    // աշխատեցնել verify pass մոդուլի համար
-    llvm::verifyModule(*module);
 }
 
 //
 void IrEmitter::emit(SubroutinePtr subr)
 {
+    __trace__(Subroutine);
     // մոդուլից վերցնել ֆունկցիայի հայտարարությունը դրան
     // մարմին ավելացնելու համար
-    auto* func = module->getFunction(subr->name);
+    auto* func = module.getFunction(subr->name);
 
     // Քանի որ նախ գեներացվելու են ֆունկցիաների 
     // հայտարարությունները, ապա նույն այդ ցուցակով 
@@ -218,6 +229,7 @@ void IrEmitter::emit(StatementPtr st)
 ///
 void IrEmitter::emit(SequencePtr seq)
 {
+    __trace__(Sequence);
     for( auto& st : seq->items )
         emit(st);
 }
@@ -225,6 +237,7 @@ void IrEmitter::emit(SequencePtr seq)
 ///
 void IrEmitter::emit(LetPtr let)
 {
+    __trace__(Let);
     auto* val = emit(let->expr);
     auto* addr = varAddresses[let->place->name];
     
@@ -244,6 +257,7 @@ void IrEmitter::emit(LetPtr let)
 ///
 void IrEmitter::emit(InputPtr inp)
 {
+    __trace__(Input);
     // ստանալ հրավերքի տեքստի հասցեն
     auto* prompt = emit(inp->prompt);
 
@@ -265,6 +279,7 @@ void IrEmitter::emit(InputPtr inp)
 ///
 void IrEmitter::emit(PrintPtr pri)
 {
+    __trace__(Print);
     // արտածվող արտահայտության կոդը
     auto* expr = emit(pri->expr);
     
@@ -283,6 +298,7 @@ void IrEmitter::emit(PrintPtr pri)
 ///
 void IrEmitter::emit(IfPtr sif)
 {
+    __trace__(If);
     // ընթացիկ ֆունկցիայի ցուցիչը
     auto* func = builder.GetInsertBlock()->getParent();
 
@@ -330,6 +346,7 @@ void IrEmitter::emit(IfPtr sif)
 ///
 void IrEmitter::emit(WhilePtr swhi)
 {
+    __trace__(While);
     // ընթացիկ ֆունկցիան
     auto* func = builder.GetInsertBlock()->getParent();
 
@@ -356,6 +373,7 @@ void IrEmitter::emit(WhilePtr swhi)
 ///
 void IrEmitter::emit(ForPtr sfor)
 {
+    __trace__(For);
     // ընթացիկ ֆունկցիան
     auto* func = builder.GetInsertBlock()->getParent();
 
@@ -405,6 +423,7 @@ void IrEmitter::emit(ForPtr sfor)
 ///
 void IrEmitter::emit(CallPtr cal)
 {
+    __trace__(Call);
     // պրոցեդուրայի կանչը նույն ֆունկցիայի կիրառումն է
     emit(cal->subrCall);
 }
@@ -446,6 +465,7 @@ llvm::Value* IrEmitter::emit(ExpressionPtr expr)
 ///
 llvm::Value* IrEmitter::emit(TextPtr txt)
 {
+    __trace__(Text);
     // եթե տրված արժեքով տող արդեն սահմանված է գլոբալ
     // տիրույթում, ապա վերադարձնել դրա հասցեն
     if( const auto sri = globalTexts.find(txt->value); sri != globalTexts.end() )
@@ -462,6 +482,7 @@ llvm::Value* IrEmitter::emit(TextPtr txt)
 ///
 llvm::Constant* IrEmitter::emit(NumberPtr num)
 {
+    __trace__(Number);
     // գեներացնել թվային հաստատուն
     return llvm::ConstantFP::get(NumericTy, num->value);
 }
@@ -469,6 +490,7 @@ llvm::Constant* IrEmitter::emit(NumberPtr num)
 ///
 llvm::Constant* IrEmitter::emit(BooleanPtr bv)
 {
+    __trace__(Boolean);
     // գեներացնել տրամաբանական հաստատուն
     return llvm::ConstantInt::getBool(BooleanTy, bv->value);
 }
@@ -476,6 +498,7 @@ llvm::Constant* IrEmitter::emit(BooleanPtr bv)
 ///
 llvm::UnaryInstruction* IrEmitter::emit(VariablePtr var)
 {
+    __trace__(Variable);
     // ստանալ փոփոխականի հասցեն ...
     auto* vaddr = varAddresses[var->name];
 
@@ -492,6 +515,7 @@ llvm::UnaryInstruction* IrEmitter::emit(VariablePtr var)
 ///
 llvm::Value* IrEmitter::emit(ApplyPtr apy)
 {
+    __trace__(Apply);
     // գեներացնել կանչի արգումենտները
     llvm::SmallVector<llvm::Value*> argus, temps;
     for( const auto& ai : apy->arguments ) {
@@ -517,6 +541,7 @@ llvm::Value* IrEmitter::emit(ApplyPtr apy)
 ///
 llvm::Value* IrEmitter::emit(BinaryPtr bin)
 {
+    __trace__(Binary);
     const bool textuals = bin->left->is(Type::Textual)
                        && bin->right->is(Type::Textual);
     const bool numerics = bin->left->is(Type::Numeric)
@@ -609,6 +634,7 @@ llvm::Value* IrEmitter::emit(BinaryPtr bin)
 ///
 llvm::Value* IrEmitter::emit(UnaryPtr un)
 {
+    __trace__(Unary);
     // գեներացնել ենթաարտահայտությունը
     auto* val = emit(un->subexpr);
 
@@ -692,7 +718,7 @@ void IrEmitter::declareLibraryFunction(std::string_view name, std::string_view s
 ///
 llvm::FunctionCallee IrEmitter::libraryFunction(std::string_view name)
 {
-    return module->getOrInsertFunction(name, library[std::string{name}]);
+    return module.getOrInsertFunction(name, library[std::string{name}]);
 }
 
 ///
@@ -707,7 +733,7 @@ llvm::FunctionCallee IrEmitter::userFunction(std::string_view name)
     if( "SQR" == name )
         return libraryFunction("sqrt");
 	
-    return module->getFunction(name);
+    return module.getFunction(name);
 }
 
 ///
@@ -717,14 +743,14 @@ void IrEmitter::createEntryPoint()
 
     auto* mainType = llvm::FunctionType::get(Int32Ty, {}, false);
     const auto linkage = llvm::GlobalValue::ExternalLinkage;
-    auto* mainFunc = llvm::Function::Create(mainType, linkage, "main", module.get());
+    auto* mainFunc = llvm::Function::Create(mainType, linkage, "main", &module);
 
     auto* start  = llvm::BasicBlock::Create(context, "start", mainFunc);
     builder.SetInsertPoint(start);
 
     // եթե ծրագրավորողը սահմանել է Main անունով ենթածրագիր, ապա
     // main()-ի մեջ կանչել այն, հակառակ դեպքում main-ը դատարկ է
-    if( auto* udMain = module->getFunction("Main"); nullptr != udMain )
+    if( auto* udMain = module.getFunction("Main"); nullptr != udMain )
         builder.CreateCall(udMain, {});
     
     auto* returnValue = llvm::ConstantInt::get(Int32Ty, 0);
@@ -748,7 +774,7 @@ void IrEmitter::declareSubroutines(ProgramPtr prog)
         // ստեղծել ֆունկցիայի հայտարարությունը
         auto* funcType = llvm::FunctionType::get(returnType, paramTypes, false);
         const auto linkage = llvm::GlobalValue::ExternalLinkage;
-        llvm::Function::Create(funcType, linkage, subr->name, module.get());
+        llvm::Function::Create(funcType, linkage, subr->name, &module);
     }
 }
 

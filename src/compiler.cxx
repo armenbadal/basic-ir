@@ -21,7 +21,33 @@
 namespace basic {
 
 ///
-bool compile(const std::filesystem::path& source, bool generaeIr, bool generateLisp)
+std::unique_ptr<llvm::Module> compileBasicIR(llvm::LLVMContext& context, const std::filesystem::path& source)
+{
+    // ստուգել ֆայլի գոյությունը
+    if( !std::filesystem::exists(source) )
+        return nullptr;
+
+     // վերլուծություն
+    ProgramPtr program = Parser(source).parse();
+    if( nullptr == program )
+        return nullptr;
+
+    // տիպերի ստուգում
+    if( const auto ce = Checker().check(program); ce.has_value() ) {
+        std::cerr << "TODO: print error message\n";
+        std::cerr << ce.value() << std::endl;
+        return nullptr;
+    }
+
+    // LLVM մոդուլի կառուցում
+    auto pm = std::make_unique<llvm::Module>(source.string(), context);
+    if( !IrEmitter(context, *pm.get()).emitFor(program) )
+        return nullptr;
+    return pm;
+}
+
+///
+bool compile(const std::filesystem::path& source, bool generateIr, bool generateLisp)
 {
     const std::filesystem::path selfPath = 
             llvm::sys::fs::getMainExecutable(nullptr, nullptr);
@@ -31,81 +57,45 @@ bool compile(const std::filesystem::path& source, bool generaeIr, bool generateL
 
     // կարդալ գրադարանի մոդուլը
     llvm::SMDiagnostic d1;
-    std::unique_ptr<llvm::Module> libraryModule = 
-            llvm::parseAssemblyFile(libraryPath.string(), d1, context);
+    auto libraryModule = llvm::parseAssemblyFile(libraryPath.string(), d1, context);
 
-    // const llvm::Module::FunctionListType& functions = libraryModule->getFunctionList();
-    // for( const auto& func : functions )
-    //     if( !func.isDeclaration() )
-    //         std::clog << func.getName().str() << std::endl;
+    // կառուցել ծրագրի մոդուլը
+    auto programModule = compileBasicIR(context, source);
 
+//    // ստեղծել առանձին ֆայլ
+//    if( generateIr ) {
+//        auto irModule = source;
+//        irModule.replace_extension("bas.ll");
+//    }
 
-    // ստուգել ֆայլի գոյությունը
-    if( !std::filesystem::exists(source) )
+    // կապակցել երկու մոդուլները
+    // ստեղծել փուչ մոդուլ
+    auto irModuleAll = source;
+    irModuleAll.replace_extension("ll");
+    auto linkedModule = std::make_unique<llvm::Module>(irModuleAll.string(), context);
+
+    // կիրառել Linker::linkModules ստատիկ մեթոդը
+    llvm::Linker::linkModules(*linkedModule, std::move(programModule));
+    llvm::Linker::linkModules(*linkedModule, std::move(libraryModule));
+
+    // կապակցված մոդուլը գրել ֆայլում
+    std::error_code ec;
+    llvm::raw_fd_ostream out(irModuleAll.string(), ec, llvm::sys::fs::OF_None);
+    if( !ec )
         return false;
-    
-    // վերլուծություն
-    ProgramPtr program = Parser(source).parse();
-    if( nullptr == program )
-        return false;
 
-    // տիպերի ստուգում
-    if( const auto ce = Checker().check(program); ce.has_value() ) {
-        std::cerr <<  "TODO: print error message\n";
-        std::cerr << ce.value() << std::endl;
-        return false;
-    }
+    llvm::legacy::PassManager pm;
+    pm.add(llvm::createVerifierPass()); // ստուգել վերջնական արդյունքը
+    pm.add(llvm::createPrintModulePass(out, ""));
+    pm.run(*linkedModule.get());
 
-    // IR կոդի գեներացիա
-    if( generaeIr ) {
-        auto irModule = source;
-        irModule.replace_extension("ll");
-
-        if( !IrEmitter().emit(program, irModule) )
-            return false;
-
-        // TODO: սա տեղափոխե՞լ առանձին ֆայլ
-        // TODO: վերակազմակերպել ֆայլերի անունները
-        // կապակցում գրադարանի հետ
-
-        // կարդալ մեր մոդուլը
-        llvm::SMDiagnostic d0;
-        auto programModule = llvm::parseAssemblyFile(irModule.string(), d0, context);
-		if( d0.getSourceMgr() != nullptr ) {
-		    llvm::errs() << d0.getMessage() << '\n' << d0.getLineContents() << '\n';
-		    return false;
-		}
-
-        // ստեղծել փուչ մոդուլ
-        auto irModuleAll = source;
-        irModuleAll.replace_extension("all.ll");
-        auto linkedModule = std::make_unique<llvm::Module>(irModuleAll.string(), context);
-        
-        // կիրառել Linker::linkModules ստատիկ մեթոդը
-        llvm::Linker::linkModules(*linkedModule, std::move(programModule));
-        llvm::Linker::linkModules(*linkedModule, std::move(libraryModule));
-        
-        // կապակցված մոդուլը գրել ֆայլում
-        std::error_code ec;
-        llvm::raw_fd_ostream _fout(irModuleAll.string(), ec, llvm::sys::fs::OF_None);
-        if( !ec )
-            return false;
-
-        llvm::legacy::PassManager passer;
-        passer.add(llvm::createVerifierPass()); // ստուգել վերջնական արդյունքը
-        passer.add(llvm::createPrintModulePass(_fout, ""));
-        passer.run(*linkedModule);
-        
-        ///* DEBUG */ mall->print(llvm::errs(), nullptr);
-    }
-
-    // AST-ի գեներացիա Lisp տեսքով
-    if( generateLisp ) {
-        auto lispPath = source;
-        lispPath.replace_extension("lisp");
-        if( !Lisper().emitLisp(program, lispPath) )
-            return false;
-    }
+//    // AST-ի գեներացիա Lisp տեսքով
+//    if( generateLisp ) {
+//        auto lispPath = source;
+//        lispPath.replace_extension("lisp");
+//        if( !Lisper().emitLisp(program, lispPath) )
+//            return false;
+//    }
       
     return true;
 }

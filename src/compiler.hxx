@@ -12,7 +12,7 @@ namespace basic {
 //! @param generateIr Գեներացնել IR կոդը
 //! @param generateLisp Գեներացնել Lisp տեսքը
 //! 
-bool compile(const std::filesystem::path& source, bool generaeIr, bool generateLisp);
+bool compile(const std::filesystem::path& source, bool generateIr, bool generateLisp);
 } // basic
 
 #endif // COMPILER_HXX
