@@ -40,7 +40,7 @@ enum class NodeKind : int {
 class Node {
 public:
     Node() = default;
-    Node(NodeKind k) : kind{k} {}
+    explicit Node(NodeKind k) : kind{k} {}
     virtual ~Node() = default;
 
 public:
@@ -94,7 +94,7 @@ using ExpressionPtr = std::shared_ptr<Expression>;
 //! @brief Տրամաբանական հաստատուն
 class Boolean : public Expression {
 public:
-    Boolean(bool vl)
+    explicit Boolean(bool vl)
         : Expression{NodeKind::Boolean, Type::Boolean},
           value{vl}
     {}
@@ -107,7 +107,7 @@ using BooleanPtr = std::shared_ptr<Boolean>;
 //! @brief Թվային հաստատուն
 class Number : public Expression {
 public:
-    Number(double vl)
+    explicit Number(double vl)
         : Expression{NodeKind::Number, Type::Numeric},
           value{vl}
     {}
@@ -120,7 +120,7 @@ using NumberPtr = std::shared_ptr<Number>;
 //! @brief Տեքստային հաստատուն
 class Text : public Expression {
 public:
-    Text(std::string_view vl)
+    explicit Text(std::string_view vl)
         : Expression{NodeKind::Text, Type::Textual},
           value{vl}
     {}
@@ -133,7 +133,7 @@ using TextPtr = std::shared_ptr<Text>;
 //! @brief Փոփոխական
 class Variable : public Expression {
 public:
-    Variable(std::string_view nm)
+    explicit Variable(std::string_view nm)
         : Expression{NodeKind::Variable, typeOf(nm)},
           name{nm}
     {}
@@ -250,7 +250,7 @@ using InputPtr = std::shared_ptr<Input>;
 //! @brief Տվյալների արտածում
 class Print : public Statement {
 public:
-    Print(ExpressionPtr ex)
+    explicit Print(ExpressionPtr ex)
         : Statement{NodeKind::Print}, expr(ex)
     {}
 
@@ -359,7 +359,7 @@ public:
 //! @brief Ծրագիր
 class Program : public Node {
 public:
-    Program(std::string_view fn )
+    explicit Program(std::string_view fn )
         : Node{NodeKind::Program}, filename{fn}
     {}
 

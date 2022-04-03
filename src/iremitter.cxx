@@ -55,7 +55,7 @@ private:
 namespace basic {
 ///
 IrEmitter::IrEmitter(llvm::LLVMContext& cx, llvm::Module& md)
-    : context{cx}, builder{context}, module{md}
+    : context{cx}, builder{context}, moduler{md}
 {
     // նախապատրաստել գրադարանային (սպասարկող) ֆունկցիաները
     prepareLibrary();
@@ -66,7 +66,7 @@ bool IrEmitter::emitFor(ProgramPtr prog)
 {
     try {
         emit(prog);
-        llvm::verifyModule(module);
+        llvm::verifyModule(moduler);
     }
     catch(...) {
         return false;
@@ -100,7 +100,7 @@ void IrEmitter::emit(SubroutinePtr subr)
     __trace__(Subroutine);
     // մոդուլից վերցնել ֆունկցիայի հայտարարությունը դրան
     // մարմին ավելացնելու համար
-    auto* func = module.getFunction(subr->name);
+    auto* func = moduler.getFunction(subr->name);
 
     // Քանի որ նախ գեներացվելու են ֆունկցիաների 
     // հայտարարությունները, ապա նույն այդ ցուցակով 
@@ -718,7 +718,7 @@ void IrEmitter::declareLibraryFunction(std::string_view name, std::string_view s
 ///
 llvm::FunctionCallee IrEmitter::libraryFunction(std::string_view name)
 {
-    return module.getOrInsertFunction(name, library[std::string{name}]);
+    return moduler.getOrInsertFunction(name, library[std::string{name}]);
 }
 
 ///
@@ -733,7 +733,7 @@ llvm::FunctionCallee IrEmitter::userFunction(std::string_view name)
     if( "SQR" == name )
         return libraryFunction("sqrt");
 	
-    return module.getFunction(name);
+    return moduler.getFunction(name);
 }
 
 ///
@@ -743,14 +743,14 @@ void IrEmitter::createEntryPoint()
 
     auto* mainType = llvm::FunctionType::get(Int32Ty, {}, false);
     const auto linkage = llvm::GlobalValue::ExternalLinkage;
-    auto* mainFunc = llvm::Function::Create(mainType, linkage, "main", &module);
+    auto* mainFunc = llvm::Function::Create(mainType, linkage, "main", &moduler);
 
     auto* start  = llvm::BasicBlock::Create(context, "start", mainFunc);
     builder.SetInsertPoint(start);
 
     // եթե ծրագրավորողը սահմանել է Main անունով ենթածրագիր, ապա
     // main()-ի մեջ կանչել այն, հակառակ դեպքում main-ը դատարկ է
-    if( auto* udMain = module.getFunction("Main"); nullptr != udMain )
+    if( auto* udMain = moduler.getFunction("Main"); nullptr != udMain )
         builder.CreateCall(udMain, {});
     
     auto* returnValue = llvm::ConstantInt::get(Int32Ty, 0);
@@ -774,7 +774,7 @@ void IrEmitter::declareSubroutines(ProgramPtr prog)
         // ստեղծել ֆունկցիայի հայտարարությունը
         auto* funcType = llvm::FunctionType::get(returnType, paramTypes, false);
         const auto linkage = llvm::GlobalValue::ExternalLinkage;
-        llvm::Function::Create(funcType, linkage, subr->name, &module);
+        llvm::Function::Create(funcType, linkage, subr->name, &moduler);
     }
 }
 

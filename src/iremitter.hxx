@@ -80,7 +80,7 @@ private:
     ProgramPtr prog;
     
     //! @brief Կառուցված մոդուլը
-    llvm::Module& module;
+    llvm::Module& moduler;
 
     //! @brief Գրադարանային ֆունկցիաների ցուցակն է։
     //!

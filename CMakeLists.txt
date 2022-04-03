@@ -8,9 +8,6 @@ PROJECT(basic-ir)
 
 FIND_PACKAGE(LLVM REQUIRED CONFIG)
 
-#add_definitions(-std=c++17)
-#add_definitions(-gdwarf-2)
-
 INCLUDE_DIRECTORIES(${LLVM_INCLUDE_DIRS})
 ADD_DEFINITIONS(${LLVM_DEFINITIONS})
 
