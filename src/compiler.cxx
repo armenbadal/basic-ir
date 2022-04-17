@@ -1,4 +1,3 @@
-
 #include "compiler.hxx"
 #include "ast.hxx"
 #include "parser.hxx"
@@ -43,6 +42,7 @@ std::unique_ptr<llvm::Module> compileBasicIR(llvm::LLVMContext& context, const s
     auto pm = std::make_unique<llvm::Module>(source.string(), context);
     if( !IrEmitter(context, *pm.get()).emitFor(program) )
         return nullptr;
+
     return pm;
 }
 
@@ -81,7 +81,7 @@ bool compile(const std::filesystem::path& source, bool generateIr, bool generate
     // կապակցված մոդուլը գրել ֆայլում
     std::error_code ec;
     llvm::raw_fd_ostream out(irModuleAll.string(), ec, llvm::sys::fs::OF_None);
-    if( !ec )
+    if( ec )
         return false;
 
     llvm::legacy::PassManager pm;

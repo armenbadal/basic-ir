@@ -1,6 +1,7 @@
 ﻿
 #include "aslisp.hxx"
 
+#include <fstream>
 #include <map>
 #include <memory>
 #include <string>
@@ -29,9 +30,9 @@ std::map<Operation, std::string> mnemonic{
 };
 
 ///
-bool Lisper::emitLisp(NodePtr node, const std::filesystem::path& file)
+bool Lisper::emitLisp(ProgramPtr node, const std::filesystem::path& file)
 {
-    os = std::ofstream{file};
+    std::ofstream os{file};
     if( !os )
         return false;
 
@@ -42,152 +43,182 @@ bool Lisper::emitLisp(NodePtr node, const std::filesystem::path& file)
     return true;
 }
 
-void Lisper::visit(BooleanPtr node)
+
+// ///
+// void Lisper::visit(NodePtr node)
+// {
+//     if( nullptr == node )
+//         return;
+
+//     os << std::endl << std::string(2 * indent, ' ');
+
+//     ASTVisitor::visit(node);
+// }
+
+std::string Lisper::visit(ExpressionPtr node)
 {
-    os << "(basic-boolean " << (node->value ? "T" : "NIL") << ")";
+    return dispatch(node);
+}
+
+std::string Lisper::visit(BooleanPtr node)
+{
+    return "(basic-boolean " 
+           + std::string{node->value ? "T" : "NIL"}
+           + ")";
 }
 
 ///
-void Lisper::visit(NumberPtr node)
+std::string Lisper::visit(NumberPtr node)
 {
-    os << "(basic-number " << node->value << ")";
+    return "(basic-number " + std::to_string(node->value) + ")";
 }
 
 ///
-void Lisper::visit(TextPtr node)
+std::string Lisper::visit(TextPtr node)
 {
-    os << "(basic-text \"" << node->value << "\")";
+    return "(basic-text \"" + node->value + "\")";
 }
 
 ///
-void Lisper::visit(VariablePtr node)
+std::string Lisper::visit(VariablePtr node)
 {
-    os << "(basic-variable \"" << node->name << "\")";
+    return "(basic-variable \"" + node->name + "\")";
 }
 
 ///
-void Lisper::visit(UnaryPtr node)
+std::string Lisper::visit(UnaryPtr node)
 {
-    os << "(basic-unary \"" << mnemonic[node->opcode] << "\" ";
-    visit(node->subexpr);
-    os << ")";
+    return "(basic-unary \"" + mnemonic[node->opcode] + "\" "
+           + visit(node->subexpr) + ")";
 }
 
 ///
-void Lisper::visit(BinaryPtr node)
+std::string Lisper::visit(BinaryPtr node)
 {
-    os << "(basic-binary \"" << mnemonic[node->opcode] << "\"";
     ++indent;
-    visit(node->left);
-    visit(node->right);
+    auto ls = visit(node->left);
+    auto rs = visit(node->right);
     --indent;
-    os << ")";
+
+    return "(basic-binary \"" + mnemonic[node->opcode] + "\" "
+           + ls + " " + rs + ")";
 }
 
 ///
-void Lisper::visit(ApplyPtr node)
+std::string Lisper::visit(ApplyPtr node)
 {
-    os << "(basic-apply \"" << node->callee->name << "\"";
+    std::string out;
+
     ++indent;
     for( auto e : node->arguments )
-        visit(e);
+        out += visit(e);
     --indent;
-    os << ")";
+
+    return "(basic-apply \"" + node->callee->name + "\"" + out + ")";
+}
+
+//
+std::string Lisper::visit(StatementPtr node)
+{
+    return dispatch(node);
 }
 
 ///
-void Lisper::visit(LetPtr node)
+std::string Lisper::visit(LetPtr node)
 {
-    os << "(basic-let (basic-variable \""
-          << node->place->name << "\") ";
     ++indent;
-    visit(node->expr);
+    auto es = visit(node->expr);
     --indent;
-    os << ")";
+
+    return "(basic-let (basic-variable \"" + node->place->name + "\") " + es + ")";
 }
 
 ///
-void Lisper::visit(InputPtr node)
+std::string Lisper::visit(InputPtr node)
 {
-    os << "(basic-input (basic-variable ";
-    visit(node->prompt);
-    os << " \"" << node->place->name << "\")";
+    return "(basic-input (basic-variable " 
+           + visit(node->prompt)
+           + " \"" + node->place->name + "\")";
 }
 
 ///
-void Lisper::visit(PrintPtr node)
+std::string Lisper::visit(PrintPtr node)
 {
-    os << "(basic-print";
     ++indent;
-    visit(node->expr);
+    auto es = visit(node->expr);
     --indent;
-    os << ")";
+    return "(basic-print" + es + ")";
 }
 
 ///
-void Lisper::visit(IfPtr node)
+std::string Lisper::visit(IfPtr node)
 {
-    os << "(basic-if";
+    std::string out = "(basic-if";
     ++indent;
-    visit(node->condition);
-    visit(node->decision);
+    out += visit(node->condition);
+    out += visit(node->decision);
     if( nullptr != node->alternative )
-        visit(node->alternative);
-    os << ")";
+        out += visit(node->alternative);
     --indent;
+    out += ")";
+    return out;
 }
 
 ///
-void Lisper::visit(WhilePtr node)
+std::string Lisper::visit(WhilePtr node)
 {
-    os << "(basic-while";
+    std::string out = "(basic-while";
     ++indent;
-    visit(node->condition);
-    visit(node->body);
-    os << ")";
+    out += visit(node->condition);
+    out += visit(node->body);
     --indent;
+    out += ")";
+    return out;
 }
 
 ///
-void Lisper::visit(ForPtr node)
+std::string Lisper::visit(ForPtr node)
 {
-    os << "(basic-for";
+    std::string out = "(basic-for";
     ++indent;
-    visit(node->parameter);
-    visit(node->begin);
-    visit(node->end);
-    visit(node->step);
-    visit(node->body);
-    os << ")";
+    out += visit(node->parameter);
+    out += visit(node->begin);
+    out += visit(node->end);
+    out += visit(node->step);
+    out += visit(node->body);
     --indent;
+    out += ")";
+    return out;
 }
 
 ///
-void Lisper::visit(CallPtr node)
+std::string Lisper::visit(CallPtr node)
 {
-    os << "(basic-call \"" << (node->subrCall->callee->name) << "\"";
+    std::string out = "(basic-call \"" + (node->subrCall->callee->name) + "\"";
     ++indent;
     for( auto e : node->subrCall->arguments )
-        visit(e);
-    os << ")";
+        out += visit(e);
     --indent;
+    out += ")";
+    return out;
 }
 
 ///
-void Lisper::visit(SequencePtr node)
+std::string Lisper::visit(SequencePtr node)
 {
-    os << "(basic-sequence";
+    std::string out = "(basic-sequence";
     ++indent;
     for( auto ei : node->items )
-        visit(ei);
-    os << ")";
+        out += visit(ei);
     --indent;
+    out += ")";
+    return out;
 }
 
 ///
-void Lisper::visit(SubroutinePtr node)
+std::string Lisper::visit(SubroutinePtr node)
 {
-    os << "(basic-subroutine \"" << node->name << "\"";
+    std::string out = "(basic-subroutine \"" + node->name + "\"";
     ++indent;
     std::string parlis = "";
     for( auto& ip : node->parameters ) {
@@ -197,34 +228,25 @@ void Lisper::visit(SubroutinePtr node)
     }
     if( !parlis.empty() )
         parlis.pop_back();
-    os << std::endl << std::string(2 * indent, ' ')
-        << "'(" << parlis << ")";
-    visit(node->body);
-    os << ")";
+    out += "\n" + std::string(2 * indent, ' ') + "'(" + parlis + ")";
+    out += visit(node->body);
     --indent;
+    out += ")";
+    return out;
 }
 
 ///
-void Lisper::visit(ProgramPtr node)
+std::string Lisper::visit(ProgramPtr node)
 {
-    os << "(basic-program \"" << node->filename << "\"";
+    std::string out = "(basic-program \"" + node->filename + "\"";
     ++indent;
     for( auto si : node->members )
         if( !si->isBuiltIn )
-            visit(std::dynamic_pointer_cast<Node>(si));
+            out += visit(si);
     --indent;
-    os << ")" << std::endl;
-}
+    out += ")\n";
 
-///
-void Lisper::visit(NodePtr node)
-{
-    if( nullptr == node )
-        return;
-
-    os << std::endl << std::string(2 * indent, ' ');
-
-    AstVisitor::visit(node);
+    return out;
 }
 
 } // basic

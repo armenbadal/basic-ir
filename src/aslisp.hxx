@@ -6,39 +6,37 @@
 #include "astvisitor.hxx"
 
 #include <filesystem>
-#include <fstream>
-
+#include <string>
 
 namespace basic {
-class Lisper : public AstVisitor {
+class Lisper : public ASTVisitor<std::string,std::string,std::string,std::string> {
 public:
-    bool emitLisp(NodePtr node, const std::filesystem::path& file);
+    bool emitLisp(ProgramPtr node, const std::filesystem::path& file);
 
 private:
-    void visit(ProgramPtr node) override;
-    void visit(SubroutinePtr node) override;
+    std::string visit(ProgramPtr node) override;
+    std::string visit(SubroutinePtr node) override;
 
-    void visit(SequencePtr node) override;
-    void visit(LetPtr node) override;
-    void visit(InputPtr node) override;
-    void visit(PrintPtr node) override;
-    void visit(IfPtr node) override;
-    void visit(WhilePtr node) override;
-    void visit(ForPtr node) override;
-    void visit(CallPtr node) override;
+    std::string visit(StatementPtr node) override;
+    std::string visit(SequencePtr node) override;
+    std::string visit(LetPtr node) override;
+    std::string visit(InputPtr node) override;
+    std::string visit(PrintPtr node) override;
+    std::string visit(IfPtr node) override;
+    std::string visit(WhilePtr node) override;
+    std::string visit(ForPtr node) override;
+    std::string visit(CallPtr node) override;
 
-    void visit(ApplyPtr node) override;
-    void visit(BinaryPtr node) override;
-    void visit(UnaryPtr node) override;
-    void visit(VariablePtr node) override;
-    void visit(TextPtr node) override;
-    void visit(NumberPtr node) override;
-    void visit(BooleanPtr node) override;
+    std::string visit(ExpressionPtr node) override;
+    std::string visit(ApplyPtr node) override;
+    std::string visit(BinaryPtr node) override;
+    std::string visit(UnaryPtr node) override;
+    std::string visit(VariablePtr node) override;
+    std::string visit(TextPtr node) override;
+    std::string visit(NumberPtr node) override;
+    std::string visit(BooleanPtr node) override;
 
-    void visit(NodePtr node) override;
-    
 private:
-    std::ofstream os;
     unsigned int indent{0};
 };
 } // basic

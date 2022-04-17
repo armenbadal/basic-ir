@@ -29,7 +29,7 @@ private:
 
     
 //
-std::optional<std::string> Checker::check(NodePtr node)
+std::optional<std::string> Checker::check(ProgramPtr node)
 {
     try {
         visit(node);
@@ -56,6 +56,11 @@ void Checker::visit(SubroutinePtr node)
             throw TypeError("Main ենթածրագիրը պարամետրեր չպետք է ունենա։");
     
     visit(node->body);
+}
+
+void Checker::visit(StatementPtr node)
+{
+    dispatch(node);
 }
 
 //
@@ -144,6 +149,12 @@ void Checker::visit(CallPtr node)
 
     // վերականգնել հին արժեքը
     proc->hasValue = hv;
+}
+
+//
+void Checker::visit(ExpressionPtr node)
+{
+    dispatch(node);
 }
 
 //
@@ -255,11 +266,6 @@ void Checker::visit(NumberPtr node)
 void Checker::visit(BooleanPtr node)
 {
     // ճիշտ տիպը նախորոշված է
-}
-
-void Checker::visit(NodePtr node)
-{
-    AstVisitor::visit(node);
 }
 
 } // namespace basic

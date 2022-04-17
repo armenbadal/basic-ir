@@ -592,12 +592,12 @@ SubroutinePtr Parser::getSubroutine(std::string_view name)
             return si;
 
     // որոնել 
-    for( auto& bi : builtins )
-        if( std::get<0>(bi) == name ) {
+    for( const auto& [n, p, hv] : builtins )
+        if( n == name ) {
             // հայտարարել ներդրված ենթածրագիր
-            auto sre = node<Subroutine>(std::get<0>(bi), std::get<1>(bi));
+            auto sre = node<Subroutine>(n, p);
             sre->isBuiltIn = true;
-            sre->hasValue = std::get<2>(bi);
+            sre->hasValue = hv;
             module->members.push_back(sre);
             return sre;        
         }

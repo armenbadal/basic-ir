@@ -18,7 +18,6 @@ ADD_EXECUTABLE(${PROJECT_NAME}
 	src/lexeme.cxx
 	src/scanner.cxx
 	src/parser.cxx
-	src/astvisitor.cxx
 	src/aslisp.cxx
 	src/checker.cxx
 	src/iremitter.cxx)

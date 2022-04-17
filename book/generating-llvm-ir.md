@@ -73,7 +73,7 @@ emit(Program)
 
 ## IrEmitter դասը
 
-LLVM IR֊ը գեներացնելու համար իրականացված է AST֊ի հանգույցները ռեկուրսիվ այցելող `IrEmitter` դասը։
+LLVM IR֊ը գեներացնելու համար իրականացված է AST֊ի հանգույցները ռեկուրսիվ այցելող `IrEmitter` դասը։ Այս դասի կոնստրուկտորը ստանում է `LLVMContext` և `Module` օբյեկտների հղումներ։ Առաջինը ընդհանուր օգտագործվող LLVM֊ի կոնտեքստն է, իսկ երկրորդը արդյունք֊արգումենտ է՝ կառուցվող մոդուլի հղումը։
 
 ```C++
 class IrEmitter {
@@ -81,35 +81,19 @@ public:
     IrEmitter(llvm::LLVMContext& cx, llvm::Module& md);
 ```
 
-Այս դասի ինտերֆեյսում միակ `emit()` մեթոդն է, որն ունի երկու պարամետր։ Առաջինը վերլուծվող ծրագրից կառուցված AST֊ի արմատն է՝ `ProgramPtr`, իսկ երկրորդը գեներացվող միջանկյալ ներկայացումը պարունակող ֆայլի ճանապարհը․
+Այս դասն ունի միակ բաց (public) `emitFor()` մեթոդ, որը ստանում է վերլուծվող ծրագրից կառուցված AST֊ի արմատը՝ `ProgramPtr` ցուցիչ։
 
 ```C++
     bool emitFor(ProgramPtr prog, const std::filesystem::path& onm);
 ```
 
-Վերացական շարահյուսական ծառի ամեն մի հանգույցի տիպի համար `IrEmitter` դասում իրականացված է համապատասխան `emit()` մեթոդ։
+Վերացական շարահյուսական ծառի ամեն մի հանգույցի տիպի համար `IrEmitter` դասում իրականացված է IR ստեղծող `emit(․․․)` մեթոդ։
+
+
+IR գեներացնելու համար, բացի `LLVMContext`֊ից, անհրաժեշտ են ևս մի քանի օբյեկտները։ Դրանցից առաջինն ու ամենակարևորը `builder`֊ն է․
 
 ```C++
-private:
-    void emit(ProgramPtr prog);
-    void emit(SubroutinePtr subr);
-
-    void emit(StatementPtr st);
-    void emit(SequencePtr seq);
-    void emit(LetPtr let);
-    void emit(InputPtr inp);
-    void emit(PrintPtr pri);
-    void emit(IfPtr sif);
-    void emit(ForPtr sfor);
-    void emit(WhilePtr swhi);
-    void emit(CallPtr cal);
-
-    llvm::Value* emit(ExpressionPtr expr);
-    llvm::Value* emit(ApplyPtr apy);
-    llvm::Value* emit(BinaryPtr bin);
-    llvm::Value* emit(UnaryPtr una);
-    llvm::Value* emit(TextPtr txt);
-    llvm::Constant* emit(NumberPtr num);
-    llvm::Constant* emit(BooleanPtr num);
-    llvm::UnaryInstruction* emit(VariablePtr var);
+IRBuilder<> builder;
 ```
+
+`IRBuilder` տիպի օբյեկտի օգնությամբ են կառուցվում ինչպես գեներացվող կոդի ամենախոշոր միավորները՝ մոդուլներն ու ֆունկցիաները, այնպես էլ առանձին IR հրամաններն ու օգտագործվող տիպերը։

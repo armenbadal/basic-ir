@@ -30,55 +30,32 @@
 
 #include <iostream>
 
-class tracer {
-public:
-    tracer(std::string_view text)
-    {
-        indent += 2;
-        std::clog << std::string(indent, ' ') 
-                  << "emit(" << text << ")"
-                  << std::endl;
-    }
-
-    ~tracer()
-    {
-        indent -= 2;
-    }
-
-private:
-    static inline unsigned int indent = 0;
-};
-
-//#define __trace__(t) tracer _t((#t))
-#define __trace__(t) (void)(#t)
-
 namespace basic {
 ///
 IrEmitter::IrEmitter(llvm::LLVMContext& cx, llvm::Module& md)
-    : context{cx}, builder{context}, moduler{md}
+    : context{cx}, moduler{md}, builder{context}
 {
-    // նախապատրաստել գրադարանային (սպասարկող) ֆունկցիաները
-    prepareLibrary();
 }
 
 ///
 bool IrEmitter::emitFor(ProgramPtr prog)
 {
     try {
-        emit(prog);
+        visit(prog);
         llvm::verifyModule(moduler);
     }
     catch(...) {
         return false;
     }
-    
+
     return true;
 }
 
 ///
-void IrEmitter::emit(ProgramPtr prog)
+void IrEmitter::visit(ProgramPtr prog)
 {
-    __trace__(Program);
+    // նախապատրաստել գրադարանային (սպասարկող) ֆունկցիաները
+    prepareLibrary();
 
     // սեփական ֆունկցիաների հայտարարությունն ու սահմանումը
     // հարմար է առանձնացնել, որպեսզի Apply և Call գործողությունների
@@ -95,9 +72,8 @@ void IrEmitter::emit(ProgramPtr prog)
 }
 
 //
-void IrEmitter::emit(SubroutinePtr subr)
+void IrEmitter::visit(SubroutinePtr subr)
 {
-    __trace__(Subroutine);
     // մոդուլից վերցնել ֆունկցիայի հայտարարությունը դրան
     // մարմին ավելացնելու համար
     auto* func = moduler.getFunction(subr->name);
@@ -160,7 +136,7 @@ void IrEmitter::emit(SubroutinePtr subr)
     }
 
     // գեներացնել ենթածրագրի մարմնի հրամանները
-    emit(subr->body);
+    visit(subr->body);
 
     // ազատել տեքստային օբյեկտների զբաղեցրած հիշողությունը
     // Յուրաքանչյուր ֆունկցիայի ավարտին պետք է ազատել
@@ -194,51 +170,22 @@ void IrEmitter::emit(SubroutinePtr subr)
 }
 
 ///
-void IrEmitter::emit(StatementPtr st)
+void IrEmitter::visit(StatementPtr st)
 {
-    switch( st->kind ) {
-        case NodeKind::Sequence:
-            emit(std::dynamic_pointer_cast<Sequence>(st));
-            break;
-        case NodeKind::Input:
-            emit(std::dynamic_pointer_cast<Input>(st));
-            break;
-        case NodeKind::Print:
-            emit(std::dynamic_pointer_cast<Print>(st));
-            break;
-        case NodeKind::Let:
-            emit(std::dynamic_pointer_cast<Let>(st));
-            break;
-        case NodeKind::If:
-            emit(std::dynamic_pointer_cast<If>(st));
-            break;
-        case NodeKind::While:
-            emit(std::dynamic_pointer_cast<While>(st));
-            break;
-        case NodeKind::For:
-            emit(std::dynamic_pointer_cast<For>(st));
-            break;
-        case NodeKind::Call:
-            emit(std::dynamic_pointer_cast<Call>(st));
-            break;
-        default:
-            break;
-    }
+    dispatch(st);
 }
 
 ///
-void IrEmitter::emit(SequencePtr seq)
+void IrEmitter::visit(SequencePtr seq)
 {
-    __trace__(Sequence);
     for( auto& st : seq->items )
-        emit(st);
+        visit(st);
 }
 
 ///
-void IrEmitter::emit(LetPtr let)
+void IrEmitter::visit(LetPtr let)
 {
-    __trace__(Let);
-    auto* val = emit(let->expr);
+    auto* val = visit(let->expr);
     auto* addr = varAddresses[let->place->name];
     
     if( let->place->is(Type::Textual) ) {
@@ -255,11 +202,10 @@ void IrEmitter::emit(LetPtr let)
 }
 
 ///
-void IrEmitter::emit(InputPtr inp)
+void IrEmitter::visit(InputPtr inp)
 {
-    __trace__(Input);
     // ստանալ հրավերքի տեքստի հասցեն
-    auto* prompt = emit(inp->prompt);
+    auto* prompt = visit(inp->prompt);
 
     // հաշվարկել ներմուծող ֆունկցիան
     std::string_view funcName;
@@ -277,11 +223,10 @@ void IrEmitter::emit(InputPtr inp)
 }
 
 ///
-void IrEmitter::emit(PrintPtr pri)
+void IrEmitter::visit(PrintPtr pri)
 {
-    __trace__(Print);
     // արտածվող արտահայտության կոդը
-    auto* expr = emit(pri->expr);
+    auto* expr = visit(pri->expr);
     
     if( pri->expr->is(Type::Boolean) ) {
         //createLibraryFuncCall("bool_print", {expr});
@@ -296,9 +241,8 @@ void IrEmitter::emit(PrintPtr pri)
 }
 
 ///
-void IrEmitter::emit(IfPtr sif)
+void IrEmitter::visit(IfPtr sif)
 {
-    __trace__(If);
     // ընթացիկ ֆունկցիայի ցուցիչը
     auto* func = builder.GetInsertBlock()->getParent();
 
@@ -317,7 +261,7 @@ void IrEmitter::emit(IfPtr sif)
         auto* elseBlock = llvm::BasicBlock::Create(context, "", func, endIf);
 
         // գեներացնել պայմանը 
-        auto* cnd = emit(ifp->condition);
+        auto* cnd = visit(ifp->condition);
 		//cnd = builder.CreateFCmpUNE(cnd, Zero);
         
         // անցում ըստ պայմանի
@@ -326,7 +270,7 @@ void IrEmitter::emit(IfPtr sif)
         // then-ի հրամաններ
         setCurrentBlock(func, thenBlock);
 
-        emit(ifp->decision);
+        visit(ifp->decision);
         builder.CreateBr(endIf);
 
         // պատրաստվել հաջորդ բլոկին
@@ -338,15 +282,14 @@ void IrEmitter::emit(IfPtr sif)
     
     // կա՞ արդյոք else-բլոկ
     if( nullptr != sp )
-        emit(sp);
+        visit(sp);
     
     setCurrentBlock(func, endIf);
 }
 
 ///
-void IrEmitter::emit(WhilePtr swhi)
+void IrEmitter::visit(WhilePtr swhi)
 {
-    __trace__(While);
     // ընթացիկ ֆունկցիան
     auto* func = builder.GetInsertBlock()->getParent();
 
@@ -358,22 +301,21 @@ void IrEmitter::emit(WhilePtr swhi)
     setCurrentBlock(func, condBlock);
 
     // գեներացնել կրկնման պայմանը
-    auto* condEx = emit(swhi->condition);
+    auto* condEx = visit(swhi->condition);
     builder.CreateCondBr(condEx, bodyBlock, endWhile);
 
     setCurrentBlock(func, bodyBlock);
 
     // գեներացնել ցիկլի մարմինը
-    emit(swhi->body);
+    visit(swhi->body);
     builder.CreateBr(condBlock);
 
     setCurrentBlock(func, endWhile);
 }
 
 ///
-void IrEmitter::emit(ForPtr sfor)
+void IrEmitter::visit(ForPtr sfor)
 {
-    __trace__(For);
     // ընթացիկ ֆունկցիան
     auto* func = builder.GetInsertBlock()->getParent();
 
@@ -384,11 +326,11 @@ void IrEmitter::emit(ForPtr sfor)
     // ցիկլի պարամետրի հասցեն
     auto* param = varAddresses[sfor->parameter->name];
     // գեներացնել սկզբնական արժեքի արտահայտությունը
-    auto* init = emit(sfor->begin);
+    auto* init = visit(sfor->begin);
     // պարամետրին վերագրել սկզբնական արժեքը
     builder.CreateStore(init, param);
     // գեներացնել վերջնական արժեքի արտահայտությունը
-    auto* finish = emit(sfor->end);
+    auto* finish = visit(sfor->end);
     // քայլը հաստատուն թիվ է
     auto* step = llvm::ConstantFP::get(NumericTy, sfor->step->value);
     
@@ -407,7 +349,7 @@ void IrEmitter::emit(ForPtr sfor)
     setCurrentBlock(func, bodyBlock);
 
     // գեներացնել մարմինը
-    emit(sfor->body);
+    visit(sfor->body);
 
     // պարամետրի արժեքին գումարել քայլի արժեքը
     auto* parval = builder.CreateLoad(NumericTy, param);
@@ -421,51 +363,21 @@ void IrEmitter::emit(ForPtr sfor)
 }
 
 ///
-void IrEmitter::emit(CallPtr cal)
+void IrEmitter::visit(CallPtr cal)
 {
-    __trace__(Call);
     // պրոցեդուրայի կանչը նույն ֆունկցիայի կիրառումն է
-    emit(cal->subrCall);
+    visit(cal->subrCall);
 }
 
 ///
-llvm::Value* IrEmitter::emit(ExpressionPtr expr)
+llvm::Value* IrEmitter::visit(ExpressionPtr expr)
 {
-    llvm::Value* res = nullptr;
-
-    switch( expr->kind ) {
-        case NodeKind::Boolean:
-            res = emit(std::dynamic_pointer_cast<Boolean>(expr));
-            break;
-        case NodeKind::Number:
-            res = emit(std::dynamic_pointer_cast<Number>(expr));
-            break;
-        case NodeKind::Text:
-            res = emit(std::dynamic_pointer_cast<Text>(expr));
-            break;
-        case NodeKind::Variable:
-            res = emit(std::dynamic_pointer_cast<Variable>(expr));
-            break;
-        case NodeKind::Unary:
-            res = emit(std::dynamic_pointer_cast<Unary>(expr));
-            break;
-        case NodeKind::Binary:
-            res = emit(std::dynamic_pointer_cast<Binary>(expr));
-            break;
-        case NodeKind::Apply:
-            res = emit(std::dynamic_pointer_cast<Apply>(expr));
-            break;
-        default:
-            break;
-    }
-
-    return res;
+    return dispatch(expr);
 }
 
 ///
-llvm::Value* IrEmitter::emit(TextPtr txt)
+llvm::Value* IrEmitter::visit(TextPtr txt)
 {
-    __trace__(Text);
     // եթե տրված արժեքով տող արդեն սահմանված է գլոբալ
     // տիրույթում, ապա վերադարձնել դրա հասցեն
     if( const auto sri = globalTexts.find(txt->value); sri != globalTexts.end() )
@@ -480,25 +392,22 @@ llvm::Value* IrEmitter::emit(TextPtr txt)
 }
 
 ///
-llvm::Constant* IrEmitter::emit(NumberPtr num)
+llvm::Value* IrEmitter::visit(NumberPtr num)
 {
-    __trace__(Number);
     // գեներացնել թվային հաստատուն
     return llvm::ConstantFP::get(NumericTy, num->value);
 }
 
 ///
-llvm::Constant* IrEmitter::emit(BooleanPtr bv)
+llvm::Value* IrEmitter::visit(BooleanPtr bv)
 {
-    __trace__(Boolean);
     // գեներացնել տրամաբանական հաստատուն
     return llvm::ConstantInt::getBool(BooleanTy, bv->value);
 }
 
 ///
-llvm::UnaryInstruction* IrEmitter::emit(VariablePtr var)
+llvm::Value* IrEmitter::visit(VariablePtr var)
 {
-    __trace__(Variable);
     // ստանալ փոփոխականի հասցեն ...
     auto* vaddr = varAddresses[var->name];
 
@@ -513,13 +422,12 @@ llvm::UnaryInstruction* IrEmitter::emit(VariablePtr var)
 }
 
 ///
-llvm::Value* IrEmitter::emit(ApplyPtr apy)
+llvm::Value* IrEmitter::visit(ApplyPtr apy)
 {
-    __trace__(Apply);
     // գեներացնել կանչի արգումենտները
     llvm::SmallVector<llvm::Value*> argus, temps;
     for( const auto& ai : apy->arguments ) {
-        auto ap = emit(ai);
+        auto ap = visit(ai);
         argus.push_back(ap);
         if( createsTempText(ai) )
             temps.push_back(ap);
@@ -539,9 +447,8 @@ llvm::Value* IrEmitter::emit(ApplyPtr apy)
 }
 
 ///
-llvm::Value* IrEmitter::emit(BinaryPtr bin)
+llvm::Value* IrEmitter::visit(BinaryPtr bin)
 {
-    __trace__(Binary);
     const bool textuals = bin->left->is(Type::Textual)
                        && bin->right->is(Type::Textual);
     const bool numerics = bin->left->is(Type::Numeric)
@@ -549,8 +456,8 @@ llvm::Value* IrEmitter::emit(BinaryPtr bin)
     const bool booleans = bin->left->is(Type::Boolean)
                        && bin->right->is(Type::Boolean);
 
-    auto* lhs = emit(bin->left);
-    auto* rhs = emit(bin->right);
+    auto* lhs = visit(bin->left);
+    auto* rhs = visit(bin->right);
 	
     llvm::Value* ret = nullptr;
     switch( bin->opcode ) {
@@ -632,11 +539,10 @@ llvm::Value* IrEmitter::emit(BinaryPtr bin)
 }
 
 ///
-llvm::Value* IrEmitter::emit(UnaryPtr un)
+llvm::Value* IrEmitter::visit(UnaryPtr un)
 {
-    __trace__(Unary);
     // գեներացնել ենթաարտահայտությունը
-    auto* val = emit(un->subexpr);
+    auto* val = visit(un->subexpr);
 
     // ունար մինուս (բացասում)
     if( Operation::Sub == un->opcode )
@@ -783,7 +689,7 @@ void IrEmitter::defineSubroutines(ProgramPtr prog)
 {
     for( const auto& subr : prog->members )
         if( !subr->isBuiltIn )
-            emit(subr);
+            visit(subr);
 }
 
 ///

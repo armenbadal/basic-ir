@@ -1,5 +1,6 @@
 
 #include "ast.hxx"
+#include "astvisitor.hxx"
 
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/IR/IRBuilder.h>
@@ -24,34 +25,38 @@ class Value;
 namespace basic {
 
 ///
-class IrEmitter {
+class IrEmitter : public ASTVisitor<void,void,void,llvm::Value*> {
 public:
     IrEmitter(llvm::LLVMContext& cx, llvm::Module& md);
 
     bool emitFor(ProgramPtr prog);
 
 private:
-    void emit(ProgramPtr prog);
-    void emit(SubroutinePtr subr);
+    // ծրագիր
+    void visit(ProgramPtr prog) override;
+    // ենթածրագիր
+    void visit(SubroutinePtr subr) override;
 
-    void emit(StatementPtr st);
-    void emit(SequencePtr seq);
-    void emit(LetPtr let);
-    void emit(InputPtr inp);
-    void emit(PrintPtr pri);
-    void emit(IfPtr sif);
-    void emit(ForPtr sfor);
-    void emit(WhilePtr swhi);
-    void emit(CallPtr cal);
+    // ղեկավարող կառուցվածքներ
+    void visit(StatementPtr st) override;
+    void visit(SequencePtr seq) override;
+    void visit(LetPtr let) override;
+    void visit(InputPtr inp) override;
+    void visit(PrintPtr pri) override;
+    void visit(IfPtr sif) override;
+    void visit(ForPtr sfor) override;
+    void visit(WhilePtr swhi) override;
+    void visit(CallPtr cal) override;
 
-    llvm::Value* emit(ExpressionPtr expr);
-    llvm::Value* emit(ApplyPtr apy);
-    llvm::Value* emit(BinaryPtr bin);
-    llvm::Value* emit(UnaryPtr una);
-    llvm::Value* emit(TextPtr txt);
-    llvm::Constant* emit(NumberPtr num);
-    llvm::Constant* emit(BooleanPtr num);
-    llvm::UnaryInstruction* emit(VariablePtr var);
+    // արտահայտություններ
+    llvm::Value* visit(ExpressionPtr expr) override;
+    llvm::Value* visit(ApplyPtr apy) override;
+    llvm::Value* visit(BinaryPtr bin) override;
+    llvm::Value* visit(UnaryPtr una) override;
+    llvm::Value* visit(TextPtr txt) override;
+    llvm::Value* visit(NumberPtr num) override;
+    llvm::Value* visit(BooleanPtr num) override;
+    llvm::Value* visit(VariablePtr var) override;
 
     //! @brief BASIC-IR տիպից կառուցում է LLVM տիպ։
     llvm::Type* llvmType(Type type);
@@ -74,13 +79,14 @@ private:
 
 private:
     llvm::LLVMContext& context;
+
+    //! @brief Կառուցված մոդուլը
+    llvm::Module& moduler;
+
     llvm::IRBuilder<> builder;
 
     //! @brief Վերլուծված ծրագրի ծառը
     ProgramPtr prog;
-    
-    //! @brief Կառուցված մոդուլը
-    llvm::Module& moduler;
 
     //! @brief Գրադարանային ֆունկցիաների ցուցակն է։
     //!
