@@ -5,6 +5,7 @@
 #include "iremitter.hxx"
 #include "aslisp.hxx"
 
+#include <llvm/Pass.h>
 #include <llvm/AsmParser/Parser.h>
 #include <llvm/IR/IRPrintingPasses.h>
 #include <llvm/IR/LegacyPassManager.h>
