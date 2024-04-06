@@ -88,7 +88,7 @@ private:
     //! @brief Վերլուծում է նոր տողերի անցման նիշերը
     void parseNewLines();
 
-    void match(Token tok);
+    std::string match(Token tok);
 
     //! @brief Ստեղծում է լոկալ փոփոխական կամ վերադարձնում է արդեն գոյություն
     //! ունեցող փոփոխականի հասցեն

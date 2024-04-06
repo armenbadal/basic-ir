@@ -276,7 +276,7 @@ using LetPtr = std::shared_ptr<Let>;
 //! @brief Ճյուղավորում
 class If : public Statement {
 public:
-    If(ExpressionPtr co, StatementPtr de, StatementPtr al = nullptr)
+    If(ExpressionPtr co, StatementPtr de, StatementPtr al)
         : Statement{NodeKind::If}, condition{co},
           decision{de}, alternative{al}
     {}

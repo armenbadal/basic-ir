@@ -23,13 +23,7 @@ namespace basic {
 ///
 std::unique_ptr<llvm::Module> compileBasicIR(llvm::LLVMContext& context, const std::filesystem::path& source)
 {
-    // ստուգել ֆայլի գոյությունը
-    if( !std::filesystem::exists(source) ) {
-        std::cerr << "Ֆայլը չի գտնվել։";
-        return nullptr;
-    }
-
-     // վերլուծություն
+    // վերլուծություն
     ProgramPtr program = Parser(source).parse();
     if( nullptr == program ) {
         std::cerr << "Վերլուծության սխալ։";
@@ -54,6 +48,12 @@ std::unique_ptr<llvm::Module> compileBasicIR(llvm::LLVMContext& context, const s
 ///
 bool compile(const std::filesystem::path& source, bool generateIr, bool generateLisp)
 {
+    // ստուգել ֆայլի գոյությունը
+    if( !std::filesystem::exists(source) ) {
+        std::cerr << "Ֆայլը չի գտնվել։";
+        return false;
+    }
+
     const std::filesystem::path selfPath = 
             llvm::sys::fs::getMainExecutable(nullptr, nullptr);
     const auto libraryPath = selfPath.parent_path() / "basic_ir_lib.ll";
@@ -67,11 +67,11 @@ bool compile(const std::filesystem::path& source, bool generateIr, bool generate
     // կառուցել ծրագրի մոդուլը
     auto programModule = compileBasicIR(context, source);
 
-//    // ստեղծել առանձին ֆայլ
-//    if( generateIr ) {
-//        auto irModule = source;
-//        irModule.replace_extension("bas.ll");
-//    }
+    // // ստեղծել առանձին ֆայլ
+    // if( generateIr ) {
+    //     auto irModule = source;
+    //     irModule.replace_extension("bas.ll");
+    // }
 
     // կապակցել երկու մոդուլները
     // ստեղծել փուչ մոդուլ

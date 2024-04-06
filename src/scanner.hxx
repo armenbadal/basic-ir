@@ -26,16 +26,16 @@ public:
 
 private:
     //! @brief Հերթական լեքսեմը կարդալու ֆունկցիա
-    bool next(Lexeme& lex);
+    Lexeme next();
 
     //! @brief Թվային լիտերալ
-    bool scanNumber(Lexeme& lex);
+    Lexeme scanNumber();
 
     //! @brief Տեքստային լիտերալ
-    bool scanText(Lexeme& lex);
+    Lexeme scanText();
 
     //! @brief Իդենտիֆիկատոր
-    bool scanIdentifier(Lexeme& lex);
+    Lexeme scanIdentifier();
 
 private:
     //! @brief ծառայողական բառերի ցուցակ

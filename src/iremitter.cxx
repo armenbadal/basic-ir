@@ -281,7 +281,7 @@ void IrEmitter::visit(IfPtr sif)
     }
     
     // կա՞ արդյոք else-բլոկ
-    if( nullptr != sp )
+    if( sp->kind != NodeKind::Empty )
         visit(sp);
     
     setCurrentBlock(func, endIf);

@@ -3,15 +3,17 @@
 
 #include <algorithm>
 #include <exception>
+#include <format>
 #include <iostream>
 #include <memory>
+#include <ranges>
 #include <utility>
 
 using namespace std::string_view_literals;
 
 namespace basic {
 //
-class ParseError : public std::exception {
+class ParseError : public std::exception { // բազային դասը փոխել
 public:
     ParseError(const std::string& mes)
         : message{mes}
@@ -25,19 +27,6 @@ public:
 private:
     std::string message;
 };
-
-
-//
-bool equalNames(std::string_view no, std::string_view ni)
-{
-    std::string_view so = no, si = ni;
-    if( '$' == so.back() || '?' == so.back() )
-        so.remove_suffix(1);
-    if( '$' == si.back() || '?' == si.back() )
-        si.remove_suffix(1);
-    return so == si;
-}
-
 
 ///
 Parser::Parser(const std::filesystem::path& filename)
@@ -77,7 +66,7 @@ ProgramPtr Parser::parse()
     // տուգել, որ unresolved ցուցակը դատարկ լինի, այսինքն՝
     // ծրագրում ոչ մի տեղ չսահմանված ֆունկցիայի հղում չմնա
     for( auto& e : unresolved ) {
-        std::string mes = e.first + " անունով ենթածրագիրը սահմանված չէ։";
+        auto mes = std::format("{} անունով ենթածրագիրը սահմանված չէ։", e.first);
         std::cerr << "Վերլուծության սխալ։ " << mes << std::endl;
         // TODO: նշել կանչերի տեղերը
     }
@@ -113,13 +102,11 @@ void Parser::parseSubroutine()
 {
     // վերնագիր
     match(Token::Subroutine);
-    auto name = lookahead.value;
-    match(Token::Identifier);
+    auto name = match(Token::Identifier);
 
-    // ստուգել name անունով ենթածրագրի արդեն հայտարարված լինելը,
-    // ուշադրություն դարձնել անվան վերջի '$' նիշին (f և f$ անունները նույնն են)
-    auto sbit = find_if(module->members.begin(), module->members.end(),
-        [&name](auto sp) -> bool { return equalNames(name, sp->name); });
+    // ստուգել name անունով ենթածրագրի արդեն հայտարարված լինելը
+    auto sbit = std::ranges::find_if(module->members, 
+            [&name](const auto& m) { return m->name == name; });
     if (sbit != module->members.end())
         throw ParseError(name + " անունով ենթածրագիրն արդեն սահմանված է։");
 
@@ -128,13 +115,11 @@ void Parser::parseSubroutine()
     if( lookahead.is(Token::LeftPar) ) {
         match(Token::LeftPar);
         if( lookahead.is(Token::Identifier) ) {
-            auto idlex = lookahead.value;
-            match(Token::Identifier);
+            auto idlex = match(Token::Identifier);
             params.push_back(idlex);
             while( lookahead.is(Token::Comma) ) {
                 match(Token::Comma);
-                idlex = lookahead.value;
-                match(Token::Identifier);
+                idlex = match(Token::Identifier);
                 params.push_back(idlex);
             }
         }
@@ -207,8 +192,7 @@ StatementPtr Parser::parseLet()
     unsigned int pos = lookahead.line;
 
     match(Token::Let);
-    auto vnm = lookahead.value;
-    match(Token::Identifier);
+    auto vnm = match(Token::Identifier);
     match(Token::Eq);
     auto exo = parseExpression();
 
@@ -231,13 +215,11 @@ StatementPtr Parser::parseInput()
 
     std::string prom = "?";
     if( lookahead.is(Token::Text) ) {
-        prom = lookahead.value;
-        match(Token::Text);
+        prom = match(Token::Text);
         match(Token::Comma);
     }
 
-    auto vnm = lookahead.value;
-    match(Token::Identifier);
+    auto vnm = match(Token::Identifier);
 
     auto varp = getVariable(vnm, false);
     return node<Input>(node<Text>(prom), varp);
@@ -260,11 +242,13 @@ StatementPtr Parser::parsePrint()
 //
 StatementPtr Parser::parseIf()
 {
+    auto empty = node<Statement>(NodeKind::Empty);
+
     match(Token::If);
     auto cond = parseExpression();
     match(Token::Then);
     auto deci = parseStatements();
-    auto sif = node<If>(cond, deci);
+    auto sif = node<If>(cond, deci, empty);
 
     auto it = sif;
     while( lookahead.is(Token::ElseIf) ) {
@@ -272,7 +256,7 @@ StatementPtr Parser::parseIf()
         auto cone = parseExpression();
         match(Token::Then);
         auto dece = parseStatements();
-        auto eif = node<If>(cone, dece);
+        auto eif = node<If>(cone, dece, empty);
         it->alternative = eif;
         it = eif;
     }
@@ -309,8 +293,7 @@ StatementPtr Parser::parseWhile()
 StatementPtr Parser::parseFor()
 {
     match(Token::For);
-    auto par = lookahead.value;
-    match(Token::Identifier);
+    auto par = match(Token::Identifier);
     match(Token::Eq);
     auto be = parseExpression();
     match(Token::To);
@@ -323,8 +306,7 @@ StatementPtr Parser::parseFor()
             match(Token::Sub);
             neg = true;
         }
-        auto lex = lookahead.value;
-        match(Token::Number);
+        auto lex = match(Token::Number);
         spvl = std::stod(lex);
         if( neg )
             spvl = -spvl;
@@ -344,8 +326,7 @@ StatementPtr Parser::parseFor()
 StatementPtr Parser::parseCall()
 {
     match(Token::Call);
-    auto name = lookahead.value;
-    match(Token::Identifier);
+    auto name = match(Token::Identifier);
     std::vector<ExpressionPtr> args;
 
     if( lookahead.is({ Token::Number, Token::Text, Token::Identifier, 
@@ -470,15 +451,13 @@ ExpressionPtr Parser::parseFactor()
 
     // NUMBER
     if( lookahead.is(Token::Number) ) {
-        auto lex = lookahead.value;
-        match(Token::Number);
+        auto lex = match(Token::Number);
         return node<Number>(std::stod(lex));
     }
 
     // TEXT
     if( lookahead.is(Token::Text) ) {
-        auto lex = lookahead.value;
-        match(Token::Text);
+        auto lex = match(Token::Text);
         return node<Text>(lex);
     }
 
@@ -499,8 +478,7 @@ ExpressionPtr Parser::parseFactor()
 
     // IDENT ['(' [ExpressionList] ')']
     if( lookahead.is(Token::Identifier) ) {
-        auto name = lookahead.value;
-        match(Token::Identifier);
+        auto name = match(Token::Identifier);
         if( lookahead.is(Token::LeftPar) ) {
             std::vector<ExpressionPtr> args;
             match(Token::LeftPar);
@@ -552,13 +530,15 @@ void Parser::parseNewLines()
 }
 
 //
-void Parser::match(Token exp)
+std::string Parser::match(Token exp)
 {
     if( !lookahead.is(exp) )
-        throw ParseError("Սպասվում է " + toString(exp) + 
-                ", բայց հանդիպել է " + lookahead.value + "։");
+        throw ParseError(std::format("Սպասվում է {}, բայց հանդիպել է {}։", 
+                toString(exp), lookahead.value));
 
+    const auto value = lookahead.value;
     scanner >> lookahead;
+    return value;
 }
 
 //
@@ -566,11 +546,11 @@ VariablePtr Parser::getVariable(std::string_view name, bool rval)
 {
     auto& locals = currentsubr->locals;
 
-    if( rval && equalNames(currentsubr->name, name) )
+    if( rval && currentsubr->name == name )
         throw ParseError("Ենթածրագրի անունը օգտագործված է որպես փոփոխական։");
 
-    auto vpi = std::find_if(locals.begin(), locals.end(),
-        [&name](auto vp) -> bool { return equalNames(name, vp->name); });
+    auto vpi = std::ranges::find_if(locals,
+        [&name](auto vp) { return name == vp->name; });
     if( locals.end() != vpi )
         return *vpi;
 
@@ -588,7 +568,7 @@ SubroutinePtr Parser::getSubroutine(std::string_view name)
 {
     // որոնել տրված անունով ենթածրագիրը արդեն սահմանվածների մեջ
     for( auto si : module->members )
-        if( equalNames(si->name, name) )
+        if( si->name == name )
             return si;
 
     // որոնել 

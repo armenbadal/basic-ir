@@ -52,13 +52,15 @@ Scanner::~Scanner()
 //! @brief Հերթական լեքսեմը կարդալու օպերատորը
 Scanner& Scanner::operator>>(Lexeme& lex)
 {
-    next(lex);
+    lex = next();
     return *this;
 }
 
 //! @brief Հերթական լեքսեմը կարդալու ֆունկցիա
-bool Scanner::next( Lexeme& lex )
+Lexeme Scanner::next()
 {
+    Lexeme lex;
+
     // լեքսեմի դաշտերի սկզբնական արժեքներ
     lex.kind = Token::None;
     lex.value = "";
@@ -72,20 +74,20 @@ bool Scanner::next( Lexeme& lex )
     if( source.eof() ) {
         lex.kind = Token::Eof;
         lex.value = "EOF";
-        return true;
+        return lex;
     }
 
     // երբ ընթացիկ նիշը թվանշան է՝ կարդալ թվային լիտերալ
     if( isdigit(ch) )
-        return scanNumber(lex);
+        return scanNumber();
 
     // երբ ընթացիկ նիշը չակերտ է՝ կարդալ տողային լիտերալ
     if( ch == '"' )
-        return scanText(lex);
+        return scanText();
 
     // երբ ընթացիկ նիշը տառ է՝ կարդալ իդենտիֆիկատոր կամ ծառայողական բառ
     if( isalpha(ch) )
-        return scanIdentifier(lex);
+        return scanIdentifier();
 
     // երբ ընթացիկ նիշը ապաթարցն է, ...
     if( ch == '\'' ) {
@@ -94,7 +96,7 @@ bool Scanner::next( Lexeme& lex )
         while( ch != '\n' )
             source >> ch;
         // կարդալ ու վերադարձնել հաջորդ լեքսեմը
-        return next(lex);
+        return next();
     }
 
     // երբ հանդիպել է նոր տողի նիշը
@@ -104,7 +106,7 @@ bool Scanner::next( Lexeme& lex )
         // փոխել ընթացիկ տողի համարը
         ++line;
         source >> ch;
-        return true;
+        return lex;
     }
 
     // «փոքր է», «փոքր է կամ հավասար» և «հավասար չէ» 
@@ -124,7 +126,7 @@ bool Scanner::next( Lexeme& lex )
         }
         else
             lex.kind = Token::Lt;
-        return true;
+        return lex;
     }
 
     // «մեծ է» և «մեծ է կամ հավասար» գործողությունները
@@ -138,7 +140,7 @@ bool Scanner::next( Lexeme& lex )
         }
         else
             lex.kind = Token::Gt;
-        return true;
+        return lex;
     }
 
     // այլ մետասիմվոլներ
@@ -177,13 +179,13 @@ bool Scanner::next( Lexeme& lex )
     // կարդալ հերթական նիշը
     source >> ch;
 
-    // լեքսեմ կարդալու գործողությունը հաջողվել է, եթե kind-ը None չէ
-    return lex.kind != Token::None;
+    return lex;
 }
 
 //
-bool Scanner::scanNumber(Lexeme& lex)
+Lexeme Scanner::scanNumber()
 {
+    Lexeme lex;
     // կարդալ թվանշանների շարք
     while( isdigit(ch) ) {
         lex.value.push_back(ch);
@@ -202,14 +204,15 @@ bool Scanner::scanNumber(Lexeme& lex)
         }
     }
     lex.kind = Token::Number;
-    return true;
+    return lex;
 }
 
 //
-bool Scanner::scanText(Lexeme& lex)
+Lexeme Scanner::scanText()
 {
+    Lexeme lex;
     source >> ch;
-    // քանի դեռ նորի չակերտ չի հանդիպել
+    // քանի դեռ նորից չակերտ չի հանդիպել
     while( ch != '"' ) {
         // կարդալ ու հավաքել հերթական նիշերը
         lex.value.push_back(ch);
@@ -217,12 +220,14 @@ bool Scanner::scanText(Lexeme& lex)
     }
     source >> ch;
     lex.kind = Token::Text;
-    return true;
+    return lex;
 }
 
 //
-bool Scanner::scanIdentifier(Lexeme& lex)
+Lexeme Scanner::scanIdentifier()
 {
+    Lexeme lex;
+
     // կարդալ թվանշանների ու տառերի հաջորդականություն
     while( isalnum(ch) ) {
         lex.value.push_back(ch);
@@ -241,7 +246,7 @@ bool Scanner::scanIdentifier(Lexeme& lex)
     // հակառակ դեպքում վերադարձնել իդենտիֆիկատորի պիտակ
     lex.kind = ival == keywords.end() ? Token::Identifier : ival->second;
     
-    return true;
+    return lex;
 }
 
 } // basic

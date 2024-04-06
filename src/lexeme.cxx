@@ -1,7 +1,9 @@
 
 #include "lexeme.hxx"
 
+#include <format>
 #include <map>
+#include <ranges>
 
 namespace basic {
 //
@@ -69,10 +71,7 @@ bool Lexeme::is(Token exp) const
 //
 bool Lexeme::is(const std::vector<Token>& exps) const
 {
-    for (auto k : exps)
-        if (k == kind)
-            return true;
-    return false;
+    return exps.end() != std::ranges::find(exps, kind);
 }
 
 //
@@ -84,7 +83,7 @@ bool Lexeme::isIn(Token el, Token eh) const
 //
 std::string Lexeme::toString() const
 {
-    return "<" + value + ", " + std::to_string(line) + ">";
+    return std::format("<{}, {}>", value, line);
 }
 
 } // basic
