@@ -569,7 +569,7 @@ void IrEmitter::setCurrentBlock(llvm::Function* fun, llvm::BasicBlock* bl)
     // else
     //     fun->getBasicBlockList().push_back(bl);
     
-    fun->getBasicBlockList().push_back(bl);
+    fun->insert(fun->end(), bl);
     
     builder.SetInsertPoint(bl);
 }

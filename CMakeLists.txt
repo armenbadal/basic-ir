@@ -1,9 +1,9 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.18)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
 
 SET(CMAKE_CXX_STANDARD 20)
 SET(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
-PROJECT(basic-ir)
+PROJECT(basic-ir LANGUAGES CXX C)
 
 FIND_PACKAGE(LLVM REQUIRED CONFIG)
 
@@ -21,13 +21,11 @@ ADD_EXECUTABLE(${PROJECT_NAME}
 	src/checker.cxx
 	src/iremitter.cxx)
 
-llvm_map_components_to_libnames(llvm_libs support core irreader linker)
-
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${llvm_libs})
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE LLVM)
 
 ADD_CUSTOM_COMMAND(
    OUTPUT ${CMAKE_BINARY_DIR}/basic_ir_lib.ll
-   COMMAND clang -S -emit-llvm ${CMAKE_SOURCE_DIR}/src/basic_ir_lib.c)
+   COMMAND clang-17 -S -emit-llvm ${CMAKE_SOURCE_DIR}/src/basic_ir_lib.c)
 
 ADD_CUSTOM_TARGET(${PROJECT_NAME}-lib ALL DEPENDS basic_ir_lib.ll)
 

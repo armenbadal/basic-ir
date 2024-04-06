@@ -37,6 +37,13 @@ protected:
 
     S dispatch(StatementPtr node)
     {
+        if( node == nullptr ) {
+            if constexpr ( !std::is_same_v<S,void> )
+                return {};
+            else
+                return;
+        }
+
         switch( node->kind ) {
             case NodeKind::Sequence:
                 return visit(std::dynamic_pointer_cast<Sequence>(node));
