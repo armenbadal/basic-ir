@@ -3,6 +3,7 @@
 
 #include <format>
 #include <map>
+#include <memory>
 #include <ranges>
 
 namespace basic {
@@ -57,8 +58,8 @@ std::string toString(Token sym)
 }
 
 //
-Lexeme::Lexeme(Token k, std::string_view v, unsigned int l)
-    : kind{k}, value{v}, line{l}
+Lexeme::Lexeme(Token k, std::string v, unsigned int l)
+    : kind{k}, value{std::move(v)}, line{l}
 {
 }
 

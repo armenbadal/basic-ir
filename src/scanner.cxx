@@ -6,30 +6,6 @@
 
 namespace basic {
 
-///
-std::map<std::string_view, Token> Scanner::keywords{
-    { "SUB",    Token::Subroutine },
-    { "LET",    Token::Let },
-    { "PRINT",  Token::Print },
-    { "INPUT",  Token::Input },
-    { "IF",     Token::If },
-    { "THEN",   Token::Then },
-    { "ELSEIF", Token::ElseIf },
-    { "ELSE",   Token::Else },
-    { "WHILE",  Token::While },
-    { "FOR",    Token::For },
-    { "TO",     Token::To },
-    { "STEP",   Token::Step },
-    { "CALL",   Token::Call },
-    { "END",    Token::End },
-    { "MOD",    Token::Mod },
-    { "AND",    Token::And },
-    { "OR",     Token::Or },
-    { "NOT",    Token::Not },
-    { "TRUE",   Token::True },
-    { "FALSE",  Token::False }
-};
-
 //
 Scanner::Scanner(const std::filesystem::path& filename)
 {
@@ -59,23 +35,13 @@ Scanner& Scanner::operator>>(Lexeme& lex)
 //! @brief Հերթական լեքսեմը կարդալու ֆունկցիա
 Lexeme Scanner::next()
 {
-    Lexeme lex;
-
-    // լեքսեմի դաշտերի սկզբնական արժեքներ
-    lex.kind = Token::None;
-    lex.value = "";
-    lex.line = line;
-
     // անտեսել բացատանիշերը (բացի նոր տողի նիշից)
     while( ch == ' ' || ch == '\t' || ch == '\r' )
         source >> ch;
 
     // ֆայլի վերջը
-    if( source.eof() ) {
-        lex.kind = Token::Eof;
-        lex.value = "EOF";
-        return lex;
-    }
+    if( source.eof() )
+        return {Token::Eof, "EOF", line};
 
     // երբ ընթացիկ նիշը թվանշան է՝ կարդալ թվային լիտերալ
     if( isdigit(ch) )
@@ -101,81 +67,52 @@ Lexeme Scanner::next()
 
     // երբ հանդիպել է նոր տողի նիշը
     if( ch == '\n' ) {
-        lex.kind = Token::NewLine;
-        lex.value = "\n";
+        const auto pos = line;
         // փոխել ընթացիկ տողի համարը
         ++line;
         source >> ch;
-        return lex;
+        return {Token::NewLine, "\n", pos};
     }
 
     // «փոքր է», «փոքր է կամ հավասար» և «հավասար չէ» 
     // գործողությունները
     if( ch == '<' ) {
-        lex.value = "<";
+        Lexeme lex{Token::Lt, "<", line};
+
         source >> ch;
         if( ch == '>' ) {
-            lex.value.push_back('>');
-            source >> ch;
             lex.kind = Token::Ne;
+            lex.value = "<>";
+            source >> ch;
         }
         else if( ch == '=' ) {
-            lex.value.push_back('=');
-            source >> ch;
             lex.kind = Token::Le;
+            lex.value = "<=";
+            source >> ch;
         }
-        else
-            lex.kind = Token::Lt;
+            
         return lex;
     }
 
     // «մեծ է» և «մեծ է կամ հավասար» գործողությունները
     if( ch == '>' ) {
-        lex.value = ">";
+        Lexeme lex{Token::Gt, ">", line};
+
         source >> ch;
         if( ch == '=' ) {
-            lex.value.push_back('=');
-            source >> ch;
             lex.kind = Token::Ge;
+            lex.value = ">=";
+            source >> ch;
         }
-        else
-            lex.kind = Token::Gt;
+
         return lex;
     }
 
     // այլ մետասիմվոլներ
-    switch( ch ) {
-        case '(':
-            lex.kind = Token::LeftPar;
-            break;
-        case ')':
-            lex.kind = Token::RightPar;
-            break;
-        case ',':
-            lex.kind = Token::Comma;
-            break;
-        case '+':
-            lex.kind = Token::Add;
-            break;
-        case '-':
-            lex.kind = Token::Sub;
-            break;
-        case '*':
-            lex.kind = Token::Mul;
-            break;
-        case '/':
-            lex.kind = Token::Div;
-            break;
-        case '^':
-            lex.kind = Token::Pow;
-            break;
-        case '&':
-            lex.kind = Token::Amp;
-            break;
-        case '=':
-            lex.kind = Token::Eq;
-            break;
-    };
+    const auto msi = metasymbols.find(ch);
+    auto kind = msi == metasymbols.end() ? Token::None : msi->second;
+    Lexeme lex{kind, std::string{ch}, line};
+
     // կարդալ հերթական նիշը
     source >> ch;
 
@@ -185,68 +122,73 @@ Lexeme Scanner::next()
 //
 Lexeme Scanner::scanNumber()
 {
-    Lexeme lex;
+    const auto pos = line;
+    std::string value;
+
     // կարդալ թվանշանների շարք
     while( isdigit(ch) ) {
-        lex.value.push_back(ch);
+        value += ch;
         source >> ch;
     }
     // եթե հերթական նիշը «.» է, ապա հանդիպել է
     // իրական թվի լիտերալ
     if( ch == '.' ) {
         // կետն ավելացնել լեքսեմի տեքստին
-        lex.value.push_back('.');
+        value += '.';
         source >> ch;
         // նորից կարդալ թվանշանների հաջորդականություն
         while( isdigit(ch) ) {
-            lex.value.push_back(ch);
+            value += ch;
             source >> ch;
         }
     }
-    lex.kind = Token::Number;
-    return lex;
+    
+    return {Token::Number, value, pos};
 }
 
 //
 Lexeme Scanner::scanText()
 {
-    Lexeme lex;
+    const auto pos = line;
+    std::string value;
+
     source >> ch;
     // քանի դեռ նորից չակերտ չի հանդիպել
     while( ch != '"' ) {
         // կարդալ ու հավաքել հերթական նիշերը
-        lex.value.push_back(ch);
+        value += ch;
         source >> ch;
     }
     source >> ch;
-    lex.kind = Token::Text;
-    return lex;
+
+    return {Token::Text, value, pos};
 }
 
 //
 Lexeme Scanner::scanIdentifier()
 {
-    Lexeme lex;
+    const auto pos = line;
+    std::string value;
 
     // կարդալ թվանշանների ու տառերի հաջորդականություն
     while( isalnum(ch) ) {
-        lex.value.push_back(ch);
+        value += ch;
         source >> ch;
     }
 
     // եթե հանդիպել է «$» կամ «?», ապա դա էլ կցել լեքսեմի արժեքին
     if( ch == '$' || ch == '?' ) {
-        lex.value.push_back(ch);
+        value += ch;
         source >> ch;
     }
 
     // լեքսեմի արժեքը փնտրել ծառայողական բառերի ցուցակում
-    auto ival = keywords.find(lex.value);
+    auto ival = keywords.find(value);
     // եթե գտնվել է, ապա վերադարձնել համապատասխան պիտակը,
     // հակառակ դեպքում վերադարձնել իդենտիֆիկատորի պիտակ
-    lex.kind = ival == keywords.end() ? Token::Identifier : ival->second;
+    auto kind = ival == keywords.end() ? Token::Identifier : ival->second;
     
-    return lex;
+    return {kind, value, pos};
 }
 
-} // basic
+} // namespace basic

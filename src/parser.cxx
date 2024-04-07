@@ -2,30 +2,20 @@
 #include "parser.hxx"
 
 #include <algorithm>
-#include <exception>
 #include <format>
 #include <iostream>
 #include <memory>
 #include <ranges>
+#include <stdexcept>
 #include <utility>
 
 using namespace std::string_view_literals;
 
 namespace basic {
 //
-class ParseError : public std::exception { // բազային դասը փոխել
+class ParseError : public std::runtime_error {
 public:
-    ParseError(const std::string& mes)
-        : message{mes}
-    {}
-
-    const char* what() const noexcept override
-    {
-        return message.c_str();
-    }
-
-private:
-    std::string message;
+    using std::runtime_error::runtime_error;
 };
 
 ///

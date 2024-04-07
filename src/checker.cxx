@@ -1,30 +1,17 @@
 
 #include "checker.hxx"
+#include "formatters.hxx"
 
-#include <exception>
+#include <format>
 #include <memory>
+#include <stdexcept>
 #include <string_view>
 
 namespace basic {
 //
-class TypeError : public std::exception {
+class TypeError : public std::runtime_error {
 public:
-    TypeError(std::string_view mes)
-        : message{std::string{mes}}
-    {}
-
-    TypeError(Operation opcode, std::string_view mes)
-    {
-        message = "'" + toString(opcode) + "' " + std::string{mes};
-    }
-
-    const char* what() const noexcept override
-    {
-        return message.c_str();
-    }
-
-private:
-    std::string message;
+    using std::runtime_error::runtime_error;
 };
 
     
@@ -74,12 +61,9 @@ void Checker::visit(SequencePtr node)
 void Checker::visit(LetPtr node)
 {
     visit(node->expr);
-    if( node->expr->type != node->place->type ) {
-        std::string mes = toString(node->place->type)
-            + " փոփոխականին վերագրվում է "
-            + toString(node->expr->type) + " արժեք։";
-        throw TypeError{mes};
-    }
+    if( node->expr->type != node->place->type )
+        throw TypeError{std::format("{} փոփոխականին վերագրվում է {} արժեք։",
+            node->place->type, node->expr->type)};
 }
 
 //
@@ -97,7 +81,7 @@ void Checker::visit(IfPtr node)
 {
     visit(node->condition);
     if( node->condition->isNot(Type::Boolean) )
-        throw TypeError("Ճյուղավորման հրամանի պայմանի տիպը բուլյան չէ։");
+        throw TypeError{"Ճյուղավորման հրամանի պայմանի տիպը բուլյան չէ։"};
 
     visit(node->decision);
     visit(node->alternative);
@@ -108,7 +92,7 @@ void Checker::visit(WhilePtr node)
 {
     visit(node->condition);
     if( node->condition->isNot(Type::Boolean) )
-        throw TypeError("Պայմանով ցիկլի պայմանի տիպը բուլյան չէ։");
+        throw TypeError{"Պայմանով ցիկլի պայմանի տիպը բուլյան չէ։"};
 
     visit(node->body);
 }
@@ -117,18 +101,18 @@ void Checker::visit(WhilePtr node)
 void Checker::visit(ForPtr node)
 {
     if( node->parameter->isNot(Type::Numeric) )
-        throw TypeError("Պարամետրով ցիկլի պարամետրի տիպը թվային չէ։");
+        throw TypeError{"Պարամետրով ցիկլի պարամետրի տիպը թվային չէ։"};
 
     visit(node->begin);
     if( node->parameter->isNot(Type::Numeric) )
-        throw TypeError("Պարամետրով ցիկլի պարամետրի սկզբնական արժեքի տիպը թվային չէ։");
+        throw TypeError{"Պարամետրով ցիկլի պարամետրի սկզբնական արժեքի տիպը թվային չէ։"};
 
     visit(node->end);
     if( node->parameter->isNot(Type::Numeric) )
-        throw TypeError("Պարամետրով ցիկլի պարամետրի վերջնական արժեքի տիպը թվային չէ։");
+        throw TypeError{"Պարամետրով ցիկլի պարամետրի վերջնական արժեքի տիպը թվային չէ։"};
 
     if( 0 == node->step->value )
-        throw TypeError("Պարամետրով ցիկլի քայլը զրո է։");
+        throw TypeError{"Պարամետրով ցիկլի քայլը զրո է։"};
     
     visit(node->body);
 }
@@ -162,22 +146,19 @@ void Checker::visit(ApplyPtr node)
 {
     // Ստուգել, որ կանչվող ենթածրագիրը արժեք վերադարձնի։
     if( !node->callee->hasValue )
-        throw TypeError(node->callee->name + " ենթածրագիրն արժեք չի վերադարձնում։");
+        throw TypeError{std::format("{} ենթածրագիրն արժեք չի վերադարձնում։", node->callee->name)};
 
     auto& parameters = node->callee->parameters;
     auto& arguments = node->arguments;
 
     if( parameters.size() != arguments.size() )
-        throw TypeError("Պարամետրերի ու արգումենտների քանակները հավասար չեն։");
+        throw TypeError{"Պարամետրերի ու արգումենտների քանակները հավասար չեն։"};
 
     for( int i = 0; i < arguments.size(); ++i ) {
         // TODO: check also each parameter
-        if( typeOf(parameters[i]) != arguments[i]->type ) {
-            std::string mes = std::to_string(i) + "-րդ պարամետրի տիպը "
-                + toString(typeOf(parameters[i])) + " է, իսկ արգումենտի տիպը "
-                + toString(arguments[i]->type) + " է։";
-            throw TypeError(mes);
-        }
+        if( typeOf(parameters[i]) != arguments[i]->type )
+            throw TypeError{std::format("{}-րդ պարամետրի տիպը {} է, իսկ արգումենտի տիպը {} է։",
+                    i, typeOf(parameters[i]), arguments[i]->type)};
     }
 
     node->type = typeOf(node->callee->name);
@@ -200,7 +181,7 @@ void Checker::visit(BinaryPtr node)
                              opc == Operation::Eq ||
                              opc == Operation::Ne;
         if( !allowed )
-            throw TypeError{opc, "գործողությունը կիրառելի չէ տրամաբանական արժեքներին։"};
+            throw TypeError{std::format("{} գործողությունը կիրառելի չէ տրամաբանական արժեքներին։", opc)};
 
         node->type = Type::Boolean;
     }
@@ -209,7 +190,7 @@ void Checker::visit(BinaryPtr node)
                                 opc == Operation::And ||
                                 opc == Operation::Or;
         if( notAllowed )
-            throw TypeError{opc, "գործողությունը կիրառելի չէ թվերին։"};
+            throw TypeError{std::format("{} գործողությունը կիրառելի չէ թվերին։", opc)};
 
         if( opc >= Operation::Eq && opc <= Operation::Le )
             node->type = Type::Boolean;
@@ -222,10 +203,10 @@ void Checker::visit(BinaryPtr node)
         else if( opc >= Operation::Eq && opc <= Operation::Le )
             node->type = Type::Boolean;
         else
-            throw TypeError{opc, "գործողությունը կիրառելի չէ տեքստերին։"};
+            throw TypeError{std::format("{} գործողությունը կիրառելի չէ տեքստերին։", opc)};
     }
     else
-        throw TypeError{opc, "գործողության երկու կողմերում տարբեր տիպեր են։"};
+        throw TypeError{std::format("{} գործողության երկու կողմերում տարբեր տիպեր են։", opc)};
 }
 
 //
@@ -234,12 +215,12 @@ void Checker::visit(UnaryPtr node)
     visit(node->subexpr);
 
     if( Operation::Not == node->opcode && node->subexpr->isNot(Type::Boolean) )
-        throw TypeError("Ժխտման գործողության օպերանդը բուլյան չէ։");
+        throw TypeError{"Ժխտման գործողության օպերանդը բուլյան չէ։"};
     else
         node->type = Type::Boolean;
 
     if( Operation::Sub == node->opcode && node->subexpr->isNot(Type::Numeric) )
-        throw TypeError("Բացասման գործողության օպերանդը թվային չէ։");
+        throw TypeError{"Բացասման գործողության օպերանդը թվային չէ։"};
     else
         node->type = Type::Numeric;
 }

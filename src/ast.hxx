@@ -2,11 +2,11 @@
 #ifndef AST_HXX
 #define AST_HXX
 
+#include <memory>
 #include <string>
 #include <string_view>
-#include <vector>
-#include <memory>
 #include <utility>
+#include <vector>
 
 //
 namespace basic {
@@ -73,7 +73,6 @@ enum class Type : char {
 //! դեպքում՝ @c NUMERIC է։
 //!
 Type typeOf(std::string_view name);
-const std::string toString(Type vl);
 
 
 //! @brief Արտահայտություն
@@ -163,9 +162,6 @@ enum class Operation {
     Not,  //!< ՈՉ (ժխտում)
     Conc  //!< տեքստերի կցում
 };
-
-//! @brief Գործողության տեքստային անունը
-const std::string toString(Operation opc);
 
 //! @brief Ունար գործողություն
 class Unary : public Expression {

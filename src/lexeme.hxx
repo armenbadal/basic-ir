@@ -3,7 +3,6 @@
 #define LEXEME_HXX
 
 #include <string>
-#include <string_view>
 #include <vector>
 
 namespace basic {
@@ -70,12 +69,12 @@ std::string toString(Token sym);
 class Lexeme {
 public:
     Token kind = Token::None; //!< պիտակը
-    std::string value = "";   //!< տեքստը (լեքսեմը)
+    std::string value;   //!< տեքստը (լեքսեմը)
     unsigned int line = 0;    //!< տողի համարը
 
 public:
     Lexeme() = default;
-    Lexeme(Token k, std::string_view v, unsigned int l);
+    Lexeme(Token k, std::string v, unsigned int l);
 
     bool is(Token exp) const;
     bool is(const std::vector<Token>& exps) const;
