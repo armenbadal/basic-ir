@@ -47,6 +47,7 @@ void Checker::visit(SubroutinePtr node)
 
 void Checker::visit(StatementPtr node)
 {
+    if( node != nullptr )
     dispatch(node);
 }
 
@@ -194,8 +195,8 @@ void Checker::visit(BinaryPtr node)
 
         if( opc >= Operation::Eq && opc <= Operation::Le )
             node->type = Type::Boolean;
-
-        node->type = Type::Numeric;
+        else
+            node->type = Type::Numeric;
     }
     else if( Type::Textual == tyLeft && Type::Textual == tyRight ) {
         if( Operation::Conc == opc )

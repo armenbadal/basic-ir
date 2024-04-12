@@ -36,7 +36,7 @@ bool Lisper::emitLisp(ProgramPtr node, const std::filesystem::path& file)
     if( !os )
         return false;
 
-    visit(node);
+    os << visit(node);
     
     os.close();
 

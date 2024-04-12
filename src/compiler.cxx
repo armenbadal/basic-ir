@@ -5,6 +5,7 @@
 #include "iremitter.hxx"
 #include "aslisp.hxx"
 
+#include <llvm/IR/LLVMContext.h>
 #include <llvm/Pass.h>
 #include <llvm/AsmParser/Parser.h>
 #include <llvm/IR/IRPrintingPasses.h>
@@ -66,6 +67,16 @@ bool compile(const std::filesystem::path& source, bool generateIr, bool generate
 
     // կառուցել ծրագրի մոդուլը
     auto programModule = compileBasicIR(context, source);
+    if( programModule == nullptr )
+        return false;
+
+//    // AST-ի գեներացիա Lisp տեսքով
+//    if( generateLisp ) {
+//        auto lispPath = source;
+//        lispPath.replace_extension("lisp");
+//        if( !Lisper().emitLisp(program, lispPath) )
+//            return false;
+//    }
 
     // // ստեղծել առանձին ֆայլ
     // if( generateIr ) {
@@ -81,7 +92,7 @@ bool compile(const std::filesystem::path& source, bool generateIr, bool generate
 
     // կիրառել Linker::linkModules ստատիկ մեթոդը
     llvm::Linker::linkModules(*linkedModule, std::move(programModule));
-    llvm::Linker::linkModules(*linkedModule, std::move(libraryModule));
+    //llvm::Linker::linkModules(*linkedModule, std::move(libraryModule));
 
     // կապակցված մոդուլը գրել ֆայլում
     std::error_code ec;
@@ -93,14 +104,6 @@ bool compile(const std::filesystem::path& source, bool generateIr, bool generate
     pm.add(llvm::createVerifierPass()); // ստուգել վերջնական արդյունքը
     pm.add(llvm::createPrintModulePass(out, ""));
     pm.run(*linkedModule.get());
-
-//    // AST-ի գեներացիա Lisp տեսքով
-//    if( generateLisp ) {
-//        auto lispPath = source;
-//        lispPath.replace_extension("lisp");
-//        if( !Lisper().emitLisp(program, lispPath) )
-//            return false;
-//    }
       
     return true;
 }

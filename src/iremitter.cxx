@@ -256,9 +256,9 @@ void IrEmitter::visit(IfPtr sif)
     StatementPtr sp = sif;
     while( auto ifp = std::dynamic_pointer_cast<If>(sp) ) {
         // then֊բլոկ
-        auto* thenBlock = llvm::BasicBlock::Create(context, "", func, endIf);
+        auto* thenBlock = llvm::BasicBlock::Create(context, {}, func, endIf);
         // else-բլոկ
-        auto* elseBlock = llvm::BasicBlock::Create(context, "", func, endIf);
+        auto* elseBlock = llvm::BasicBlock::Create(context, {}, func, endIf);
 
         // գեներացնել պայմանը 
         auto* cnd = visit(ifp->condition);
@@ -294,9 +294,9 @@ void IrEmitter::visit(WhilePtr swhi)
     auto* func = builder.GetInsertBlock()->getParent();
 
     // ցիկլի պայմանի, մարմնի և ավարտի բլոկները
-    auto* condBlock = llvm::BasicBlock::Create(context, "", func);
-    auto* bodyBlock = llvm::BasicBlock::Create(context, "", func);
-    auto* endWhile = llvm::BasicBlock::Create(context, "", func);
+    auto* condBlock = llvm::BasicBlock::Create(context, {}, func);
+    auto* bodyBlock = llvm::BasicBlock::Create(context, {}, func);
+    auto* endWhile = llvm::BasicBlock::Create(context, {}, func);
 
     setCurrentBlock(func, condBlock);
 
@@ -562,15 +562,7 @@ void IrEmitter::setCurrentBlock(llvm::Function* fun, llvm::BasicBlock* bl)
         builder.CreateBr(bl);
     
     builder.ClearInsertionPoint();
-
-    // auto _ib = builder.GetInsertBlock();
-    // if( nullptr != _ib && nullptr != _ib->getParent() )
-    //     fun->getBasicBlockList().insertAfter(_ib->getIterator(), bl);
-    // else
-    //     fun->getBasicBlockList().push_back(bl);
-    
     fun->insert(fun->end(), bl);
-    
     builder.SetInsertPoint(bl);
 }
 

@@ -12,7 +12,7 @@ bool Expression::is(Type ty)
 
 bool Expression::isNot(Type ty)
 {
-    return !is(type);
+    return !is(ty);
 }
 
 //
