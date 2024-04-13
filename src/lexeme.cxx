@@ -3,11 +3,9 @@
 
 #include <format>
 #include <map>
-#include <memory>
-#include <ranges>
 
 namespace basic {
-//
+
 std::string toString(Token sym)
 {
     static std::map<Token, std::string> names{
@@ -57,31 +55,7 @@ std::string toString(Token sym)
     return names[sym];
 }
 
-//
-Lexeme::Lexeme(Token k, std::string v, unsigned int l)
-    : kind{k}, value{std::move(v)}, line{l}
-{
-}
 
-//
-bool Lexeme::is(Token exp) const
-{
-    return exp == kind;
-}
-
-//
-bool Lexeme::is(const std::vector<Token>& exps) const
-{
-    return exps.end() != std::ranges::find(exps, kind);
-}
-
-//
-bool Lexeme::isIn(Token el, Token eh) const
-{
-    return kind >= el && kind <= eh;
-}
-
-//
 std::string Lexeme::toString() const
 {
     return std::format("<{}, {}>", value, line);

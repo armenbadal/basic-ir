@@ -92,7 +92,7 @@ bool compile(const std::filesystem::path& source, bool generateIr, bool generate
 
     // կիրառել Linker::linkModules ստատիկ մեթոդը
     llvm::Linker::linkModules(*linkedModule, std::move(programModule));
-    //llvm::Linker::linkModules(*linkedModule, std::move(libraryModule));
+    llvm::Linker::linkModules(*linkedModule, std::move(libraryModule));
 
     // կապակցված մոդուլը գրել ֆայլում
     std::error_code ec;

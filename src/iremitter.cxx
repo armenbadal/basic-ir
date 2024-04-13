@@ -593,9 +593,9 @@ void IrEmitter::prepareLibrary()
 
     // հիշողության ֆունկցիաներ
     library["malloc"] = llvm::FunctionType::get(
-            builder.getInt8PtrTy(), {builder.getInt64Ty()}, false);
+            builder.getPtrTy(), {builder.getInt64Ty()}, false);
     library["free"] = llvm::FunctionType::get(
-            VoidTy, {builder.getInt8PtrTy()}, false);
+            VoidTy, {builder.getPtrTy()}, false);
 }
 
 ///

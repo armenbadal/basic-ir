@@ -12,13 +12,13 @@
 using namespace std::string_view_literals;
 
 namespace basic {
-//
+
 class ParseError : public std::runtime_error {
 public:
     using std::runtime_error::runtime_error;
 };
 
-///
+
 Parser::Parser(const std::filesystem::path& filename)
     : scanner{filename}
 {
@@ -35,11 +35,11 @@ Parser::Parser(const std::filesystem::path& filename)
     module = node<Program>(filename.string());
 }
 
-///
+
 Parser::~Parser()
 {}
 
-///
+
 ProgramPtr Parser::parse()
 {
     try {
@@ -140,38 +140,50 @@ void Parser::parseSubroutine()
 }
 
 //
-// Statements = NewLines { (Let | Input | Print | If | While | For | Call) NewLines }.
+// Statements = NewLines { Statement NewLines }.
 //
 StatementPtr Parser::parseStatements()
 {
     parseNewLines();
 
     auto sequ = node<Sequence>();
-    while( true ) {
-        StatementPtr stat;
-        unsigned int line = lookahead.line;
-        if( lookahead.is(Token::Let) )
-            stat = parseLet();
-        else if( lookahead.is(Token::Input) )
-            stat = parseInput();
-        else if( lookahead.is(Token::Print) )
-            stat = parsePrint();
-        else if( lookahead.is(Token::If) )
-            stat = parseIf();
-        else if( lookahead.is(Token::While) )
-            stat = parseWhile();
-        else if( lookahead.is(Token::For) )
-            stat = parseFor();
-        else if( lookahead.is(Token::Call) )
-            stat = parseCall();
-        else
-            break;
-        stat->line = line;
+    while( lookahead.is(Token::Let, Token::Input, Token::Print, Token::If, Token::While, Token::For, Token::Call) ) {
+        auto stat = parseOneStatement();
         sequ->items.push_back(stat);
         parseNewLines();
     }
 
     return sequ;
+}
+
+//
+// Statement = Let | Input | Print | If | While | For | Call.
+//
+StatementPtr Parser::parseOneStatement()
+{
+    if( lookahead.is(Token::Let) )
+        return parseLet();
+    
+    if( lookahead.is(Token::Input) )
+        return parseInput();
+    
+    if( lookahead.is(Token::Print) )
+        return parsePrint();
+    
+    if( lookahead.is(Token::If) )
+        return parseIf();
+
+    if( lookahead.is(Token::While) )
+        return parseWhile();
+
+    if( lookahead.is(Token::For) )
+        return parseFor();
+    
+    if( lookahead.is(Token::Call) )
+        return parseCall();
+
+    // unreachables
+    return {};
 }
 
 //
@@ -319,8 +331,8 @@ StatementPtr Parser::parseCall()
     auto name = match(Token::Identifier);
     std::vector<ExpressionPtr> args;
 
-    if( lookahead.is({ Token::Number, Token::Text, Token::Identifier, 
-        Token::Sub, Token::Not, Token::LeftPar }) ) {
+    if( lookahead.is(Token::Number, Token::Text, Token::Identifier, 
+        Token::Sub, Token::Not, Token::LeftPar) ) {
         auto exo = parseExpression();
         args.push_back(exo);
         while( lookahead.is(Token::Comma) ) {
@@ -370,7 +382,7 @@ Operation opCode( Token tok )
 ExpressionPtr Parser::parseExpression()
 {
     auto res = parseAddition();
-    if( lookahead.is({ Token::Eq, Token::Ne, Token::Gt, Token::Ge, Token::Lt, Token::Le }) ) {
+    if( lookahead.is(Token::Eq, Token::Ne, Token::Gt, Token::Ge, Token::Lt, Token::Le) ) {
         auto opc = opCode(lookahead.kind);
         match(lookahead.kind);
         auto exo = parseAddition();
@@ -385,7 +397,7 @@ ExpressionPtr Parser::parseExpression()
 ExpressionPtr Parser::parseAddition()
 {
     auto res = parseMultiplication();
-    while( lookahead.is({ Token::Add, Token::Sub, Token::Amp, Token::Or }) ) {
+    while( lookahead.is(Token::Add, Token::Sub, Token::Amp, Token::Or) ) {
         auto opc = opCode(lookahead.kind);
         match(lookahead.kind);
         auto exo = parseMultiplication();
@@ -400,7 +412,7 @@ ExpressionPtr Parser::parseAddition()
 ExpressionPtr Parser::parseMultiplication()
 {
     auto res = parsePower();
-    while( lookahead.is({ Token::Mul, Token::Div, Token::Mod, Token::And }) ) {
+    while( lookahead.is(Token::Mul, Token::Div, Token::Mod, Token::And) ) {
         auto opc = opCode(lookahead.kind);
         match(lookahead.kind);
         auto exo = parsePower();
@@ -452,7 +464,7 @@ ExpressionPtr Parser::parseFactor()
     }
 
     // ('-' | 'NOT') Factor
-    if( lookahead.is({ Token::Sub, Token::Not }) ) {
+    if( lookahead.is(Token::Sub, Token::Not) ) {
         Operation opc = Operation::None;
         if( lookahead.is(Token::Sub) ) {
             opc = Operation::Sub;
@@ -472,9 +484,9 @@ ExpressionPtr Parser::parseFactor()
         if( lookahead.is(Token::LeftPar) ) {
             std::vector<ExpressionPtr> args;
             match(Token::LeftPar);
-            if( lookahead.is({ Token::True, Token::False, Token::Number, 
-                               Token::Text, Token::Identifier, Token::Sub, 
-                               Token::Not, Token::LeftPar }) ) {
+            if( lookahead.is(Token::True, Token::False, Token::Number, 
+                             Token::Text, Token::Identifier, Token::Sub, 
+                             Token::Not, Token::LeftPar) ) {
                 auto exo = parseExpression();
                 args.push_back(exo);
                 while( lookahead.is(Token::Comma) ) {

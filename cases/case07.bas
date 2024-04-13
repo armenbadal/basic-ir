@@ -14,10 +14,15 @@ SUB IsPrime?(n)
 END SUB
 
 SUB Main
-'  LET e0? = IsPrime?(17)
-'  PRINT e0?
+  LET e0? = IsPrime?(17)
+  IF e0? THEN
+    PRINT "Yes"
+  END IF
 
-'  LET e1? = IsPrime?(16)
-'  PRINT e1?
+  IF IsPrime?(16) THEN
+    PRINT "Yes"
+  ELSE
+    PRINT "No"
+  END IF
 END SUB
 

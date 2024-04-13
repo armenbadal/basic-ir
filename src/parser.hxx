@@ -36,6 +36,9 @@ private:
     //! @brief Վերլուծում է հրամանների հաջորդականությունը
     StatementPtr parseStatements();
 
+    //! @brief Վերլուծում է մեկ հրաման
+    StatementPtr parseOneStatement();
+
     //! @brief Վերլուծում է ներմուծման @c INPUT հրամանը
     StatementPtr parseInput();
 

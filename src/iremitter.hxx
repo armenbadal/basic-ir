@@ -118,7 +118,7 @@ private:
     llvm::Type* VoidTy = builder.getVoidTy();
     llvm::Type* BooleanTy = builder.getInt1Ty();
     llvm::Type* NumericTy = builder.getDoubleTy();
-    llvm::Type* TextualTy = builder.getInt8PtrTy();
+    llvm::Type* TextualTy = builder.getPtrTy();
 };
 
 } // namespace basic

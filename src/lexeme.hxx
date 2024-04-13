@@ -3,7 +3,6 @@
 #define LEXEME_HXX
 
 #include <string>
-#include <vector>
 
 namespace basic {
 //! @brief Բառային տարրերի պիտակները
@@ -74,11 +73,25 @@ public:
 
 public:
     Lexeme() = default;
-    Lexeme(Token k, std::string v, unsigned int l);
+    Lexeme(Token k, std::string v, unsigned int l)
+        : kind{k}, value{std::move(v)}, line{l}
+    {}
 
-    bool is(Token exp) const;
-    bool is(const std::vector<Token>& exps) const;
-    bool isIn(Token el, Token eh) const;
+    bool is(Token exp) const
+    {
+        return exp == kind;
+    }
+
+    template<typename... Tokens>
+    bool is(Token ex, Tokens... exps) const
+    {
+        return is(ex) || is(exps...);        
+    }
+
+    bool isIn(Token el, Token eh) const
+    {
+        return kind >= el && kind <= eh;
+    }
 
     //! @brief Լեքսեմի տեքստային ներկայացում
     //!

@@ -57,7 +57,7 @@ std::shared_ptr<P> node(Args&&... args)
 
 //! @brief Տվյալների տիպերը
 //!
-//! @c Void -ն օգտագործվում է արժեք չվերադարձնող ենթածրագրերի հետ աշխատելիս։
+//! @c Void -ն օգտագործվում է արժեք չվերադարձնող ենթածրագրերի համար։
 enum class Type : char {
     Void    = 'V', //!< արժեքի բացակայություն
     Boolean = 'B', //!< տրամաբանական արժեք
@@ -171,7 +171,7 @@ public:
           opcode{op}, subexpr{ex}
     {}
 
-    Operation opcode;       //!< գործողությոն կոդը
+    Operation opcode;       //!< գործողության կոդը
     ExpressionPtr subexpr;  //!< օպերանդը
 };
 using UnaryPtr = std::shared_ptr<Unary>;
@@ -185,7 +185,7 @@ public:
           opcode{op}, left{exo}, right{exi}
     {}
 
-    Operation opcode;    //!< գործողությոն կոդը
+    Operation opcode;    //!< գործողության կոդը
     ExpressionPtr left;  //!< ձախ օպերանդը
     ExpressionPtr right; //!< աջ օպերանդը
 };
