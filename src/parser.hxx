@@ -18,7 +18,7 @@ public:
     //! @brief Շարահյուսական վերլուծիչի կոնստրուկտորը
     //!
     //! @param filename - վերլուծվելիք ֆայլի ճանապարհը
-    Parser(const std::filesystem::path& filename);
+    Parser(Scanner& sc);
 
     //! @brief Շարահյուսական վերլուծիչի դեստրուկտորը
     ~Parser();
@@ -116,15 +116,15 @@ private:
     SubroutinePtr getSubroutine(std::string_view name);
 
 private:
+    Scanner& scanner;  //!< բառային վերլուծիչը
+    Lexeme lookahead; //!< հերթական լեքսեմը
+
     //! @brief Վերլուծված ծրագրի ցուցիչը, միաժամանակ նաև
     //! վերլուծության ծառի արմատը
     ProgramPtr module;
 
     //! @brief ընթացիկ վերլուծվող ենթածրագրի ցուցիչը
     SubroutinePtr currentsubr;
-
-    Scanner scanner;  //!< բառային վերլուծիչը
-    Lexeme lookahead; //!< հերթական լեքսեմը
     
     //! @brief անորոշ հղումներ. բանալին ենթածրագրի անունն է,
     //! իսկ արժեքը դրան հղվող Apply օբյեկտների ցուցակը

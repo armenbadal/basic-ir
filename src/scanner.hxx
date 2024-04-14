@@ -24,6 +24,9 @@ public:
     //! @brief Հերթական լեքսեմը կարդալու օպերատոր
     Scanner& operator>>(Lexeme& lex);
 
+    //! @brief Վերլուծվող ֆայլի ճանապարհը
+    std::filesystem::path fileName() const;
+
 private:
     //! @brief Հերթական լեքսեմը կարդալու ֆունկցիա
     Lexeme next();
@@ -38,6 +41,7 @@ private:
     Lexeme scanIdentifier();
 
 private:
+    const std::filesystem::path file; //!< կոդի ֆայլի ճանապարհը
     std::ifstream source; //!< նիշերը կարդալու հոսքը
     char ch = '\0'; //!< ընթացիկ նիշը
 

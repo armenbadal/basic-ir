@@ -25,14 +25,17 @@ namespace basic {
 std::unique_ptr<llvm::Module> compileBasicIR(llvm::LLVMContext& context, const std::filesystem::path& source)
 {
     // վերլուծություն
-    ProgramPtr program = Parser(source).parse();
+    Scanner scanner{source};
+    Parser parser{scanner};
+    ProgramPtr program = parser.parse();
     if( nullptr == program ) {
         std::cerr << "Վերլուծության սխալ։";
         return nullptr;
     }
 
     // տիպերի ստուգում
-    if( const auto ce = Checker().check(program); ce.has_value() ) {
+    Checker checker;
+    if( const auto ce = checker.check(program); ce.has_value() ) {
         std::cerr << "TODO: print error message\n";
         std::cerr << ce.value() << std::endl;
         return nullptr;

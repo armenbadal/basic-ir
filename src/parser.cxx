@@ -19,8 +19,8 @@ public:
 };
 
 
-Parser::Parser(const std::filesystem::path& filename)
-    : scanner{filename}
+Parser::Parser(Scanner& sc)
+    : scanner{sc}
 {
     builtins = {
         // թվային ֆունկցիաներ
@@ -32,7 +32,7 @@ Parser::Parser(const std::filesystem::path& filename)
         BuiltIn{"STR$", {"a"}, true}
     };
 
-    module = node<Program>(filename.string());
+    module = node<Program>(scanner.fileName().string());
 }
 
 
@@ -182,7 +182,7 @@ StatementPtr Parser::parseOneStatement()
     if( lookahead.is(Token::Call) )
         return parseCall();
 
-    // unreachables
+    // unreachable
     return {};
 }
 

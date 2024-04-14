@@ -32,6 +32,11 @@ Scanner& Scanner::operator>>(Lexeme& lex)
     return *this;
 }
 
+std::filesystem::path Scanner::fileName() const
+{
+    return file;
+}
+
 //! @brief Հերթական լեքսեմը կարդալու ֆունկցիա
 Lexeme Scanner::next()
 {

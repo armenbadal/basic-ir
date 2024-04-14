@@ -25,7 +25,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE LLVM)
 
 ADD_CUSTOM_COMMAND(
    OUTPUT ${CMAKE_BINARY_DIR}/basic_ir_lib.ll
-   COMMAND clang-17 -S -emit-llvm ${CMAKE_SOURCE_DIR}/src/basic_ir_lib.c)
+   COMMAND clang-18 -S -emit-llvm ${CMAKE_SOURCE_DIR}/src/basic_ir_lib.c)
 
 ADD_CUSTOM_TARGET(${PROJECT_NAME}-lib ALL DEPENDS basic_ir_lib.ll)
 
