@@ -3,12 +3,8 @@
 #include "lexeme.hxx"
 #include "scanner.hxx"
 
-#include <filesystem>
-#include <list>
-#include <map>
 #include <string>
 #include <string_view>
-#include <tuple>
 #include <vector>
 
 namespace basic {
@@ -93,27 +89,7 @@ private:
 
     std::string match(Token tok);
 
-    //! @brief Ստեղծում է լոկալ փոփոխական կամ վերադարձնում է արդեն գոյություն
-    //! ունեցող փոփոխականի հասցեն
-    //!
-    //! Եթե լոկալ տիրույթում արդեն սահմանված է @c nm անունով փոփոխական,
-    //! ապա վերադարձնում է դրա ցուցիչը։
-    //! Եթե դեռ սահմանված չէ, ապա ստեղծել նոր @c Variable օբյեկտ, և 
-    //! վերադարձնել դրա ցուցիչը։
-    //! Եթե հարցումն արվում է rval-ի համար, ապա նոր օբյեկտ չստեղծել։
-    //! Եթե հարցումը կատարվում է rval-ի համար, ապա ընթացիկ ենթածրագրի
-    //! անունը փոփոխական չհամարել։
-    //!
-    //! @param nm   - փոփոխականի անունը
-    //! @param rval - @c true է, եթե փոփոխականը վերագրման աջ կողմում է
-    VariablePtr getVariable(std::string_view name, bool rval);
 
-    //! @brief Ենթածրագրի կանչի համար գտնում ու վերադարձնում է ենթածրագիր
-    //! օբյեկտի հասցեն, ինչպես նաև ստուգում է արգումենտների ու պարամետրերի
-    //! տիպերի համապատասխանությունը։
-    //!
-    //! @param nm   - ենթածրագրի անունը
-    SubroutinePtr getSubroutine(std::string_view name);
 
 private:
     Scanner& scanner;  //!< բառային վերլուծիչը
@@ -121,18 +97,9 @@ private:
 
     //! @brief Վերլուծված ծրագրի ցուցիչը, միաժամանակ նաև
     //! վերլուծության ծառի արմատը
-    ProgramPtr module;
+    ProgramPtr program;
 
-    //! @brief ընթացիկ վերլուծվող ենթածրագրի ցուցիչը
-    SubroutinePtr currentsubr;
-    
-    //! @brief անորոշ հղումներ. բանալին ենթածրագրի անունն է,
-    //! իսկ արժեքը դրան հղվող Apply օբյեկտների ցուցակը
-    std::map<std::string,std::list<ApplyPtr>> unresolved;
 
-    //! @brief ներդրված ենթածրագրերի նկարագրությունների ցուցակ
-    using BuiltIn = std::tuple<std::string,std::vector<std::string>,bool>;
-    std::vector<BuiltIn> builtins;
 };
 
 } // basic

@@ -30,6 +30,58 @@
 
 #include <iostream>
 
+namespace {
+
+char typeOfName(std::string_view name)
+{
+    if( name.back() == '?' )
+        return 'B';
+
+    if( name.back() == '$' )
+        return 'T';
+
+    return 'N';
+}
+
+char exprType(const basic::ExpressionPtr& e)
+{
+    switch( e->kind ) {
+        case basic::NodeKind::Boolean: return 'B';
+        case basic::NodeKind::Number:  return 'N';
+        case basic::NodeKind::Text:    return 'T';
+        case basic::NodeKind::Variable: {
+            auto v = std::static_pointer_cast<basic::Variable>(e);
+            return typeOfName(v->name);
+        }
+        case basic::NodeKind::Apply: {
+            auto a = std::static_pointer_cast<basic::Apply>(e);
+            if( a->callee )
+                return typeOfName(a->callee->name);
+            return 'V';
+        }
+        case basic::NodeKind::Unary: {
+            auto u = std::static_pointer_cast<basic::Unary>(e);
+            return u->opcode == basic::Operation::Not ? 'B' : 'N';
+        }
+        case basic::NodeKind::Binary: {
+            auto b = std::static_pointer_cast<basic::Binary>(e);
+            auto l = exprType(b->left);
+            auto r = exprType(b->right);
+            if( l != r ) return 'V';
+            if( b->opcode >= basic::Operation::Eq && b->opcode <= basic::Operation::Le )
+                return 'B';
+            if( b->opcode == basic::Operation::Conc )
+                return 'T';
+            if( b->opcode == basic::Operation::And || b->opcode == basic::Operation::Or )
+                return 'B';
+            return l;
+        }
+        default: return 'V';
+    }
+}
+
+} // anonymous namespace
+
 namespace basic {
 ///
 IrEmitter::IrEmitter(llvm::LLVMContext& cx, llvm::Module& md)
@@ -107,12 +159,13 @@ void IrEmitter::visit(SubroutinePtr subr)
     // բոլոր լոկալ փոփոխականների, պարամետրերի 
     // և վերադարձվող արժեքի համար
     for( const auto& vi : subr->locals ) {
-        auto* vty = vi->type == Type::Boolean 
+        auto vt = typeOfName(vi->name);
+        auto* vty = vt == 'B'
                               ? builder.getInt8Ty()
-                              : llvmType(vi->type); // REVIEW
+                              : llvmType(vi->name);
         auto* addr = builder.CreateAlloca(vty, nullptr, vi->name + "_addr");
         varAddresses[vi->name] = addr;
-        if( vi->is(Type::Textual) )
+        if( vt == 'T' )
             localTexts.push_back(addr);
     }
 
@@ -148,13 +201,14 @@ void IrEmitter::visit(SubroutinePtr subr)
         if( vi->name == subr->name )
             continue;
 
-        if( vi->is(Type::Numeric) || vi->is(Type::Boolean) )
+        auto vt = typeOfName(vi->name);
+        if( vt == 'N' || vt == 'B' )
             continue;
 
-		if( Type::Textual == vi->type ) {
-		    auto addr = builder.CreateLoad(TextualTy, varAddresses[vi->name]);
-		    createLibraryFuncCall("free", { addr });
-		}
+        if( vt == 'T' ) {
+            auto addr = builder.CreateLoad(TextualTy, varAddresses[vi->name]);
+            createLibraryFuncCall("free", { addr });
+        }
     }
 
     // վերադարձվող արժեք
@@ -188,13 +242,14 @@ void IrEmitter::visit(LetPtr let)
     auto* val = visit(let->expr);
     auto* addr = varAddresses[let->place->name];
     
-    if( let->place->is(Type::Textual) ) {
+    auto pt = typeOfName(let->place->name);
+    if( pt == 'T' ) {
         auto* dera = builder.CreateLoad(TextualTy, addr);  
         createLibraryFuncCall("free", {dera});
         if( !createsTempText(let->expr) )
             val = createLibraryFuncCall("text_clone", { val });
     }
-    else if( let->place->is(Type::Boolean) ) {
+    else if( pt == 'B' ) {
         val = builder.CreateZExt(val, builder.getInt8Ty());
     }
 
@@ -208,12 +263,13 @@ void IrEmitter::visit(InputPtr inp)
     auto* prompt = visit(inp->prompt);
 
     // հաշվարկել ներմուծող ֆունկցիան
+    auto pt = typeOfName(inp->place->name);
     std::string_view funcName;
-    if( inp->place->is(Type::Boolean) )
+    if( pt == 'B' )
         funcName = "bool_input";
-    if( inp->place->is(Type::Numeric) )
+    if( pt == 'N' )
         funcName = "number_input";
-    else if( inp->place->is(Type::Textual) )
+    else if( pt == 'T' )
         funcName = "text_input";
 
     // գեներացնել ներմուծող ֆունկցիայի կանչ
@@ -228,15 +284,16 @@ void IrEmitter::visit(PrintPtr pri)
     // արտածվող արտահայտության կոդը
     auto* expr = visit(pri->expr);
     
-    if( pri->expr->is(Type::Boolean) ) {
+    auto et = exprType(pri->expr);
+    if( et == 'B' ) {
         //createLibraryFuncCall("bool_print", {expr});
     }
-    else if( pri->expr->is(Type::Textual) ) {
+    else if( et == 'T' ) {
         createLibraryFuncCall("text_print", {expr});
         if( createsTempText(pri->expr) )
             createLibraryFuncCall("free", {expr});
     }
-    else if( pri->expr->is(Type::Numeric) )
+    else if( et == 'N' )
         createLibraryFuncCall("number_print", {expr});
 }
 
@@ -412,13 +469,13 @@ llvm::Value* IrEmitter::visit(VariablePtr var)
     auto* vaddr = varAddresses[var->name];
 
     // ... և գեներացնել արժեքի բեռնման հրահանգ
-    if( var->is(Type::Boolean) ) {
+    if( typeOfName(var->name) == 'B' ) {
         llvm::Type* ByteType = builder.getInt8Ty();
         llvm::LoadInst* res = builder.CreateLoad(ByteType, vaddr, var->name);
         return llvm::dyn_cast<llvm::UnaryInstruction>(builder.CreateTrunc(res, BooleanTy)); // REVIEW
     }
 
-    return builder.CreateLoad(llvmType(var->type), vaddr, var->name);; 
+    return builder.CreateLoad(llvmType(var->name), vaddr, var->name);; 
 }
 
 ///
@@ -449,12 +506,12 @@ llvm::Value* IrEmitter::visit(ApplyPtr apy)
 ///
 llvm::Value* IrEmitter::visit(BinaryPtr bin)
 {
-    const bool textuals = bin->left->is(Type::Textual)
-                       && bin->right->is(Type::Textual);
-    const bool numerics = bin->left->is(Type::Numeric)
-                       && bin->right->is(Type::Numeric);
-    const bool booleans = bin->left->is(Type::Boolean)
-                       && bin->right->is(Type::Boolean);
+    const bool textuals = exprType(bin->left) == 'T'
+                       && exprType(bin->right) == 'T';
+    const bool numerics = exprType(bin->left) == 'N'
+                       && exprType(bin->right) == 'N';
+    const bool booleans = exprType(bin->left) == 'B'
+                       && exprType(bin->right) == 'B';
 
     auto* lhs = visit(bin->left);
     auto* rhs = visit(bin->right);
@@ -601,14 +658,23 @@ void IrEmitter::prepareLibrary()
 ///
 void IrEmitter::declareLibraryFunction(std::string_view name, std::string_view signature)
 {
-    auto* returnType = llvmType(static_cast<Type>(signature[0]));
+    auto charType = [&](char c) -> llvm::Type* {
+        switch( c ) {
+            case 'B': return BooleanTy;
+            case 'N': return NumericTy;
+            case 'T': return TextualTy;
+            default:  return VoidTy;
+        }
+    };
+
+    auto* returnType = charType(signature[0]);
 
     signature.remove_prefix(2); // drop return type and '('
     signature.remove_suffix(1); // drop ')'
 
     llvm::SmallVector<llvm::Type*> paramTypes;
     for( const char t : signature )
-        paramTypes.push_back(llvmType(static_cast<Type>(t)));
+        paramTypes.push_back(charType(t));
 
     library[std::string{name}] = llvm::FunctionType::get(returnType, paramTypes, false);
 }
@@ -685,31 +751,22 @@ void IrEmitter::defineSubroutines(ProgramPtr prog)
 }
 
 ///
-llvm::Type* IrEmitter::llvmType(Type type)
-{
-    if( Type::Boolean == type )
-        return BooleanTy;
-
-    if( Type::Numeric == type )
-        return NumericTy;
-
-    if( Type::Textual == type )
-        return TextualTy;
-
-    return VoidTy;
-}
-
-///
 llvm::Type* IrEmitter::llvmType(std::string_view name)
 {
-    return llvmType(typeOf(name));
+    switch( typeOfName(name) ) {
+        case 'B': return BooleanTy;
+        case 'N': return NumericTy;
+        case 'T': return TextualTy;
+        default:  return VoidTy;
+    }
 }
 
 ///
 bool IrEmitter::createsTempText(ExpressionPtr expr)
 {
+    auto et = exprType(expr);
     // թվային արտահայտությունը ժամանակավոր օբյեկտ չի ստեղծում
-    if( expr->is(Type::Numeric) || expr->is(Type::Boolean) )
+    if( et == 'N' || et == 'B' )
         return false;
 
     // տեքստային լիտերալներն ու փոփոխականներն էլ չեն ստեղծում
@@ -726,4 +783,4 @@ llvm::CallInst* IrEmitter::createLibraryFuncCall(std::string_view fname,
     return builder.CreateCall(libraryFunction(fname), args);
 }
 
-} // namespace llvm
+} // namespace basic

@@ -1,11 +1,62 @@
 
 #include "checker.hxx"
-#include "formatters.hxx"
 
 #include <format>
 #include <memory>
 #include <stdexcept>
 #include <string_view>
+
+namespace {
+
+char typeOfName(std::string_view name)
+{
+    if( name.back() == '?' )
+        return 'B';
+
+    if( name.back() == '$' )
+        return 'T';
+
+    return 'N';
+}
+
+char exprType(const basic::ExpressionPtr& e)
+{
+    switch( e->kind ) {
+        case basic::NodeKind::Boolean: return 'B';
+        case basic::NodeKind::Number:  return 'N';
+        case basic::NodeKind::Text:    return 'T';
+        case basic::NodeKind::Variable: {
+            auto v = std::static_pointer_cast<basic::Variable>(e);
+            return typeOfName(v->name);
+        }
+        case basic::NodeKind::Apply: {
+            auto a = std::static_pointer_cast<basic::Apply>(e);
+            if( a->callee )
+                return typeOfName(a->callee->name);
+            return 'V';
+        }
+        case basic::NodeKind::Unary: {
+            auto u = std::static_pointer_cast<basic::Unary>(e);
+            return u->opcode == basic::Operation::Not ? 'B' : 'N';
+        }
+        case basic::NodeKind::Binary: {
+            auto b = std::static_pointer_cast<basic::Binary>(e);
+            auto l = exprType(b->left);
+            auto r = exprType(b->right);
+            if( l != r ) return 'V';
+            if( b->opcode >= basic::Operation::Eq && b->opcode <= basic::Operation::Le )
+                return 'B';
+            if( b->opcode == basic::Operation::Conc )
+                return 'T';
+            if( b->opcode == basic::Operation::And || b->opcode == basic::Operation::Or )
+                return 'B';
+            return l;
+        }
+        default: return 'V';
+    }
+}
+
+} // anonymous namespace
 
 namespace basic {
 //
@@ -62,9 +113,11 @@ void Checker::visit(SequencePtr node)
 void Checker::visit(LetPtr node)
 {
     visit(node->expr);
-    if( node->expr->type != node->place->type )
+    auto pt = typeOfName(node->place->name);
+    auto et = exprType(node->expr);
+    if( pt != et )
         throw TypeError{std::format("{} փոփոխականին վերագրվում է {} արժեք։",
-            node->place->type, node->expr->type)};
+            pt, et)};
 }
 
 //
@@ -81,7 +134,7 @@ void Checker::visit(PrintPtr node)
 void Checker::visit(IfPtr node)
 {
     visit(node->condition);
-    if( node->condition->isNot(Type::Boolean) )
+    if( exprType(node->condition) != 'B' )
         throw TypeError{"Ճյուղավորման հրամանի պայմանի տիպը բուլյան չէ։"};
 
     visit(node->decision);
@@ -92,7 +145,7 @@ void Checker::visit(IfPtr node)
 void Checker::visit(WhilePtr node)
 {
     visit(node->condition);
-    if( node->condition->isNot(Type::Boolean) )
+    if( exprType(node->condition) != 'B' )
         throw TypeError{"Պայմանով ցիկլի պայմանի տիպը բուլյան չէ։"};
 
     visit(node->body);
@@ -101,15 +154,16 @@ void Checker::visit(WhilePtr node)
 //
 void Checker::visit(ForPtr node)
 {
-    if( node->parameter->isNot(Type::Numeric) )
+    auto pt = typeOfName(node->parameter->name);
+    if( pt != 'N' )
         throw TypeError{"Պարամետրով ցիկլի պարամետրի տիպը թվային չէ։"};
 
     visit(node->begin);
-    if( node->parameter->isNot(Type::Numeric) )
+    if( exprType(node->begin) != 'N' )
         throw TypeError{"Պարամետրով ցիկլի պարամետրի սկզբնական արժեքի տիպը թվային չէ։"};
 
     visit(node->end);
-    if( node->parameter->isNot(Type::Numeric) )
+    if( exprType(node->end) != 'N' )
         throw TypeError{"Պարամետրով ցիկլի պարամետրի վերջնական արժեքի տիպը թվային չէ։"};
 
     if( 0 == node->step->value )
@@ -157,12 +211,12 @@ void Checker::visit(ApplyPtr node)
 
     for( int i = 0; i < arguments.size(); ++i ) {
         // TODO: check also each parameter
-        if( typeOf(parameters[i]) != arguments[i]->type )
+        auto pt = typeOfName(parameters[i]);
+        auto at = exprType(arguments[i]);
+        if( pt != at )
             throw TypeError{std::format("{}-րդ պարամետրի տիպը {} է, իսկ արգումենտի տիպը {} է։",
-                    i, typeOf(parameters[i]), arguments[i]->type)};
+                    i, pt, at)};
     }
-
-    node->type = typeOf(node->callee->name);
 }
 
 //
@@ -171,43 +225,32 @@ void Checker::visit(BinaryPtr node)
     visit(node->left);
     visit(node->right);
 
-    Type tyLeft = node->left->type;
-    Type tyRight = node->right->type;
+    auto tyLeft = exprType(node->left);
+    auto tyRight = exprType(node->right);
     Operation opc = node->opcode;
 
-    // տիպերի ստուգում և որոշում
-    if( Type::Boolean == tyLeft && Type::Boolean == tyRight ) {
+    if( tyLeft != tyRight )
+        throw TypeError{std::format("{} գործողության երկու կողմերում տարբեր տիպեր են։", opc)};
+
+    if( 'B' == tyLeft && 'B' == tyRight ) {
         const bool allowed = opc == Operation::And ||
                              opc == Operation::Or ||
                              opc == Operation::Eq ||
                              opc == Operation::Ne;
         if( !allowed )
             throw TypeError{std::format("{} գործողությունը կիրառելի չէ տրամաբանական արժեքներին։", opc)};
-
-        node->type = Type::Boolean;
     }
-    else if( Type::Numeric == tyLeft && Type::Numeric == tyRight ) {
+    else if( 'N' == tyLeft && 'N' == tyRight ) {
         const bool notAllowed = opc == Operation::Conc ||
                                 opc == Operation::And ||
                                 opc == Operation::Or;
         if( notAllowed )
             throw TypeError{std::format("{} գործողությունը կիրառելի չէ թվերին։", opc)};
-
-        if( opc >= Operation::Eq && opc <= Operation::Le )
-            node->type = Type::Boolean;
-        else
-            node->type = Type::Numeric;
     }
-    else if( Type::Textual == tyLeft && Type::Textual == tyRight ) {
-        if( Operation::Conc == opc )
-            node->type = Type::Textual;
-        else if( opc >= Operation::Eq && opc <= Operation::Le )
-            node->type = Type::Boolean;
-        else
+    else if( 'T' == tyLeft && 'T' == tyRight ) {
+        if( opc != Operation::Conc && !(opc >= Operation::Eq && opc <= Operation::Le) )
             throw TypeError{std::format("{} գործողությունը կիրառելի չէ տեքստերին։", opc)};
     }
-    else
-        throw TypeError{std::format("{} գործողության երկու կողմերում տարբեր տիպեր են։", opc)};
 }
 
 //
@@ -215,15 +258,13 @@ void Checker::visit(UnaryPtr node)
 {
     visit(node->subexpr);
 
-    if( Operation::Not == node->opcode && node->subexpr->isNot(Type::Boolean) )
-        throw TypeError{"Ժխտման գործողության օպերանդը բուլյան չէ։"};
-    else
-        node->type = Type::Boolean;
+    auto st = exprType(node->subexpr);
 
-    if( Operation::Sub == node->opcode && node->subexpr->isNot(Type::Numeric) )
+    if( Operation::Not == node->opcode && st != 'B' )
+        throw TypeError{"Ժխտման գործողության օպերանդը բուլյան չէ։"};
+
+    if( Operation::Sub == node->opcode && st != 'N' )
         throw TypeError{"Բացասման գործողության օպերանդը թվային չէ։"};
-    else
-        node->type = Type::Numeric;
 }
 
 //

@@ -59,7 +59,6 @@ private:
     llvm::Value* visit(VariablePtr var) override;
 
     //! @brief BASIC-IR տիպից կառուցում է LLVM տիպ։
-    llvm::Type* llvmType(Type type);
     llvm::Type* llvmType(std::string_view name);
 
     //! @brief Ճշտում է հերթական BasicBlock-ի դիրքը։

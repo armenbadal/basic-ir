@@ -39,21 +39,4 @@ public:
     }
 };
 
-template<>
-class std::formatter<basic::Type> : public std::formatter<std::string_view> {
-public:
-    auto format(basic::Type tp, std::format_context& ctx) const
-    {
-        using namespace basic;
-        using namespace std::string_view_literals;
-        static std::unordered_map<basic::Type,std::string_view> names{
-            { Type::Void,    "VOID"sv },
-            { Type::Boolean, "BOOLEAN"sv },
-            { Type::Numeric, "NUMBER"sv },
-            { Type::Textual, "TEXT"sv }
-        };
-        return std::formatter<std::string_view>::format(names[tp], ctx);
-    }
-};
-
 #endif // FORMATTERS_HXX

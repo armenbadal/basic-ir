@@ -11,6 +11,8 @@
 //
 namespace basic {
 
+using Position = unsigned int;
+
 //! @brief Աբստրակտ քերականական ծառի հանգույցի տեսակը
 enum class NodeKind : int {
     Empty,      //!< ոչինչ
@@ -40,12 +42,14 @@ enum class NodeKind : int {
 class Node {
 public:
     Node() = default;
-    explicit Node(NodeKind k) : kind{k} {}
+    Node(NodeKind k, Position l)
+        : kind{k}, line{l}
+    {}
     virtual ~Node() = default;
 
 public:
     NodeKind kind = NodeKind::Empty; //!< հանգույցի տեսակը
-    unsigned int line = 0;           //!< տողի համարը
+    Position line = 0;               //!< տողի համարը
 };
 using NodePtr = std::shared_ptr<Node>;
 
@@ -55,37 +59,15 @@ std::shared_ptr<P> node(Args&&... args)
     return std::make_shared<P>(std::forward<Args>(args)...);
 }
 
-//! @brief Տվյալների տիպերը
-//!
-//! @c Void -ն օգտագործվում է արժեք չվերադարձնող ենթածրագրերի համար։
-enum class Type : char {
-    Void    = 'V', //!< արժեքի բացակայություն
-    Boolean = 'B', //!< տրամաբանական արժեք
-    Numeric = 'N', //!< թվային արժեք
-    Textual = 'T'  //!< տեքստային արժեք
-};
 
-//! @brief Իդենտիֆիկատորի տիպը
-//!
-//! Իդենտիֆիկատորի տիպը որոշում է ըստ նրա կառուցվածքի.
-//! եթե ավարտվում է '$' նիշով, ապա @c TEXTUAL է, իսկ եթե
-//! ավարտվում է '?' նիշով, ապա @c BOOLEAN է, հակառակ 
-//! դեպքում՝ @c NUMERIC է։
-//!
-Type typeOf(std::string_view name);
 
 
 //! @brief Արտահայտություն
 class Expression : public Node {
 public:
-    Expression(NodeKind k, Type t)
-        : Node{k}, type{t}
+    Expression(NodeKind k, Position p)
+        : Node{k, p}
     {}
-
-    virtual bool is(Type ty);
-    virtual bool isNot(Type ty);
-
-    Type type{Type::Void};
 };
 using ExpressionPtr = std::shared_ptr<Expression>;
 
@@ -93,8 +75,8 @@ using ExpressionPtr = std::shared_ptr<Expression>;
 //! @brief Տրամաբանական հաստատուն
 class Boolean : public Expression {
 public:
-    explicit Boolean(bool vl)
-        : Expression{NodeKind::Boolean, Type::Boolean},
+    explicit Boolean(bool vl, Position p)
+        : Expression{NodeKind::Boolean, p},
           value{vl}
     {}
 
@@ -106,8 +88,8 @@ using BooleanPtr = std::shared_ptr<Boolean>;
 //! @brief Թվային հաստատուն
 class Number : public Expression {
 public:
-    explicit Number(double vl)
-        : Expression{NodeKind::Number, Type::Numeric},
+    explicit Number(double vl, Position p)
+        : Expression{NodeKind::Number, p},
           value{vl}
     {}
 
@@ -119,8 +101,8 @@ using NumberPtr = std::shared_ptr<Number>;
 //! @brief Տեքստային հաստատուն
 class Text : public Expression {
 public:
-    explicit Text(std::string_view vl)
-        : Expression{NodeKind::Text, Type::Textual},
+    explicit Text(std::string_view vl, Position p)
+        : Expression{NodeKind::Text, p},
           value{vl}
     {}
 
@@ -132,8 +114,8 @@ using TextPtr = std::shared_ptr<Text>;
 //! @brief Փոփոխական
 class Variable : public Expression {
 public:
-    explicit Variable(std::string_view nm)
-        : Expression{NodeKind::Variable, typeOf(nm)},
+    explicit Variable(std::string_view nm, Position p)
+        : Expression{NodeKind::Variable, p},
           name{nm}
     {}
 
@@ -166,8 +148,8 @@ enum class Operation {
 //! @brief Ունար գործողություն
 class Unary : public Expression {
 public:
-    Unary(Operation op, ExpressionPtr ex)
-        : Expression{NodeKind::Unary, Type::Numeric},
+    Unary(Operation op, ExpressionPtr ex, Position p)
+        : Expression{NodeKind::Unary, p},
           opcode{op}, subexpr{ex}
     {}
 
@@ -180,8 +162,8 @@ using UnaryPtr = std::shared_ptr<Unary>;
 //! @brief Բինար գործողություն
 class Binary : public Expression {
 public:
-    Binary(Operation op, ExpressionPtr exo, ExpressionPtr exi)
-        : Expression{NodeKind::Binary, Type::Void},
+    Binary(Operation op, ExpressionPtr exo, ExpressionPtr exi, Position p)
+        : Expression{NodeKind::Binary, p},
           opcode{op}, left{exo}, right{exi}
     {}
 
@@ -198,8 +180,8 @@ using SubroutinePtr = std::shared_ptr<Subroutine>;
 //! @brief Ֆունկցիայի կանչ (կիրառում)
 class Apply : public Expression {
 public:
-    Apply(SubroutinePtr sp, const std::vector<ExpressionPtr>& ags)
-        : Expression{NodeKind::Apply, Type::Void},
+    Apply(SubroutinePtr sp, const std::vector<ExpressionPtr>& ags, Position p)
+        : Expression{NodeKind::Apply, p},
           callee{sp}, arguments{ags}
     {}
 
@@ -212,7 +194,7 @@ using ApplyPtr = std::shared_ptr<Apply>;
 //! @brief Ղեկավարող կառուցվածք (հրաման)
 class Statement : public Node {
 public:
-    explicit Statement(NodeKind k) : Node{k} {}
+    explicit Statement(NodeKind k, Position p) : Node{k, p} {}
 };
 using StatementPtr = std::shared_ptr<Statement>;
 
@@ -220,8 +202,8 @@ using StatementPtr = std::shared_ptr<Statement>;
 //! @brief Հրամանների շարք (հաջորդականություն)
 class Sequence : public Statement {
 public:
-    Sequence()
-        : Statement{NodeKind::Sequence}
+    Sequence(Position p)
+        : Statement{NodeKind::Sequence, p}
     {}
 
     std::vector<StatementPtr> items;
@@ -232,8 +214,8 @@ using SequencePtr = std::shared_ptr<Sequence>;
 //! @brief Տվյալների ներմուծում
 class Input : public Statement {
 public:
-    Input(TextPtr pr, VariablePtr vp)
-        : Statement{NodeKind::Input},
+    Input(TextPtr pr, VariablePtr vp, Position p)
+        : Statement{NodeKind::Input, p},
           prompt{pr}, place{vp}
     {}
 
@@ -246,8 +228,8 @@ using InputPtr = std::shared_ptr<Input>;
 //! @brief Տվյալների արտածում
 class Print : public Statement {
 public:
-    explicit Print(ExpressionPtr ex)
-        : Statement{NodeKind::Print}, expr(ex)
+    explicit Print(ExpressionPtr ex, Position p)
+        : Statement{NodeKind::Print, p}, expr(ex)
     {}
 
     ExpressionPtr expr; //!< արտածվող արտահայտությունը
@@ -258,8 +240,8 @@ using PrintPtr = std::shared_ptr<Print>;
 //! @brief Վերագրում (միաժամանակ՝ փոփոխականի սահմանում)
 class Let : public Statement {
 public:
-    Let(VariablePtr vp, ExpressionPtr ex)
-        : Statement{NodeKind::Let},
+    Let(VariablePtr vp, ExpressionPtr ex, Position p)
+        : Statement{NodeKind::Let, p},
           place{vp}, expr{ex}
     {}
 
@@ -272,8 +254,8 @@ using LetPtr = std::shared_ptr<Let>;
 //! @brief Ճյուղավորում
 class If : public Statement {
 public:
-    If(ExpressionPtr co, StatementPtr de, StatementPtr al)
-        : Statement{NodeKind::If}, condition{co},
+    If(ExpressionPtr co, StatementPtr de, StatementPtr al, Position p)
+        : Statement{NodeKind::If, p}, condition{co},
           decision{de}, alternative{al}
     {}
 
@@ -287,8 +269,8 @@ using IfPtr = std::shared_ptr<If>;
 //! @brief Նախապայմանով ցիկլ
 class While : public Statement {
 public:
-    While(ExpressionPtr co, StatementPtr bo)
-        : Statement{NodeKind::While}, condition{co}, body{bo}
+    While(ExpressionPtr co, StatementPtr bo, Position p)
+        : Statement{NodeKind::While, p}, condition{co}, body{bo}
     {}
 
     ExpressionPtr condition; //!< կրկնման պայման
@@ -301,8 +283,8 @@ using WhilePtr = std::shared_ptr<While>;
 class For : public Statement {
 public:
     For(VariablePtr pr, ExpressionPtr be, ExpressionPtr en,
-        NumberPtr st, StatementPtr bo)
-        : Statement{NodeKind::For}, parameter{pr},
+        NumberPtr st, StatementPtr bo, Position p)
+        : Statement{NodeKind::For, p}, parameter{pr},
           begin{be}, end{en}, step{st}, body{bo}
     {}
 
@@ -318,9 +300,9 @@ using ForPtr = std::shared_ptr<For>;
 //! @brief Ենթածրագրի կանչ
 class Call : public Statement {
 public:
-    Call(SubroutinePtr sp, const std::vector<ExpressionPtr>& as)
-        : Statement{NodeKind::Call},
-          subrCall{std::make_shared<Apply>(sp, as)}
+    Call(SubroutinePtr sp, const std::vector<ExpressionPtr>& as, Position p)
+        : Statement{NodeKind::Call, p},
+          subrCall{std::make_shared<Apply>(sp, as, p)}
     {}
 
     ApplyPtr subrCall;
@@ -338,8 +320,8 @@ using CallPtr = std::shared_ptr<Call>;
 //! դրվում է @c true ։
 class Subroutine : public Node {
 public:
-    Subroutine(std::string_view nm, const std::vector<std::string>& ps)
-        : Node{NodeKind::Subroutine}, 
+    Subroutine(std::string_view nm, const std::vector<std::string>& ps, Position p)
+        : Node{NodeKind::Subroutine, p}, 
           name{nm}, parameters{ps}
     {}
 
@@ -355,8 +337,8 @@ public:
 //! @brief Ծրագիր
 class Program : public Node {
 public:
-    explicit Program(std::string_view fn )
-        : Node{NodeKind::Program}, filename{fn}
+    explicit Program(std::string_view fn, Position p )
+        : Node{NodeKind::Program, p}, filename{fn}
     {}
 
     std::string filename;               //!< անունը
