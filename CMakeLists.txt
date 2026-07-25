@@ -1,19 +1,18 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
+cmake_minimum_required(VERSION 4.2)
 
-SET(CMAKE_CXX_STANDARD 20)
-SET(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
-PROJECT(basic-ir LANGUAGES CXX C)
+project(basic-ir LANGUAGES CXX C)
 
-FIND_PACKAGE(LLVM REQUIRED CONFIG)
+find_package(LLVM REQUIRED CONFIG)
 
-INCLUDE_DIRECTORIES(${LLVM_INCLUDE_DIRS})
-ADD_DEFINITIONS(${LLVM_DEFINITIONS})
+include_directories(${LLVM_INCLUDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS})
 
-ADD_EXECUTABLE(${PROJECT_NAME}
+add_executable(${PROJECT_NAME}
 	src/main.cxx
 	src/compiler.cxx
-	src/ast.cxx
 	src/lexeme.cxx
 	src/scanner.cxx
 	src/parser.cxx
@@ -21,15 +20,15 @@ ADD_EXECUTABLE(${PROJECT_NAME}
 	src/checker.cxx
 	src/iremitter.cxx)
 
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE LLVM)
+target_link_libraries(${PROJECT_NAME} PRIVATE LLVM)
 
-ADD_CUSTOM_COMMAND(
+add_custom_command(
    OUTPUT ${CMAKE_BINARY_DIR}/basic_ir_lib.ll
-   COMMAND clang-18 -S -emit-llvm ${CMAKE_SOURCE_DIR}/src/basic_ir_lib.c)
+   COMMAND clang -S -emit-llvm ${CMAKE_SOURCE_DIR}/src/basic_ir_lib.c)
 
-ADD_CUSTOM_TARGET(${PROJECT_NAME}-lib ALL DEPENDS basic_ir_lib.ll)
+add_custom_target(${PROJECT_NAME}-lib ALL DEPENDS basic_ir_lib.ll)
 
-ADD_DEPENDENCIES(${PROJECT_NAME} ${PROJECT_NAME}-lib)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-lib)
 
 #install(TARGETS basic-ir DESTINATION basic-ir)
 #install(FILES ${CMAKE_BINARY_DIR}/basic_ir_lib.ll DESTINATION basic-ir)
