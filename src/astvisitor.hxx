@@ -2,8 +2,6 @@
 
 #include "ast.hxx"
 
-#include <type_traits>
-
 namespace basic {
 
 class ASTVisitor {
@@ -38,38 +36,37 @@ protected:
 
 class ASTVisitorBase : public ASTVisitor {
 protected:
-    void visit(const Statement::Ptr node) override
+    void visit(Statement::Ptr node) override
     {
         switch (node->kind) {
         case NodeKind::Sequence:
-            visit(std::static_pointer_cast<Sequence>(node));
+            this->visit(std::static_pointer_cast<Sequence>(node));
             break;
         case NodeKind::Dim:
-            visit(std::static_pointer_cast<Dim>(node));
+            this->visit(std::static_pointer_cast<Dim>(node));
             break;
         case NodeKind::Let:
-            visit(std::static_pointer_cast<Let>(node));
+            this->visit(std::static_pointer_cast<Let>(node));
             break;
         case NodeKind::Input:
-            visit(std::static_pointer_cast<Input>(node));
+            this->visit(std::static_pointer_cast<Input>(node));
             break;
         case NodeKind::Print:
-            visit(std::static_pointer_cast<Print>(node));
+            this->visit(std::static_pointer_cast<Print>(node));
             break;
         case NodeKind::If:
-            visit(std::static_pointer_cast<If>(node));
+            this->visit(std::static_pointer_cast<If>(node));
             break;
         case NodeKind::While:
-            visit(std::static_pointer_cast<While>(node));
+            this->visit(std::static_pointer_cast<While>(node));
             break;
         case NodeKind::For:
-            visit(std::static_pointer_cast<For>(node));
+            this->visit(std::static_pointer_cast<For>(node));
             break;
         case NodeKind::Call:
-            visit(std::static_pointer_cast<Call>(node));
+            this->visit(std::static_pointer_cast<Call>(node));
             break;
         default:
-            // Handle unknown statement kind if necessary
             break;
         }
     }
@@ -78,28 +75,27 @@ protected:
     {
         switch (node->kind) {
         case NodeKind::Apply:
-            visit(std::static_pointer_cast<Apply>(node));
+            this->visit(std::static_pointer_cast<Apply>(node));
             break;
         case NodeKind::Binary:
-            visit(std::static_pointer_cast<Binary>(node));
+            this->visit(std::static_pointer_cast<Binary>(node));
             break;
         case NodeKind::Unary:
-            visit(std::static_pointer_cast<Unary>(node));
+            this->visit(std::static_pointer_cast<Unary>(node));
             break;
         case NodeKind::Variable:
-            visit(std::static_pointer_cast<Variable>(node));
+            this->visit(std::static_pointer_cast<Variable>(node));
             break;
         case NodeKind::Text:
-            visit(std::static_pointer_cast<Text>(node));
+            this->visit(std::static_pointer_cast<Text>(node));
             break;
         case NodeKind::Number:
-            visit(std::static_pointer_cast<Number>(node));
+            this->visit(std::static_pointer_cast<Number>(node));
             break;
         case NodeKind::Boolean:
-            visit(std::static_pointer_cast<Boolean>(node));
+            this->visit(std::static_pointer_cast<Boolean>(node));
             break;
         default:
-            // Handle unknown expression kind if necessary
             break;
         }
     }

@@ -370,6 +370,11 @@ public:
     const std::string _name = "";               //<! անուն
     const std::vector<std::string> _parameters; //<! պարամետրեր
     const Statement::Ptr _body;                 //<! մարմին
+
+    // Semantic analysis fields (non-const for checker/iremitter compatibility)
+    bool _isBuiltIn = false;
+    bool _hasValue = false;
+    std::vector<Variable::Ptr> _locals;
 };
 
 

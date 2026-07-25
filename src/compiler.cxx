@@ -6,6 +6,7 @@
 #include "aslisp.hxx"
 
 #include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
 #include <llvm/Pass.h>
 #include <llvm/AsmParser/Parser.h>
 #include <llvm/IR/IRPrintingPasses.h>
@@ -27,7 +28,7 @@ std::unique_ptr<llvm::Module> compileBasicIR(llvm::LLVMContext& context, const s
     // վերլուծություն
     Scanner scanner{source};
     Parser parser{scanner};
-    ProgramPtr program = parser.parse();
+    Program::Ptr program = parser.parse();
     if( nullptr == program ) {
         std::cerr << "Վերլուծության սխալ։";
         return nullptr;
