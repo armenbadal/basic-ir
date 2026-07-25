@@ -10,13 +10,18 @@
 #include <utility>
 
 template<>
-class std::formatter<basic::Operation> : public std::formatter<std::string_view> {
+class std::formatter<basic::Operation> {
 public:
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
     auto format(basic::Operation op, std::format_context& ctx) const
     {
         using namespace basic;
         using namespace std::string_view_literals;
-        static std::unordered_map<basic::Operation,std::string_view> names{
+        static const std::unordered_map<basic::Operation,std::string_view> names{
             { Operation::None, "None"sv },
             { Operation::Add,   "+"sv },
             { Operation::Sub,   "-"sv },
@@ -35,7 +40,7 @@ public:
             { Operation::Not,  "NOT"sv },
             { Operation::Conc, "&"sv }
         };
-        return std::formatter<std::string_view>::format(names[op], ctx);
+        return std::format_to(ctx.out(), "{}", names.at(op));
     }
 };
 

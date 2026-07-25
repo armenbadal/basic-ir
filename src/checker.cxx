@@ -1,5 +1,6 @@
 
 #include "checker.hxx"
+#include "formatters.hxx"
 
 #include <format>
 #include <memory>

@@ -6,6 +6,7 @@
 #include "aslisp.hxx"
 
 #include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
 #include <llvm/Pass.h>
 #include <llvm/AsmParser/Parser.h>
 #include <llvm/IR/IRPrintingPasses.h>
