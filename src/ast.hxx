@@ -42,7 +42,10 @@ using Position = unsigned int;
 class Node {
 public:
     Node() = default;
-    explicit Node(NodeKind k, Position l) : kind{k}, line{l} {}
+    Node(NodeKind k, Position l)
+        : kind{k}
+        , line{l}
+    {}
     virtual ~Node() = default;
 
     using Ptr = std::shared_ptr<Node>;
@@ -72,52 +75,52 @@ public:
 //! @brief Տրամաբանական հաստատուն
 class Boolean : public Expression {
 public:
-    explicit Boolean(bool vl, Position p)
-        : Expression{NodeKind::Boolean, p},
-          value{vl}
+    Boolean(bool value, Position pos)
+        : Expression{NodeKind::Boolean, pos}
+        , _value{value}
     {}
     using Ptr = std::shared_ptr<Boolean>;
 
-    const bool value{false};
+    const bool _value{false};
 };
 
 
 //! @brief Թվային հաստատուն
 class Number : public Expression {
 public:
-    explicit Number(double vl, Position p)
-        : Expression{NodeKind::Number, p},
-          value{vl}
+    Number(double value, Position pos)
+        : Expression{NodeKind::Number, pos}
+        ,  _value{value}
     {}
     using Ptr = std::shared_ptr<Number>;
 
-    const double value{0.0};
+    const double _value{0.0};
 };
 
 
 //! @brief Տեքստային հաստատուն
 class Text : public Expression {
 public:
-    explicit Text(std::string_view vl, Position p)
-        : Expression{NodeKind::Text, p},
-          value{vl}
+    Text(std::string_view value, Position pos)
+        : Expression{NodeKind::Text, pos}
+        , _value{value}
     {}
     using Ptr = std::shared_ptr<Text>;
 
-    const std::string value;
+    const std::string _value;
 };
   
 
 //! @brief Փոփոխական
 class Variable : public Expression {
 public:
-    explicit Variable(std::string_view nm, Position p)
-        : Expression{NodeKind::Variable, p},
-          name{nm}
+    Variable(std::string_view name, Position pos)
+        : Expression{NodeKind::Variable, pos}
+        , _name{name}
     {}
     using Ptr = std::shared_ptr<Variable>;
 
-    const std::string name; //!< փոփոխականի անունը
+    const std::string _name; //!< փոփոխականի անունը
 };
 
 
@@ -145,61 +148,66 @@ enum class Operation {
 //! @brief Ունար գործողություն
 class Unary : public Expression {
 public:
-    Unary(Operation op, Expression::Ptr ex, Position p)
-        : Expression{NodeKind::Unary, p},
-          opcode{op}, operand{ex}
+    Unary(Operation operation, Expression::Ptr operand, Position pos)
+        : Expression{NodeKind::Unary, pos}
+        , _operation{operation}
+        , _operand{std::move(operand)}
     {}
     using Ptr = std::shared_ptr<Unary>;
 
-    const Operation opcode;       //!< գործողության կոդը
-    const Expression::Ptr operand;  //!< օպերանդը
+    const Operation _operation;      //!< գործողության կոդը
+    const Expression::Ptr _operand;  //!< օպերանդը
 };
 
 
 //! @brief Բինար գործողություն
 class Binary : public Expression {
 public:
-    Binary(Operation op, Expression::Ptr exo, Expression::Ptr exi, Position p)
-        : Expression{NodeKind::Binary, p},
-          opcode{op}, left{exo}, right{exi}
+    Binary(Operation operation, Expression::Ptr left, 
+           Expression::Ptr right, Position pos)
+        : Expression{NodeKind::Binary, pos}
+        , _operation{operation}
+        , _left{std::move(left)}
+        , _right{std::move(right)}
     {}
     using Ptr = std::shared_ptr<Binary>;
 
-    const Operation opcode;    //!< գործողության կոդը
-    const Expression::Ptr left;  //!< ձախ օպերանդը
-    const Expression::Ptr right; //!< աջ օպերանդը
+    const Operation _operation;    //!< գործողության կոդը
+    const Expression::Ptr _left;  //!< ձախ օպերանդը
+    const Expression::Ptr _right; //!< աջ օպերանդը
 };
 
 //! @brief Ֆունկցիայի կանչ (կիրառում)
 class Apply : public Expression {
 public:
-    Apply(std::string_view sp, std::vector<Expression::Ptr> ags, Position p)
-        : Expression{NodeKind::Apply, p},
-          callee{sp}, arguments{std::move(ags)}
+    Apply(std::string_view callee, std::vector<Expression::Ptr> arguments, Position pos)
+        : Expression{NodeKind::Apply, pos}
+        , _callee{callee}
+        , _arguments{std::move(arguments)}
     {}
     using Ptr = std::shared_ptr<Apply>;
 
-    const std::string callee;                     //!< կանչվող ենթածրագիրը
-    const std::vector<Expression::Ptr> arguments; //!< արգումենտները
+    const std::string _callee;                     //!< կանչվող ենթածրագիրը
+    const std::vector<Expression::Ptr> _arguments; //!< արգումենտները
 };
 
 //! @brief Զանգվածի թվարկված տարրեր
 class Array : public Expression {
 public:
-    Array(std::vector<Expression::Ptr> elems, Position p)
-        : Expression{NodeKind::Array, p},
-        elements{std::move(elems)}
+    Array(std::vector<Expression::Ptr> elements, Position pos)
+        : Expression{NodeKind::Array, pos}
+        , _elements{std::move(elements)}
     {}
     using Ptr = std::shared_ptr<Array>;
 
-    const std::vector<Expression::Ptr> elements; //!< տարրերը
+    const std::vector<Expression::Ptr> _elements; //!< տարրերը
 };
 
 
 //! @brief Ղեկավարող կառուցվածք (հրաման)
 class Statement : public Node {
 public:
-    explicit Statement(NodeKind k, Position p)
+    Statement(NodeKind k, Position p)
         : Node{k, p}
     {}
     using Ptr = std::shared_ptr<Statement>;
@@ -209,125 +217,134 @@ public:
 //! @brief Հրամանների շարք (հաջորդականություն)
 class Sequence : public Statement {
 public:
-    Sequence(std::vector<Statement::Ptr> s, Position p) 
-        : Statement{NodeKind::Sequence, p},
-          items{std::move(s)}
+    Sequence(std::vector<Statement::Ptr> items, Position pos) 
+        : Statement{NodeKind::Sequence, pos}
+        , _items{std::move(items)}
     {}
     using Ptr = std::shared_ptr<Sequence>;
 
-    const std::vector<Statement::Ptr> items;
+    const std::vector<Statement::Ptr> _items;
 };
 
 //! @brief Զանգվածի սահմանում
 class Dim : public Statement {
 public:
-    Dim(std::string_view nm, Expression::Ptr sz, Position p)
-        : Statement{NodeKind::Dim, p},
-          name{nm}, size{sz}
+    Dim(std::string_view name, Expression::Ptr size, Position pos)
+        : Statement{NodeKind::Dim, pos}
+        , _name{name}, _size{std::move(size)}
     {}
     using Ptr = std::shared_ptr<Dim>;
 
-    const std::string name;     //!< անունը
-    const Expression::Ptr size; //!< չափը
+    const std::string _name;     //!< անունը
+    const Expression::Ptr _size; //!< չափը
 };
 
 //! @brief Տվյալների ներմուծում
 class Input : public Statement {
 public:
-    Input(Variable::Ptr vp, Position p)
-        : Statement{NodeKind::Input, p},
-          place{vp}
+    Input(Variable::Ptr variable, Position pos)
+        : Statement{NodeKind::Input, pos}
+        , _variable{std::move(variable)}
     {}
     using Ptr = std::shared_ptr<Input>;
 
-    const Variable::Ptr place;   //!< ներմուծվող փոփոխական
+    const Variable::Ptr _variable;   //!< ներմուծվող փոփոխական
 };
 
 
 //! @brief Տվյալների արտածում
 class Print : public Statement {
 public:
-    explicit Print(Expression::Ptr ex, Position p)
-        : Statement{NodeKind::Print, p}, 
-          expr{ex}
+    Print(Expression::Ptr expr, Position pos)
+        : Statement{NodeKind::Print, pos}
+        , _expr{std::move(expr)}
     {}
     using Ptr = std::shared_ptr<Print>;
 
-    const Expression::Ptr expr; //!< արտածվող արտահայտությունը
+    const Expression::Ptr _expr; //!< արտածվող արտահայտությունը
 };
 
 
 //! @brief Վերագրում (միաժամանակ՝ փոփոխականի սահմանում)
 class Let : public Statement {
 public:
-    Let(Variable::Ptr vp, Expression::Ptr ex, Position p)
-        : Statement{NodeKind::Let, p},
-          place{vp}, expr{ex}
+    Let(Variable::Ptr variable, Expression::Ptr expr, Position pos)
+        : Statement{NodeKind::Let, pos}
+        , _variable{std::move(variable)}
+        , _expr{std::move(expr)}
     {}
     using Ptr = std::shared_ptr<Let>;
 
-    const Variable::Ptr place;  //!< փոփոխականը
-    const Expression::Ptr expr; //!< արժեքը
+    const Variable::Ptr _variable;  //!< փոփոխականը
+    const Expression::Ptr _expr; //!< արժեքը
 };
 
 
 //! @brief Ճյուղավորում
 class If : public Statement {
 public:
-    If(Expression::Ptr co, Statement::Ptr de, Statement::Ptr al, Position p)
-        : Statement{NodeKind::If, p}, 
-          condition{co}, decision{de}, alternative{al}
+    If(Expression::Ptr condition, Statement::Ptr decision, 
+       Statement::Ptr alternative, Position pos)
+        : Statement{NodeKind::If, pos}
+        , _condition{std::move(condition)}
+        , _decision{std::move(decision)}
+        , _alternative{std::move(alternative)}
     {}
     using Ptr = std::shared_ptr<If>;
 
-    const Expression::Ptr condition;  //!< ճյուղավորման պայման
-    const Statement::Ptr decision;    //!< @c then ճյուղը
-    const Statement::Ptr alternative; //!< @c else ճյուղը
+    const Expression::Ptr _condition;  //!< ճյուղավորման պայման
+    const Statement::Ptr _decision;    //!< @c then ճյուղը
+    const Statement::Ptr _alternative; //!< @c else ճյուղը
 };
 
 
 //! @brief Նախապայմանով ցիկլ
 class While : public Statement {
 public:
-    While(Expression::Ptr co, Statement::Ptr bo, Position p)
-        : Statement{NodeKind::While, p}, 
-          condition{co}, body{bo}
+    While(Expression::Ptr condition, Statement::Ptr body, Position pos)
+        : Statement{NodeKind::While, pos}
+        , _condition{std::move(condition)}
+        , _body{std::move(body)}
     {}
     using Ptr = std::shared_ptr<While>;
 
-    const Expression::Ptr condition; //!< կրկնման պայման
-    const Statement::Ptr body;       //!< ցիկլի մարմինը
+    const Expression::Ptr _condition; //!< կրկնման պայման
+    const Statement::Ptr _body;       //!< ցիկլի մարմինը
 };
 
 
 //! @brief Պարամետրով ցիկլ
 class For : public Statement {
 public:
-    For(Variable::Ptr pr, Expression::Ptr be, Expression::Ptr en,
-        Number::Ptr st, Statement::Ptr bo, Position p)
-        : Statement{NodeKind::For, p},
-          parameter{pr}, begin{be}, end{en}, step{st}, body{bo}
+    For(Variable::Ptr parameter, Expression::Ptr begin, Expression::Ptr end, 
+        Number::Ptr step, Statement::Ptr body, Position pos)
+        : Statement{NodeKind::For, pos}
+        , _parameter{std::move(parameter)}
+        , _begin{std::move(begin)}
+        , _end{std::move(end)}
+        , _step{std::move(step)}
+        , _body{std::move(body)}
     {}
     using Ptr = std::shared_ptr<For>;
 
-    const Variable::Ptr parameter; //!< ցիկլի պարամետրը
-    const Expression::Ptr begin;   //!< պարամետրի սկզբնակական արժեքը
-    const Expression::Ptr end;     //!< պարամետրի սահմանային արժեքը
-    const Number::Ptr step;        //!< պարամետրի փոփոխման քայլը
-    const Statement::Ptr body;     //!< ցիկլի մարմինը
+    const Variable::Ptr _parameter; //!< ցիկլի պարամետրը
+    const Expression::Ptr _begin;   //!< պարամետրի սկզբնակական արժեքը
+    const Expression::Ptr _end;     //!< պարամետրի սահմանային արժեքը
+    const Number::Ptr _step;        //!< պարամետրի փոփոխման քայլը
+    const Statement::Ptr _body;     //!< ցիկլի մարմինը
 };
 
 
 //! @brief Ենթածրագրի կանչ
 class Call : public Statement {
 public:
-    Call(std::string_view sp, std::vector<Expression::Ptr> as, Position p)
-        : Statement{NodeKind::Call, p},
-          subrCall{node<Apply>(sp, std::move(as), p)}
+    Call(std::string_view callee, std::vector<Expression::Ptr> arguments, Position pos)
+        : Statement{NodeKind::Call, pos}
+        , _subrCall{node<Apply>(callee, std::move(arguments), pos)}
     {}
     using Ptr = std::shared_ptr<Call>;
 
-    const Apply::Ptr subrCall;
+    const Apply::Ptr _subrCall;
 };
 
 
@@ -341,31 +358,33 @@ public:
 //! դրվում է @c true ։
 class Subroutine : public Node {
 public:
-    Subroutine(std::string_view nm, std::vector<std::string> ps, Statement::Ptr b, Position p)
-        : Node{NodeKind::Subroutine, p}, 
-          name{nm},
-          parameters{std::move(ps)},
-          body{b}
+    Subroutine(std::string_view name, std::vector<std::string> parameters, 
+               Statement::Ptr body, Position pos)
+        : Node{NodeKind::Subroutine, pos}
+        , _name{name}
+        , _parameters{std::move(parameters)}
+        , _body{std::move(body)}
     {}
     using Ptr = std::shared_ptr<Subroutine>;
 
-    const std::string name = "";               //<! անուն
-    const std::vector<std::string> parameters; //<! պարամետրեր
-    const Statement::Ptr body;                 //<! մարմին
+    const std::string _name = "";               //<! անուն
+    const std::vector<std::string> _parameters; //<! պարամետրեր
+    const Statement::Ptr _body;                 //<! մարմին
 };
 
 
 //! @brief Ծրագիր
 class Program : public Node {
 public:
-    explicit Program(std::string_view fn, std::vector<Subroutine::Ptr> m, Position p)
-        : Node{NodeKind::Program, p},
-          filename{fn}, members{std::move(m)}
+    Program(std::string_view filename, std::vector<Subroutine::Ptr> subroutines, Position pos)
+        : Node{NodeKind::Program, pos}
+        , _filename{filename}
+        , _subroutines{std::move(subroutines)}
     {}
     using Ptr = std::shared_ptr<Program>;
 
-    const std::string filename;                 //!< անունը
-    const std::vector<Subroutine::Ptr> members; //!< ենթածրագրերի ցուցակը
+    const std::string _filename;                     //!< անունը
+    const std::vector<Subroutine::Ptr> _subroutines; //!< ենթածրագրերի ցուցակը
 };
 
 } // basic
