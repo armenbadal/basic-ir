@@ -1,5 +1,4 @@
-#ifndef ASLISP_HXX
-#define ASLISP_HXX
+#pragma once
 
 #include "ast.hxx"
 #include "astvisitor.hxx"
@@ -41,5 +40,3 @@ private:
     std::string _result;
 };
 } // basic
-
-#endif // ASLISP_HXX

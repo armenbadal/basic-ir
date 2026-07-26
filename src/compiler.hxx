@@ -1,6 +1,4 @@
-
-#ifndef COMPILER_HXX
-#define COMPILER_HXX
+#pragma once
 
 #include <filesystem>
 
@@ -14,6 +12,4 @@ namespace basic {
 //! 
 bool compile(const std::filesystem::path& source, bool generateIr, bool generateLisp);
 } // basic
-
-#endif // COMPILER_HXX
 

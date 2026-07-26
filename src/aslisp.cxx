@@ -222,11 +222,10 @@ void Lisper::visit(Program::Ptr node)
 {
     std::string out = "(basic-program \"" + node->_filename + "\"";
     ++indent;
-    for( auto si : node->_subroutines )
-        if( !si->_isBuiltIn ) {
-            visit(si);
-            out += _result;
-        }
+    for( auto si : node->_subroutines ) {
+        visit(si);
+        out += _result;
+    }
     --indent;
     out += ")\n";
 

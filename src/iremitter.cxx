@@ -126,15 +126,6 @@ void IrEmitter::visit(Subroutine::Ptr subr)
 
     std::list<llvm::Value*> localTexts;
 
-    for( const auto& vi : subr->_locals ) {
-        auto vt = typeOfName(vi->_name);
-        auto* vty = vt == 'B' ? builder.getInt8Ty() : llvmType(vi->_name);
-        auto* addr = builder.CreateAlloca(vty, nullptr, vi->_name + "_addr");
-        varAddresses[vi->_name] = addr;
-        if( vt == 'T' )
-            localTexts.push_back(addr);
-    }
-
     for( auto& arg : func->args() )
         if( arg.getType()->isPointerTy() ) {
             auto parval = createLibraryFuncCall("text_clone", { &arg });
@@ -151,20 +142,6 @@ void IrEmitter::visit(Subroutine::Ptr subr)
     }
 
     visit(subr->_body);
-
-    for( auto& vi : subr->_locals ) {
-        if( vi->_name == subr->_name )
-            continue;
-
-        auto vt = typeOfName(vi->_name);
-        if( vt == 'N' || vt == 'B' )
-            continue;
-
-        if( vt == 'T' ) {
-            auto addr = builder.CreateLoad(TextualTy, varAddresses[vi->_name]);
-            createLibraryFuncCall("free", { addr });
-        }
-    }
 
     if( func->getReturnType()->isVoidTy() )
         builder.CreateRetVoid();
@@ -603,9 +580,7 @@ void IrEmitter::declareSubroutines(Program::Ptr prog)
         for( const auto& pr : subr->_parameters )
             paramTypes.push_back(llvmType(pr));
 
-        llvm::Type* returnType = subr->_hasValue ?
-                llvmType(subr->_name) :
-                builder.getVoidTy();
+        llvm::Type* returnType = builder.getVoidTy();
 
         auto* funcType = llvm::FunctionType::get(returnType, paramTypes, false);
         const auto linkage = llvm::GlobalValue::ExternalLinkage;
@@ -616,8 +591,7 @@ void IrEmitter::declareSubroutines(Program::Ptr prog)
 void IrEmitter::defineSubroutines(Program::Ptr prog)
 {
     for( const auto& subr : prog->_subroutines )
-        if( !subr->_isBuiltIn )
-            visit(subr);
+        visit(subr);
 }
 
 llvm::Type* IrEmitter::llvmType(std::string_view name)
