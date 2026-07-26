@@ -1,92 +1,104 @@
-
-#ifndef AST_VISITOR_HXX
-#define AST_VISITOR_HXX
+#pragma once
 
 #include "ast.hxx"
 
-#include <type_traits>
-
 namespace basic {
-template<typename P, typename F, typename S, typename E>
+
 class ASTVisitor {
 public:
     virtual ~ASTVisitor() = default;
     
 protected:
-    virtual P visit(ProgramPtr node) = 0;
-    virtual F visit(SubroutinePtr node) = 0;
-    
-    virtual S visit(StatementPtr node) = 0;
-    virtual S visit(SequencePtr node) = 0;
-    virtual S visit(LetPtr node) = 0;
-    virtual S visit(InputPtr node) = 0;
-    virtual S visit(PrintPtr node) = 0;
-    virtual S visit(IfPtr node) = 0;
-    virtual S visit(WhilePtr node) = 0;
-    virtual S visit(ForPtr node) = 0;
-    virtual S visit(CallPtr node) = 0;
+    virtual void visit(Program::Ptr node) = 0;
+    virtual void visit(Subroutine::Ptr node) = 0;
 
-    virtual E visit(ExpressionPtr node) = 0;
-    virtual E visit(ApplyPtr node) = 0;
-    virtual E visit(BinaryPtr node) = 0;
-    virtual E visit(UnaryPtr node) = 0;
-    virtual E visit(VariablePtr node) = 0;
-    virtual E visit(TextPtr node) = 0;
-    virtual E visit(NumberPtr node) = 0;
-    virtual E visit(BooleanPtr node) = 0;
+    virtual void visit(Statement::Ptr node) = 0;
+    virtual void visit(Sequence::Ptr node) = 0;
+    virtual void visit(Dim::Ptr node) = 0;
+    virtual void visit(Let::Ptr node) = 0;
+    virtual void visit(Input::Ptr node) = 0;
+    virtual void visit(Print::Ptr node) = 0;
+    virtual void visit(If::Ptr node) = 0;
+    virtual void visit(While::Ptr node) = 0;
+    virtual void visit(For::Ptr node) = 0;
+    virtual void visit(Call::Ptr node) = 0;
 
-    S dispatch(StatementPtr node)
+    virtual void visit(Expression::Ptr node) = 0;
+    virtual void visit(Apply::Ptr node) = 0;
+    virtual void visit(Binary::Ptr node) = 0;
+    virtual void visit(Unary::Ptr node) = 0;
+    virtual void visit(Variable::Ptr node) = 0;
+    virtual void visit(Text::Ptr node) = 0;
+    virtual void visit(Number::Ptr node) = 0;
+    virtual void visit(Boolean::Ptr node) = 0;
+};
+
+
+class ASTVisitorBase : public ASTVisitor {
+protected:
+    void visit(Statement::Ptr node) override
     {
-        switch( node->kind ) {
-            case NodeKind::Sequence:
-                return visit(std::dynamic_pointer_cast<Sequence>(node));
-            case NodeKind::Input:
-                return visit(std::dynamic_pointer_cast<Input>(node));
-            case NodeKind::Print:
-                return visit(std::dynamic_pointer_cast<Print>(node));
-            case NodeKind::Let:
-                return visit(std::dynamic_pointer_cast<Let>(node));
-            case NodeKind::If:
-                return visit(std::dynamic_pointer_cast<If>(node));
-            case NodeKind::While:
-                return visit(std::dynamic_pointer_cast<While>(node));
-            case NodeKind::For:
-                return visit(std::dynamic_pointer_cast<For>(node));
-            case NodeKind::Call:
-                return visit(std::dynamic_pointer_cast<Call>(node));
-            default:
-                break;
+        switch (node->kind) {
+        case NodeKind::Sequence:
+            this->visit(std::static_pointer_cast<Sequence>(node));
+            break;
+        case NodeKind::Dim:
+            this->visit(std::static_pointer_cast<Dim>(node));
+            break;
+        case NodeKind::Let:
+            this->visit(std::static_pointer_cast<Let>(node));
+            break;
+        case NodeKind::Input:
+            this->visit(std::static_pointer_cast<Input>(node));
+            break;
+        case NodeKind::Print:
+            this->visit(std::static_pointer_cast<Print>(node));
+            break;
+        case NodeKind::If:
+            this->visit(std::static_pointer_cast<If>(node));
+            break;
+        case NodeKind::While:
+            this->visit(std::static_pointer_cast<While>(node));
+            break;
+        case NodeKind::For:
+            this->visit(std::static_pointer_cast<For>(node));
+            break;
+        case NodeKind::Call:
+            this->visit(std::static_pointer_cast<Call>(node));
+            break;
+        default:
+            break;
         }
-
-        if constexpr( !std::is_same_v<S,void> )
-            return {};
     }
 
-    E dispatch(ExpressionPtr node)
+    void visit(Expression::Ptr node) override
     {
-        switch( node->kind ) {
-            case NodeKind::Boolean:
-                return visit(std::dynamic_pointer_cast<Boolean>(node));
-            case NodeKind::Number:
-                return visit(std::dynamic_pointer_cast<Number>(node));
-            case NodeKind::Text:
-                return visit(std::dynamic_pointer_cast<Text>(node));
-            case NodeKind::Variable:
-                return visit(std::dynamic_pointer_cast<Variable>(node));
-            case NodeKind::Unary:
-                return visit(std::dynamic_pointer_cast<Unary>(node));
-            case NodeKind::Binary:
-                return visit(std::dynamic_pointer_cast<Binary>(node));
-            case NodeKind::Apply:
-                return visit(std::dynamic_pointer_cast<Apply>(node));
-            default:
-                break;
+        switch (node->kind) {
+        case NodeKind::Apply:
+            this->visit(std::static_pointer_cast<Apply>(node));
+            break;
+        case NodeKind::Binary:
+            this->visit(std::static_pointer_cast<Binary>(node));
+            break;
+        case NodeKind::Unary:
+            this->visit(std::static_pointer_cast<Unary>(node));
+            break;
+        case NodeKind::Variable:
+            this->visit(std::static_pointer_cast<Variable>(node));
+            break;
+        case NodeKind::Text:
+            this->visit(std::static_pointer_cast<Text>(node));
+            break;
+        case NodeKind::Number:
+            this->visit(std::static_pointer_cast<Number>(node));
+            break;
+        case NodeKind::Boolean:
+            this->visit(std::static_pointer_cast<Boolean>(node));
+            break;
+        default:
+            break;
         }
-
-        if constexpr( !std::is_same_v<E,void> )
-            return {};
     }
 };
-} // basic
 
-#endif // AST_VISITOR_HXX
+} // basic

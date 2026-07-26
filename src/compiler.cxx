@@ -28,7 +28,7 @@ std::unique_ptr<llvm::Module> compileBasicIR(llvm::LLVMContext& context, const s
     // վերլուծություն
     Scanner scanner{source};
     Parser parser{scanner};
-    ProgramPtr program = parser.parse();
+    Program::Ptr program = parser.parse();
     if( nullptr == program ) {
         std::cerr << "Վերլուծության սխալ։";
         return nullptr;

@@ -13,7 +13,6 @@ add_definitions(${LLVM_DEFINITIONS})
 add_executable(${PROJECT_NAME}
 	src/main.cxx
 	src/compiler.cxx
-	src/ast.cxx
 	src/lexeme.cxx
 	src/scanner.cxx
 	src/parser.cxx

@@ -1,4 +1,3 @@
-
 #ifndef ASLISP_HXX
 #define ASLISP_HXX
 
@@ -9,35 +8,37 @@
 #include <string>
 
 namespace basic {
-class Lisper : public ASTVisitor<std::string,std::string,std::string,std::string> {
+class Lisper : public ASTVisitorBase {
 public:
-    bool emitLisp(ProgramPtr node, const std::filesystem::path& file);
+    bool emitLisp(Program::Ptr node, const std::filesystem::path& file);
 
 private:
-    std::string visit(ProgramPtr node) override;
-    std::string visit(SubroutinePtr node) override;
+    using ASTVisitorBase::visit;
 
-    std::string visit(StatementPtr node) override;
-    std::string visit(SequencePtr node) override;
-    std::string visit(LetPtr node) override;
-    std::string visit(InputPtr node) override;
-    std::string visit(PrintPtr node) override;
-    std::string visit(IfPtr node) override;
-    std::string visit(WhilePtr node) override;
-    std::string visit(ForPtr node) override;
-    std::string visit(CallPtr node) override;
+    void visit(Program::Ptr node) override;
+    void visit(Subroutine::Ptr node) override;
 
-    std::string visit(ExpressionPtr node) override;
-    std::string visit(ApplyPtr node) override;
-    std::string visit(BinaryPtr node) override;
-    std::string visit(UnaryPtr node) override;
-    std::string visit(VariablePtr node) override;
-    std::string visit(TextPtr node) override;
-    std::string visit(NumberPtr node) override;
-    std::string visit(BooleanPtr node) override;
+    void visit(Sequence::Ptr node) override;
+    void visit(Dim::Ptr node) override;
+    void visit(Let::Ptr node) override;
+    void visit(Input::Ptr node) override;
+    void visit(Print::Ptr node) override;
+    void visit(If::Ptr node) override;
+    void visit(While::Ptr node) override;
+    void visit(For::Ptr node) override;
+    void visit(Call::Ptr node) override;
+
+    void visit(Apply::Ptr node) override;
+    void visit(Binary::Ptr node) override;
+    void visit(Unary::Ptr node) override;
+    void visit(Variable::Ptr node) override;
+    void visit(Text::Ptr node) override;
+    void visit(Number::Ptr node) override;
+    void visit(Boolean::Ptr node) override;
 
 private:
     unsigned int indent{0};
+    std::string _result;
 };
 } // basic
 
