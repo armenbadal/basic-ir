@@ -1,5 +1,4 @@
-#ifndef FORMATTERS_HXX
-#define FORMATTERS_HXX
+#pragma once
 
 #include "ast.hxx"
 
@@ -43,5 +42,3 @@ public:
         return std::format_to(ctx.out(), "{}", names.at(op));
     }
 };
-
-#endif // FORMATTERS_HXX

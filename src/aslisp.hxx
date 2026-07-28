@@ -27,6 +27,7 @@ private:
     void visit(For::Ptr node) override;
     void visit(Call::Ptr node) override;
 
+    void visit(Array::Ptr node) override;
     void visit(Apply::Ptr node) override;
     void visit(Binary::Ptr node) override;
     void visit(Unary::Ptr node) override;

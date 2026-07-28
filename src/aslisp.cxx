@@ -84,6 +84,11 @@ void Lisper::visit(Binary::Ptr node)
            + ls + " " + rs + ")";
 }
 
+void Lisper::visit(Array::Ptr)
+{
+    _result = {};
+}
+
 void Lisper::visit(Apply::Ptr node)
 {
     std::string out;

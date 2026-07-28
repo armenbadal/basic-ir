@@ -349,6 +349,10 @@ void IrEmitter::visit(Variable::Ptr var)
         _result = builder.CreateLoad(llvmType(var->_name), vaddr, var->_name);
 }
 
+void IrEmitter::visit(Array::Ptr)
+{
+}
+
 void IrEmitter::visit(Apply::Ptr apy)
 {
     llvm::SmallVector<llvm::Value*> argus, temps;

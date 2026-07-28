@@ -30,7 +30,19 @@ add_custom_target(${PROJECT_NAME}-lib ALL DEPENDS basic_ir_lib.ll)
 
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-lib)
 
-#install(TARGETS basic-ir DESTINATION basic-ir)
-#install(FILES ${CMAKE_BINARY_DIR}/basic_ir_lib.ll DESTINATION basic-ir)
+# Tests
+find_package(Catch2 3 REQUIRED QUIET)
+if(Catch2_FOUND)
+  add_executable(${PROJECT_NAME}-tests
+    tests/ast_test.cxx
+    tests/lexeme_test.cxx
+    tests/parser_test.cxx
+    tests/scanner_test.cxx
+    src/lexeme.cxx
+    src/parser.cxx
+    src/scanner.cxx)
+  target_link_libraries(${PROJECT_NAME}-tests PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(${PROJECT_NAME}-tests PRIVATE src)
+endif()
 
 

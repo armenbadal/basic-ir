@@ -17,6 +17,7 @@
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/SourceMgr.h>
 
+#include <fstream>
 #include <iostream>
 #include <memory>
 
@@ -26,8 +27,9 @@ namespace basic {
 std::unique_ptr<llvm::Module> compileBasicIR(llvm::LLVMContext& context, const std::filesystem::path& source)
 {
     // վերլուծություն
-    Scanner scanner{source};
-    Parser parser{scanner};
+    auto file = std::ifstream{source};
+    Scanner scanner{file};
+    Parser parser{scanner, source.string()};
     Program::Ptr program = parser.parse();
     if( nullptr == program ) {
         std::cerr << "Վերլուծության սխալ։";

@@ -1,3 +1,5 @@
+#pragma once
+
 #include "ast.hxx"
 #include "lexeme.hxx"
 #include "scanner.hxx"
@@ -9,7 +11,7 @@
 namespace basic {
 class Parser {
 public:
-    Parser(Scanner& sc);
+    Parser(Scanner& sc, std::string_view filename = "<input>");
     ~Parser();
 
     Program::Ptr parse();
@@ -33,11 +35,13 @@ private:
     Expression::Ptr parsePower();
     Expression::Ptr parseFactor();
     void parseNewLines();
+    void next();
     std::string match(Token tok);
 
 private:
     Scanner& scanner;
     Lexeme lookahead;
     std::vector<Subroutine::Ptr> subroutines;
+    std::string _filename;
 };
 } // basic

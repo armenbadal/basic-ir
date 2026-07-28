@@ -167,6 +167,10 @@ void Checker::visit(Call::Ptr node)
     visit(node->_subrCall);
 }
 
+void Checker::visit(Array::Ptr)
+{
+}
+
 void Checker::visit(Apply::Ptr node)
 {
     auto it = subroutines.find(node->_callee);

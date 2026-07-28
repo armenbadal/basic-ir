@@ -58,7 +58,7 @@ std::string toString(Token sym)
 
 std::string Lexeme::toString() const
 {
-    return std::format("<{}, {}>", value, line);
+    return std::format("<{}, {}, {}>", basic::toString(kind), value, line);
 }
 
 } // basic

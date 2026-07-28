@@ -1,10 +1,9 @@
-﻿
-#ifndef LEXEME_HXX
-#define LEXEME_HXX
+#pragma once
 
 #include <string>
 
 namespace basic {
+
 //! @brief Բառային տարրերի պիտակները
 enum class Token : int {
     None, //!< ոչինչ
@@ -74,7 +73,7 @@ public:
 public:
     Lexeme() = default;
     Lexeme(Token k, std::string v, unsigned int l)
-        : kind{k}, value{std::move(v)}, line{l}
+        : kind{ k }, value{ std::move(v) }, line{ l }
     {}
 
     bool is(Token exp) const
@@ -85,7 +84,7 @@ public:
     template<typename... Tokens>
     bool is(Token ex, Tokens... exps) const
     {
-        return is(ex) || is(exps...);        
+        return is(ex) || is(exps...);
     }
 
     bool isIn(Token el, Token eh) const
@@ -99,5 +98,3 @@ public:
     std::string toString() const;
 };
 } // basic
-
-#endif

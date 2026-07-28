@@ -17,9 +17,9 @@ public:
     using std::runtime_error::runtime_error;
 };
 
-
-Parser::Parser(Scanner& sc)
+Parser::Parser(Scanner& sc, std::string_view filename)
     : scanner{sc}
+    , _filename{filename}
 {}
 
 
@@ -31,7 +31,7 @@ Program::Ptr Parser::parse()
 {
     try {
         parseProgram();
-        return node<Program>(scanner.fileName().string(), std::move(subroutines), 1);
+        return node<Program>(_filename, std::move(subroutines), 1);
     }
     catch( ParseError& e ) {
         std::cerr << "Վերլուծության սխալ։ " << e.what() << std::endl;
@@ -39,12 +39,19 @@ Program::Ptr Parser::parse()
     }
 }
 
+
+void Parser::next()
+{
+    lookahead = scanner.scan();
+}
+
+
 //
 // Program [NewLines] { Subroutine NewLines }.
 //
 void Parser::parseProgram()
 {
-    scanner >> lookahead;
+    next();
 
     if( lookahead.is(Token::NewLine) )
         parseNewLines();
@@ -373,7 +380,7 @@ Expression::Ptr Parser::parsePower()
     if( lookahead.is(Token::Pow) ) {
         auto ln = lookahead.line;
         match(Token::Pow);
-        auto exo = parseFactor();
+        auto exo = parsePower();
         res = node<Binary>(Operation::Pow, res, exo, ln);
     }
     return res;
@@ -471,7 +478,7 @@ std::string Parser::match(Token exp)
                 toString(exp), lookahead.value));
 
     const auto val = lookahead.value;
-    scanner >> lookahead;
+    next();
     return val;
 }
 

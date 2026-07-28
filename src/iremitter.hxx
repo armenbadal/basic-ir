@@ -1,3 +1,5 @@
+#pragma once
+
 #include "ast.hxx"
 #include "astvisitor.hxx"
 
@@ -45,6 +47,7 @@ private:
     void visit(While::Ptr swhi) override;
     void visit(Call::Ptr cal) override;
 
+    void visit(Array::Ptr arr) override;
     void visit(Apply::Ptr apy) override;
     void visit(Binary::Ptr bin) override;
     void visit(Unary::Ptr una) override;

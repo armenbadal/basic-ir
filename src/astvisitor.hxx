@@ -25,6 +25,7 @@ protected:
 
     virtual void visit(Expression::Ptr node) = 0;
     virtual void visit(Apply::Ptr node) = 0;
+    virtual void visit(Array::Ptr node) = 0;
     virtual void visit(Binary::Ptr node) = 0;
     virtual void visit(Unary::Ptr node) = 0;
     virtual void visit(Variable::Ptr node) = 0;
@@ -36,6 +37,7 @@ protected:
 
 class ASTVisitorBase : public ASTVisitor {
 protected:
+    using ASTVisitor::visit;
     void visit(Statement::Ptr node) override
     {
         switch (node->kind) {
@@ -74,6 +76,9 @@ protected:
     void visit(Expression::Ptr node) override
     {
         switch (node->kind) {
+        case NodeKind::Array:
+            this->visit(std::static_pointer_cast<Array>(node));
+            break;
         case NodeKind::Apply:
             this->visit(std::static_pointer_cast<Apply>(node));
             break;

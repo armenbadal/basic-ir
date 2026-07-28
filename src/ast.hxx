@@ -45,13 +45,23 @@ public:
     Node(NodeKind k, Position l)
         : kind{k}
         , line{l}
+        , _id{_index++}
     {}
     virtual ~Node() = default;
+
+    virtual size_t id() const
+    {
+        return _id;
+    }
 
     using Ptr = std::shared_ptr<Node>;
 
     const NodeKind kind{NodeKind::Empty}; //!< հանգույցի տեսակը
     const Position line{0};               //!< տողի համարը
+
+private:
+    size_t _id{0};
+    inline static size_t _index{0};
 };
 
 template<typename P, typename... Args>

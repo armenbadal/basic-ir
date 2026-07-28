@@ -1,5 +1,4 @@
-#ifndef CHECKER_HXX
-#define CHECKER_HXX
+#pragma once
 
 #include "ast.hxx"
 #include "astvisitor.hxx"
@@ -30,6 +29,7 @@ private:
     void visit(For::Ptr node) override;
     void visit(Call::Ptr node) override;
 
+    void visit(Array::Ptr node) override;
     void visit(Apply::Ptr node) override;
     void visit(Binary::Ptr node) override;
     void visit(Unary::Ptr node) override;
@@ -41,5 +41,3 @@ private:
     std::unordered_map<std::string_view, Subroutine::Ptr> subroutines;
 };
 } // basic
-
-#endif // CHECKER_HXX
