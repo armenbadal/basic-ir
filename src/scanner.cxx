@@ -203,11 +203,14 @@ Lexeme Scanner::scanIdentifier()
     // կարդալ թվանշանների ու տառերի հաջորդականություն
     std::string value = read_while(source, isAlnum);
 
-    //// եթե հանդիպել է «$» կամ «?», ապա դա էլ կցել լեքսեմի արժեքին
-    //if (!source.eof() && (ch == '$' || ch == '?')) {
-    //    value += ch;
-    //    source >> ch;
-    //}
+    // եթե հանդիպել է «$» կամ «?», ապա դա էլ կցել լեքսեմի արժեքին
+    if (!source.eof()) {
+        char next = source.peek();
+        if (next == '$' || next == '?') {
+            source.get();
+            value += next;
+        }
+    }
 
     // լեքսեմի արժեքը փնտրել ծառայողական բառերի ցուցակում
     auto ival = keywords.find(value);

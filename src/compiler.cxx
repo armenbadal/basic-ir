@@ -24,7 +24,7 @@
 namespace basic {
 
 ///
-std::unique_ptr<llvm::Module> compileBasicIR(llvm::LLVMContext& context, const std::filesystem::path& source)
+std::unique_ptr<llvm::Module> compileBasicIR(llvm::LLVMContext& context, const std::filesystem::path& source, bool generateLisp)
 {
     // վերլուծություն
     auto file = std::ifstream{source};
@@ -36,12 +36,21 @@ std::unique_ptr<llvm::Module> compileBasicIR(llvm::LLVMContext& context, const s
         return nullptr;
     }
 
-    // տիպերի ստուգում
-    Checker checker;
-    if( const auto ce = checker.check(program); ce.has_value() ) {
-        std::cerr << "TODO: print error message\n";
-        std::cerr << ce.value() << std::endl;
-        return nullptr;
+    // // տիպերի ստուգում
+    // Checker checker;
+    // if( const auto ce = checker.check(program); ce.has_value() ) {
+    //     std::cerr << "TODO: print error message\n";
+    //     std::cerr << ce.value() << std::endl;
+    //     return nullptr;
+    // }
+
+    // AST-ի գեներացիա Lisp տեսքով
+    if( generateLisp ) {
+        auto lispPath = source;
+        lispPath.replace_extension("lisp");
+        std::ofstream ofs{lispPath};
+        Lisper().emit(program, ofs);
+        return {};
     }
 
     // LLVM մոդուլի կառուցում
@@ -72,17 +81,9 @@ bool compile(const std::filesystem::path& source, bool generateIr, bool generate
     auto libraryModule = llvm::parseAssemblyFile(libraryPath.string(), d1, context);
 
     // կառուցել ծրագրի մոդուլը
-    auto programModule = compileBasicIR(context, source);
+    auto programModule = compileBasicIR(context, source, generateLisp);
     if( programModule == nullptr )
         return false;
-
-//    // AST-ի գեներացիա Lisp տեսքով
-//    if( generateLisp ) {
-//        auto lispPath = source;
-//        lispPath.replace_extension("lisp");
-//        if( !Lisper().emitLisp(program, lispPath) )
-//            return false;
-//    }
 
     // // ստեղծել առանձին ֆայլ
     // if( generateIr ) {

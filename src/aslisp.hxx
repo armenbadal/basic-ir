@@ -3,13 +3,13 @@
 #include "ast.hxx"
 #include "astvisitor.hxx"
 
-#include <filesystem>
+#include <ostream>
 #include <string>
 
 namespace basic {
 class Lisper : public ASTVisitorBase {
 public:
-    bool emitLisp(Program::Ptr node, const std::filesystem::path& file);
+    void emit(Program::Ptr node, std::ostream& os);
 
 private:
     using ASTVisitorBase::visit;
@@ -37,7 +37,6 @@ private:
     void visit(Boolean::Ptr node) override;
 
 private:
-    unsigned int indent{0};
     std::string _result;
 };
 } // basic

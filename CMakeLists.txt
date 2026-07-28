@@ -34,10 +34,12 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-lib)
 find_package(Catch2 3 REQUIRED QUIET)
 if(Catch2_FOUND)
   add_executable(${PROJECT_NAME}-tests
+    tests/aslisp_test.cxx
     tests/ast_test.cxx
     tests/lexeme_test.cxx
     tests/parser_test.cxx
     tests/scanner_test.cxx
+    src/aslisp.cxx
     src/lexeme.cxx
     src/parser.cxx
     src/scanner.cxx)
