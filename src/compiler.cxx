@@ -23,26 +23,23 @@
 
 namespace basic {
 
-///
-std::unique_ptr<llvm::Module> compileBasicIR(llvm::LLVMContext& context, const std::filesystem::path& source, bool generateLisp)
+bool compile(const std::filesystem::path& source, bool generateIr, bool generateLisp)
 {
+    // ստուգել ֆայլի գոյությունը
+    if( !std::filesystem::exists(source) ) {
+        std::cerr << "Ֆայլը չի գտնվել։";
+        return false;
+    }
+
     // վերլուծություն
     auto file = std::ifstream{source};
     Scanner scanner{file};
     Parser parser{scanner, source.string()};
-    Program::Ptr program = parser.parse();
+    auto program = parser.parse();
     if( nullptr == program ) {
         std::cerr << "Վերլուծության սխալ։";
-        return nullptr;
+        return false;
     }
-
-    // // տիպերի ստուգում
-    // Checker checker;
-    // if( const auto ce = checker.check(program); ce.has_value() ) {
-    //     std::cerr << "TODO: print error message\n";
-    //     std::cerr << ce.value() << std::endl;
-    //     return nullptr;
-    // }
 
     // AST-ի գեներացիա Lisp տեսքով
     if( generateLisp ) {
@@ -50,24 +47,7 @@ std::unique_ptr<llvm::Module> compileBasicIR(llvm::LLVMContext& context, const s
         lispPath.replace_extension("lisp");
         std::ofstream ofs{lispPath};
         Lisper().emit(program, ofs);
-        return {};
-    }
-
-    // LLVM մոդուլի կառուցում
-    auto pm = std::make_unique<llvm::Module>(source.string(), context);
-    if( !IrEmitter(context, *pm.get()).emitFor(program) )
-        return nullptr;
-
-    return pm;
-}
-
-///
-bool compile(const std::filesystem::path& source, bool generateIr, bool generateLisp)
-{
-    // ստուգել ֆայլի գոյությունը
-    if( !std::filesystem::exists(source) ) {
-        std::cerr << "Ֆայլը չի գտնվել։";
-        return false;
+        return true;
     }
 
     const std::filesystem::path selfPath = 
@@ -80,9 +60,9 @@ bool compile(const std::filesystem::path& source, bool generateIr, bool generate
     llvm::SMDiagnostic d1;
     auto libraryModule = llvm::parseAssemblyFile(libraryPath.string(), d1, context);
 
-    // կառուցել ծրագրի մոդուլը
-    auto programModule = compileBasicIR(context, source, generateLisp);
-    if( programModule == nullptr )
+    // կառուցել ծրագրի LLVM մոդուլիը
+    auto programModule = std::make_unique<llvm::Module>(source.string(), context);
+    if( !IrEmitter(context, *programModule.get()).emitFor(program) )
         return false;
 
     // // ստեղծել առանձին ֆայլ

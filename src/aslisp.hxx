@@ -4,6 +4,7 @@
 #include "astvisitor.hxx"
 
 #include <ostream>
+#include <ranges>
 #include <string>
 
 namespace basic {
@@ -35,6 +36,22 @@ private:
     void visit(Text::Ptr node) override;
     void visit(Number::Ptr node) override;
     void visit(Boolean::Ptr node) override;
+
+    template<typename T>
+    std::string str(T node)
+    {
+        visit(node);
+        return _result;
+    }
+
+    template<typename T>
+    std::string str(const std::vector<T>& elems)
+    {
+        return elems
+            | std::views::transform([this](auto e) { return str(e); })
+            | std::views::join_with(' ')
+            | std::ranges::to<std::string>();
+    }
 
 private:
     std::string _result;
