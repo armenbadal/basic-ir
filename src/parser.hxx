@@ -11,37 +11,35 @@
 namespace basic {
 class Parser {
 public:
-    Parser(Scanner& sc, std::string_view filename = "<input>");
+    Parser(Scanner& sc);
     ~Parser();
 
     Program::Ptr parse();
 
 private:
-    void parseProgram();
-    void parseSubroutine();
-    Statement::Ptr parseStatements();
+    Program::Ptr parseProgram();
+    Subroutine::Ptr parseSubroutine();
     Statement::Ptr parseOneStatement();
-    Statement::Ptr parseInput();
-    Statement::Ptr parsePrint();
-    Statement::Ptr parseLet();
-    Statement::Ptr parseIf();
-    Statement::Ptr parseElseChain();
-    Statement::Ptr parseWhile();
-    Statement::Ptr parseFor();
-    Statement::Ptr parseCall();
+    Sequence::Ptr parseSequence();
+    Let::Ptr parseLet();
+    Dim::Ptr parseDim();
+    Input::Ptr parseInput();
+    Print::Ptr parsePrint();
+    If::IfThen::Ptr parseIfThen(bool first);
+    If::Ptr parseIf();
+    While::Ptr parseWhile();
+    For::Ptr parseFor();
+    Call::Ptr parseCall();
     Expression::Ptr parseExpression();
     Expression::Ptr parseAddition();
     Expression::Ptr parseMultiplication();
     Expression::Ptr parsePower();
     Expression::Ptr parseFactor();
     void parseNewLines();
-    void next();
     std::string match(Token tok);
 
 private:
     Scanner& scanner;
     Lexeme lookahead;
-    std::vector<Subroutine::Ptr> subroutines;
-    std::string _filename;
 };
 } // basic

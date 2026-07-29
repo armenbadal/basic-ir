@@ -11,23 +11,24 @@ enum class Token : int {
     Number,     //!< թվային հաստատուն
     Text,       //!< տեքստային հաստատուն
     Identifier, //!< իդենտիֆիկատոր
-    True,       //!< TRUE հաստատունը
-    False,      //!< FALSE հաստատունը
+    True,       //!< @c TRUE հաստատունը
+    False,      //!< @c FALSE հաստատունը
 
-    Subroutine, //!< SUB
-    Input,      //!< INPUT
-    Print,      //!<
-    Let,        //!< LET
-    If,         //!< IF
-    Then,       //!< THEN
-    ElseIf,     //!< ELSEIF
-    Else,       //!< ELSE
-    While,      //!< WHILE
-    For,        //!< FOR
-    To,         //!< TO
-    Step,       //!< STEP
-    Call,       //!< CALL
-    End,        //!< END
+    Subroutine, //!< @c SUB
+    Input,      //!< @c INPUT
+    Print,      //!< @c PRINT
+    Dim,        //!< @c DIM
+    Let,        //!< @c LET
+    If,         //!< @c IF
+    Then,       //!< @c THEN
+    ElseIf,     //!< @c ELSEIF
+    Else,       //!< @c ELSE
+    While,      //!< @c WHILE
+    For,        //!< @c FOR
+    To,         //!< @c TO
+    Step,       //!< @c STEP
+    Call,       //!< @c CALL
+    End,        //!< @c END
 
     NewLine, //!< նոր տողի նիշ
 
@@ -38,20 +39,23 @@ enum class Token : int {
     Gt, //!< @c >
     Ge, //!< @c >=
 
-    LeftPar,  //!< @c (
-    RightPar, //!< @c )
-    Comma,    //!< @c ,
+    LeftPar,    //!< @c (
+    RightPar,   //!< @c )
+    LeftBrack,  //< @c [
+    RightBrack, //< @c ]
+    Comma,      //!< @c ,
 
     Add, //!< @c +
     Sub, //!< @c -
     Amp, //!< @c &
-    Or,  //!< OR
+    Or,  //!< @c OR
     Mul, //!< @c *
     Div, //!< @c /
-    Mod, //!< MOD
-    And, //!< AND
+    Mod, //!< @c MOD
+    Quot, //!< @c \ 
+    And, //!< @c AND
     Pow, //!< @c ^
-    Not, //!< NOT
+    Not, //!< @c NOT
 
     Eof //!< ֆայլի վերջը
 };

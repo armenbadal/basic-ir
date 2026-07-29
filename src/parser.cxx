@@ -17,90 +17,80 @@ public:
     using std::runtime_error::runtime_error;
 };
 
-Parser::Parser(Scanner& sc, std::string_view filename)
+Parser::Parser(Scanner& sc)
     : scanner{sc}
-    , _filename{filename}
 {}
 
 
-Parser::~Parser()
-{}
+Parser::~Parser() = default;
 
 
 Program::Ptr Parser::parse()
-{
-    try {
-        parseProgram();
-        return node<Program>(_filename, std::move(subroutines), 1);
-    }
-    catch( ParseError& e ) {
-        std::cerr << "Վերլուծության սխալ։ " << e.what() << std::endl;
-        return nullptr;
-    }
+try {
+    return parseProgram();
+}
+catch( ParseError& e ) {
+    std::cerr << "Վերլուծության սխալ։ " << e.what() << std::endl;
+    return nullptr;
 }
 
-
-void Parser::next()
+// Program = [NewLines] { Subroutine NewLines }.
+Program::Ptr Parser::parseProgram()
 {
+    // առաջին թոքենը
     lookahead = scanner.scan();
-}
-
-
-//
-// Program [NewLines] { Subroutine NewLines }.
-//
-void Parser::parseProgram()
-{
-    next();
+    auto line = lookahead.line;
 
     if( lookahead.is(Token::NewLine) )
         parseNewLines();
 
+    std::vector<Subroutine::Ptr> subroutines;
     while( !lookahead.is(Token::Eof) ) {
-        parseSubroutine();
+        auto s = parseSubroutine();
         parseNewLines();
+        subroutines.push_back(s);
     }
 
     match(Token::Eof);
+
+    return node<Program>(std::move(subroutines), line);
 }
 
-//
 // Subroutine = 'SUB' IDENT ['(' [IdentList] ')'] Statements 'END' 'SUB'.
-//
-void Parser::parseSubroutine()
+Subroutine::Ptr Parser::parseSubroutine()
 {
     auto line = lookahead.line;
-    match(Token::Subroutine);
-    auto name = match(Token::Identifier);
+    auto name = match(Token::Subroutine);
 
-    std::vector<std::string> params;
+    std::vector<Variable::Ptr> parameters;
     if( lookahead.is(Token::LeftPar) ) {
         match(Token::LeftPar);
         if( lookahead.is(Token::Identifier) ) {
+            auto line = lookahead.line;
             auto idlex = match(Token::Identifier);
-            params.push_back(idlex);
+            parameters.push_back(node<Variable>(idlex, line));
             while( lookahead.is(Token::Comma) ) {
                 match(Token::Comma);
+                line = lookahead.line;
                 idlex = match(Token::Identifier);
-                params.push_back(idlex);
+                parameters.push_back(node<Variable>(idlex, line));
             }
         }
         match(Token::RightPar);
     }
 
-    auto body = parseStatements();
+    auto body = parseSequence();
 
     match(Token::End);
     match(Token::Subroutine);
 
-    subroutines.push_back(node<Subroutine>(name, params, body, line));
+    return node<Subroutine>(name, parameters, body, line);
 }
 
-//
 // Statements = NewLines { Statement NewLines }.
-//
-Statement::Ptr Parser::parseStatements()
+Sequence::Ptr Parser::parseSequence()
 {
+    auto line = lookahead.line;
     parseNewLines();
 
     std::vector<Statement::Ptr> items;
@@ -109,23 +99,24 @@ Statement::Ptr Parser::parseStatements()
         parseNewLines();
     }
 
-    return node<Sequence>(std::move(items), lookahead.line);
+    return node<Sequence>(std::move(items), line);
 }
 
-//
-// Statement = Let | Input | Print | If | While | For | Call.
-//
+// Statement = Let | Dim | Input | Print | If | While | For | Call.
 Statement::Ptr Parser::parseOneStatement()
 {
     if( lookahead.is(Token::Let) )
         return parseLet();
-    
+
+    if (lookahead.is(Token::Dim))
+        return parseDim();
+
     if( lookahead.is(Token::Input) )
         return parseInput();
-    
+
     if( lookahead.is(Token::Print) )
         return parsePrint();
-    
+
     if( lookahead.is(Token::If) )
         return parseIf();
 
@@ -134,17 +125,15 @@ Statement::Ptr Parser::parseOneStatement()
 
     if( lookahead.is(Token::For) )
         return parseFor();
-    
+
     if( lookahead.is(Token::Call) )
         return parseCall();
 
     return {};
 }
 
-//
 // Let = 'LET' IDENT '=' Expression.
-//
-Statement::Ptr Parser::parseLet()
+Let::Ptr Parser::parseLet()
 {
     auto ln = lookahead.line;
 
@@ -156,95 +145,99 @@ Statement::Ptr Parser::parseLet()
     return node<Let>(node<Variable>(vnm, ln), exo, ln);
 }
 
-//
+// Dim = 'DIM' IDENT '[' Expression ']'.
+Dim::Ptr Parser::parseDim()
+{
+    auto line = lookahead.line;
+
+    match(Token::Dim);
+    auto name = match(Token::Identifier);
+    match(Token::LeftBrack);
+    auto size = parseExpression();
+    match(Token::RightBrack);
+
+    return node<Dim>(name, size, line);
+}
+
 // Input = 'INPUT' IDENT.
-//
 Statement::Ptr Parser::parseInput()
 {
-    auto ln = lookahead.line;
+    auto line = lookahead.line;
+
     match(Token::Input);
-
-    if( lookahead.is(Token::Text) ) {
-        match(Token::Text);
-        match(Token::Comma);
-    }
-
     auto vnm = match(Token::Identifier);
-    return node<Input>(node<Variable>(vnm, ln), ln);
+
+    return node<Input>(node<Variable>(vnm, line), line);
 }
 
-//
 // Print = 'PRINT' Expression.
-//
 Statement::Ptr Parser::parsePrint()
 {
-    auto ln = lookahead.line;
+    auto line = lookahead.line;
+
     match(Token::Print);
-    auto exo = parseExpression();
-    return node<Print>(exo, ln);
+    auto expr = parseExpression();
+
+    return node<Print>(expr, line);
 }
 
-//
-Statement::Ptr Parser::parseElseChain()
-{
-    if( lookahead.is(Token::ElseIf) ) {
-        auto ln = lookahead.line;
-        match(Token::ElseIf);
-        auto cond = parseExpression();
-        match(Token::Then);
-        auto deci = parseStatements();
-        return node<If>(cond, deci, parseElseChain(), ln);
-    }
-
-    if( lookahead.is(Token::Else) ) {
-        match(Token::Else);
-        return parseStatements();
-    }
-
-    return node<Statement>(NodeKind::Empty, lookahead.line);
-}
-
-//
-// If = 'IF' Expression 'THEN' Statements
-//   {'ELSEIF' Expression 'THEN' Statements }
-//   ['ELSE' Statements] 'END' 'IF'.
-//
+// If = 'IF' Expression 'THEN' Statements {'ELSEIF' Expression 'THEN' Statements } ['ELSE' Statements] 'END' 'IF'.
 Statement::Ptr Parser::parseIf()
 {
-    auto ifLine = lookahead.line;
+    auto line = lookahead.line;
 
-    match(Token::If);
-    auto cond = parseExpression();
-    match(Token::Then);
-    auto deci = parseStatements();
+    auto first = parseIfThen(true);
+    std::vector<If::IfThen::Ptr> branches;
+    branches.push_back(first);
 
-    auto elsePart = parseElseChain();
+    while( lookahead.is(Token::ElseIf) ) {
+        auto s = parseIfThen(false);
+        branches.push_back(s);
+    }
+
+    Statement::Ptr alternative{ nullptr };
+    if( lookahead.is(Token::Else) ) {
+        match(Token::Else);
+        alternative = parseSequence();
+    }
 
     match(Token::End);
     match(Token::If);
 
-    return node<If>(cond, deci, elsePart, ifLine);
+    return node<If>(branches, alternative, line);
 }
 
-//
+If::IfThen::Ptr Parser::parseIfThen(bool first)
+{
+    auto line = lookahead.line;
+
+    match(first ? Token::If : Token::ElseIf);
+    auto condition = parseExpression();
+    match(Token::Then);
+    auto decision = parseSequence();
+
+    return node<If::IfThen>(condition, decision, line);
+}
+
 // While = 'WHILE' Expression Statements 'END' 'WHILE'.
-//
 Statement::Ptr Parser::parseWhile()
 {
-    auto ln = lookahead.line;
+    auto line = lookahead.line;
+
     match(Token::While);
     auto cond = parseExpression();
-    auto body = parseStatements();
+    auto body = parseSequence();
     match(Token::End);
     match(Token::While);
-    return node<While>(cond, body, ln);
+
+    return node<While>(cond, body, line);
 }
 
 //
 // For = 'FOR' IDENT '=' Expression 'TO' Expression ['STEP' NUMBER]
 //    Statements 'END' 'FOR'.
 //
-Statement::Ptr Parser::parseFor()
+For::Ptr Parser::parseFor()
 {
     auto forLine = lookahead.line;
     match(Token::For);
@@ -269,7 +262,7 @@ Statement::Ptr Parser::parseFor()
             spvl = -spvl;
     }
     auto vp = node<Variable>(par, forLine);
-    auto dy = parseStatements();
+    auto dy = parseSequence();
     match(Token::End);
     match(Token::For);
 
@@ -279,7 +272,7 @@ Statement::Ptr Parser::parseFor()
 //
 // Call = 'CALL' IDENT [ExpressionList].
 //
-Statement::Ptr Parser::parseCall()
+Call::Ptr Parser::parseCall()
 {
     auto ln = lookahead.line;
     match(Token::Call);
@@ -300,7 +293,6 @@ Statement::Ptr Parser::parseCall()
     return node<Call>(name, std::move(args), ln);
 }
 
-//
 Operation opCode( Token tok )
 {
     static std::map<Token, Operation> opcodes{
@@ -323,9 +315,44 @@ Operation opCode( Token tok )
     return opcodes[tok];
 }
 
-//
+Expression::Ptr parseExpression()
+{
+    auto left = parseConjunction();
+    while( lookahead.is(Token::Or) ) {
+        auto line = lookahead.line;
+        match(Token::Or);
+        auto right = parseConjunction();
+        left = node<Binary>(Operation::Or, left, right, line);
+    }
+
+    return left;
+}
+
+Expression::Ptr parseExpression()
+{
+    auto left = parseEquality();
+    while (lookahead.is(Token::And)) {
+        auto line = lookahead.line;
+        match(Token::And);
+        auto right = parseEquality();
+        left = node<Binary>(Operation::And, left, right, line);
+    }
+
+    return left;
+}
+
+/*
+      Addition = Addition [('=' | '<>' | '<' | '<=' | '>' | '>=') Addition].
+      Addition = Multiplication { ('+' | '-' | 'OR' | '&') Multiplication }.
+Multiplication = Power { ('*' | '/' | '\' | 'MOD' | 'AND') Power }.
+         Power = Unary ['^' Power].
+         Unary = { '+' | '-' | 'NOT' } Subscript.
+     Subscript = Factor { '[' Expression ']' }.
+        Factor = TRUE | FALSE | NUMBER | TEXT | IdentOrApply | Grouping.
+ExpressionList = Expression { ',' Expression }.
+*/
+
 // Expression = Addition [('=' | '<>' | '>' | '>=' | '<' | '<=') Addition].
-//
 Expression::Ptr Parser::parseExpression()
 {
     auto res = parseAddition();
@@ -339,9 +366,7 @@ Expression::Ptr Parser::parseExpression()
     return res;
 }
 
-//
 // Addition = Multiplication {('+' | '-' | '&' | 'OR') Multiplication}.
-//
 Expression::Ptr Parser::parseAddition()
 {
     auto res = parseMultiplication();
@@ -355,13 +380,11 @@ Expression::Ptr Parser::parseAddition()
     return res;
 }
 
-//
-// Multiplication = Power {('*' | '/' | '\' | 'AND') Power}.
-//
+// Multiplication = Power {('*' | '/' | '\' | 'MOD' | 'AND') Power}.
 Expression::Ptr Parser::parseMultiplication()
 {
     auto res = parsePower();
-    while( lookahead.is(Token::Mul, Token::Div, Token::Mod, Token::And) ) {
+    while( lookahead.is(Token::Mul, Token::Div, Token::Mod, Token::Quot, Token::And) ) {
         auto opc = opCode(lookahead.kind);
         auto ln = lookahead.line;
         match(lookahead.kind);
@@ -371,9 +394,7 @@ Expression::Ptr Parser::parseMultiplication()
     return res;
 }
 
-//
 // Power = Factor ['^' Power].
-//
 Expression::Ptr Parser::parsePower()
 {
     auto res = parseFactor();
@@ -478,7 +499,7 @@ std::string Parser::match(Token exp)
                 toString(exp), lookahead.value));
 
     const auto val = lookahead.value;
-    next();
+    lookahead = scanner.scan();
     return val;
 }
 

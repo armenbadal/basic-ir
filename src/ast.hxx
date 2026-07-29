@@ -25,7 +25,8 @@ enum class NodeKind : int {
     Input,      //!< տվյալների ներմուծում
     Print,      //!< տվյալների արտածում
     Let,        //!< վերագրում
-    If,         //!< ճյուղավորում
+    If,         //!< լրիվ ճյուղավորում
+    IfThen,     //!< կարճ ճյուղավորում
     While,      //!< պայմանով կրկնություն
     For,        //!< պարամետրով կրկնություն
     Call,       //!< պրոցեդուրայի կանչ
@@ -141,7 +142,8 @@ enum class Operation {
     Sub,  //!< հանում
     Mul,  //!< բազմապատկում
     Div,  //!< բաժանում
-    Mod,  //!< ամբողջ բաժանում
+    Mod,  //!< մնացորդ
+    Quot, //!< քանորդ
     Pow,  //!< աստիճան
     Eq,   //!< հավասար է
     Ne,   //!< հավասար չէ
@@ -293,17 +295,28 @@ public:
 //! @brief Ճյուղավորում
 class If : public Statement {
 public:
-    If(Expression::Ptr condition, Statement::Ptr decision, 
+    class IfThen : public Statement {
+    public:
+        If(Expression::Ptr condition, Statement::Ptr decision, Position pos)
+            : Statement{NodeKind::IfThen, pos}
+            , _condition{condition}
+            , _decision{decision}
+        {}
+        using Ptr = std::shared_ptr<IfThen>;
+
+        const Expression::Ptr _condition; //!< պայման
+        const Statement::Ptr _decision;   //!< որոշում, then
+    };
+
+    If(std::vector<IfThen::Ptr> branches,
        Statement::Ptr alternative, Position pos)
         : Statement{NodeKind::If, pos}
-        , _condition{std::move(condition)}
-        , _decision{std::move(decision)}
+        , _branches{std::move(branches)}
         , _alternative{std::move(alternative)}
     {}
     using Ptr = std::shared_ptr<If>;
 
-    const Expression::Ptr _condition;  //!< ճյուղավորման պայման
-    const Statement::Ptr _decision;    //!< @c then ճյուղը
+    const std::vector<IfThen::Ptr> _branches;  //!< ճյուղեր
     const Statement::Ptr _alternative; //!< @c else ճյուղը
 };
 
@@ -368,8 +381,10 @@ public:
 //! դրվում է @c true ։
 class Subroutine : public Node {
 public:
-    Subroutine(std::string_view name, std::vector<std::string> parameters, 
-               Statement::Ptr body, Position pos)
+    Subroutine(std::string_view name, 
+               std::vector<Variable::Ptr> parameters,
+               Statement::Ptr body,
+               Position pos)
         : Node{NodeKind::Subroutine, pos}
         , _name{name}
         , _parameters{std::move(parameters)}
@@ -377,23 +392,21 @@ public:
     {}
     using Ptr = std::shared_ptr<Subroutine>;
 
-    const std::string _name = "";               //<! անուն
-    const std::vector<std::string> _parameters; //<! պարամետրեր
-    const Statement::Ptr _body;                 //<! մարմին
+    const std::string _name = "";                 //<! անուն
+    const std::vector<Variable::Ptr> _parameters; //<! պարամետրեր
+    const Statement::Ptr _body;                   //<! մարմին
 };
 
 
 //! @brief Ծրագիր
 class Program : public Node {
 public:
-    Program(std::string_view filename, std::vector<Subroutine::Ptr> subroutines, Position pos)
+    Program(std::vector<Subroutine::Ptr> subroutines, Position pos)
         : Node{NodeKind::Program, pos}
-        , _filename{filename}
         , _subroutines{std::move(subroutines)}
     {}
     using Ptr = std::shared_ptr<Program>;
 
-    const std::string _filename;                     //!< անունը
     const std::vector<Subroutine::Ptr> _subroutines; //!< ենթածրագրերի ցուցակը
 };
 

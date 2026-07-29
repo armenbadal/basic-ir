@@ -35,6 +35,8 @@ static inline std::map<std::string_view, Token> keywords{
 static inline std::map<char, Token> metasymbols{
     { '(', Token::LeftPar },
     { ')', Token::RightPar },
+    { '[', Token::LeftBrack },
+    { ']', Token::RightBrack },
     { ',', Token::Comma },
     { '+', Token::Add },
     { '-', Token::Sub },
