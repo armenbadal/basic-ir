@@ -12,7 +12,7 @@ static Program::Ptr parseStr(const std::string& input)
 {
     auto stream = std::make_shared<std::istringstream>(input);
     Scanner scanner{*stream};
-    Parser parser{scanner, "<test>"};
+    Parser parser{scanner};
     return parser.parse();
 }
 
@@ -35,7 +35,6 @@ TEST_CASE("Parse empty input", "[parser]")
 {
     auto prog = parseStr("");
     REQUIRE(prog != nullptr);
-    CHECK(prog->_filename == "<test>");
     CHECK(prog->_subroutines.empty());
 }
 
@@ -80,7 +79,7 @@ TEST_CASE("Parse subroutine with one parameter", "[parser]")
     auto& sub = onlySub(*prog);
     CHECK(sub._name == "f");
     REQUIRE(sub._parameters.size() == 1);
-    CHECK(sub._parameters[0] == "x");
+    CHECK(sub._parameters[0]->_name == "x");
 }
 
 TEST_CASE("Parse subroutine with multiple parameters", "[parser]")
@@ -89,9 +88,9 @@ TEST_CASE("Parse subroutine with multiple parameters", "[parser]")
     REQUIRE(prog != nullptr);
     auto& sub = onlySub(*prog);
     REQUIRE(sub._parameters.size() == 3);
-    CHECK(sub._parameters[0] == "x");
-    CHECK(sub._parameters[1] == "y");
-    CHECK(sub._parameters[2] == "z");
+    CHECK(sub._parameters[0]->_name == "x");
+    CHECK(sub._parameters[1]->_name == "y");
+    CHECK(sub._parameters[2]->_name == "z");
 }
 
 TEST_CASE("Parse multiple subroutines", "[parser]")
@@ -200,11 +199,10 @@ TEST_CASE("Parse IF-THEN without else", "[parser]")
     REQUIRE(seq._items.size() == 1);
     auto i = dynamic_cast<const If*>(seq._items[0].get());
     REQUIRE(i != nullptr);
-    auto cond = dynamic_cast<const Number*>(i->_condition.get());
+    auto cond = dynamic_cast<const Number*>(i->_branches[0]->_condition.get());
     REQUIRE(cond != nullptr);
     CHECK(cond->_value == 1.0);
-    CHECK(i->_alternative != nullptr);
-    CHECK(i->_alternative->kind == NodeKind::Empty);
+    CHECK(i->_alternative == nullptr);
 }
 
 TEST_CASE("Parse IF-THEN-ELSE", "[parser]")
@@ -215,7 +213,7 @@ TEST_CASE("Parse IF-THEN-ELSE", "[parser]")
     auto& seq = bodySeq(*sub._body);
     auto i = dynamic_cast<const If*>(seq._items[0].get());
     REQUIRE(i != nullptr);
-    auto& thenBody = bodySeq(*i->_decision);
+    auto& thenBody = bodySeq(*i->_branches[0]->_decision);
     CHECK(thenBody._items.size() == 1);
     auto& elseBody = bodySeq(*i->_alternative);
     CHECK(elseBody._items.size() == 1);
@@ -499,11 +497,12 @@ TEST_CASE("Parse IF with ELSEIF", "[parser]")
 
     auto outer = dynamic_cast<const If*>(seq._items[0].get());
     REQUIRE(outer != nullptr);
-    auto elseifNode = dynamic_cast<const If*>(outer->_alternative.get());
-    REQUIRE(elseifNode != nullptr);
-    CHECK(elseifNode->_condition != nullptr);
-    CHECK(elseifNode->_alternative != nullptr);
-    CHECK(elseifNode->_alternative->kind != NodeKind::Empty);
+    REQUIRE(outer->_branches.size() == 2);
+    CHECK(outer->_branches[1]->_condition != nullptr);
+    REQUIRE(outer->_alternative != nullptr);
+    auto alternative = dynamic_cast<const Sequence*>(outer->_alternative.get());
+    REQUIRE(alternative != nullptr);
+    CHECK(alternative->_items.size() == 1);
 }
 
 // ---- Error cases ----

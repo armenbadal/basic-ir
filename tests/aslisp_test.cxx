@@ -15,12 +15,15 @@ using Catch::Matchers::ContainsSubstring;
 
 static Program::Ptr makeProg(std::vector<Subroutine::Ptr> subs)
 {
-    return std::make_shared<Program>("<test>", std::move(subs), 0);
+    return std::make_shared<Program>(std::move(subs), 0);
 }
 
 static Subroutine::Ptr makeSub(std::string_view name, std::vector<std::string> params, Statement::Ptr body)
 {
-    return std::make_shared<Subroutine>(name, std::move(params), std::move(body), 1);
+    std::vector<Variable::Ptr> vars;
+    for (auto& p : params)
+        vars.push_back(std::make_shared<Variable>(p, 1));
+    return std::make_shared<Subroutine>(name, std::move(vars), std::move(body), 1);
 }
 
 static Sequence::Ptr makeSeq(std::vector<Statement::Ptr> items)
@@ -40,7 +43,8 @@ static Let::Ptr makeLet(std::string_view var, Expression::Ptr expr)
 
 static If::Ptr makeIf(Expression::Ptr cond, Statement::Ptr thenSt, Statement::Ptr elseSt)
 {
-    return std::make_shared<If>(std::move(cond), std::move(thenSt), std::move(elseSt), 6);
+    auto branch = std::make_shared<If::IfThen>(std::move(cond), std::move(thenSt), 6);
+    return std::make_shared<If>(std::vector<If::IfThen::Ptr>{branch}, std::move(elseSt), 6);
 }
 
 static For::Ptr makeFor(std::string_view var, Expression::Ptr begin, Expression::Ptr end, Number::Ptr step, Statement::Ptr body)
@@ -77,13 +81,13 @@ static std::string tos(Program::Ptr prog)
 
 TEST_CASE("Empty program", "[lisp]")
 {
-    CHECK(tos(makeProg({})) == "(basic-program \"<test>\")\n");
+    CHECK(tos(makeProg({})) == "(basic-program)\n");
 }
 
 TEST_CASE("Program with one empty subroutine", "[lisp]")
 {
     auto result = tos(makeProg({makeSub("Main", {}, makeSeq({}))}));
-    CHECK_THAT(result, StartsWith("(basic-program \"<test>\" (basic-subroutine \"Main\""));
+    CHECK_THAT(result, StartsWith("(basic-program (basic-subroutine \"Main\""));
     CHECK_THAT(result, ContainsSubstring("'()"));
     CHECK_THAT(result, ContainsSubstring("(basic-sequence)"));
     CHECK_THAT(result, EndsWith(")\n"));
@@ -316,5 +320,5 @@ TEST_CASE("emit writes to stream", "[lisp]")
     auto prog = makeProg({});
     std::ostringstream ss;
     Lisper{}.emit(prog, ss);
-    CHECK(ss.str() == "(basic-program \"<test>\")\n");
+    CHECK(ss.str() == "(basic-program)\n");
 }

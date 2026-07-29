@@ -297,7 +297,7 @@ class If : public Statement {
 public:
     class IfThen : public Statement {
     public:
-        If(Expression::Ptr condition, Statement::Ptr decision, Position pos)
+        IfThen(Expression::Ptr condition, Statement::Ptr decision, Position pos)
             : Statement{NodeKind::IfThen, pos}
             , _condition{condition}
             , _decision{decision}

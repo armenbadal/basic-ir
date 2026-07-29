@@ -32,7 +32,7 @@ bool compile(const std::filesystem::path& source, bool generateIr, bool generate
     // վերլուծություն
     auto file = std::ifstream{source};
     Scanner scanner{file};
-    Parser parser{scanner, source.string()};
+    Parser parser{scanner};
     auto program = parser.parse();
     if( nullptr == program ) {
         std::cerr << "Վերլուծության սխալ։";

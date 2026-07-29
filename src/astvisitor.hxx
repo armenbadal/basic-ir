@@ -10,6 +10,10 @@ protected:
     ReturnType visit(Node& node)
     {
         switch (node.kind) {
+        case NodeKind::Program:
+            return derived().visit(static_cast<Program&>(node));
+        case NodeKind::Subroutine:
+            return derived().visit(static_cast<Subroutine&>(node));
         case NodeKind::Sequence:
             return derived().visit(static_cast<Sequence&>(node));
         case NodeKind::Dim:
@@ -45,10 +49,10 @@ protected:
         case NodeKind::Boolean:
             return derived().visit(static_cast<Boolean&>(node));
         default:
-            return {};
+            return;
         }
 
-        return {};
+        return;
     }
 
 private:

@@ -106,13 +106,16 @@ void Lisper::visit(Dim& node)
 
 void Lisper::visit(If& node)
 {
-    auto cond = str(node._condition);
-    auto decision = str(node._decision);
+    std::string result = "(basic-if";
+    for (auto& branch : node._branches) {
+        result += " " + str(branch->_condition);
+        result += " " + str(branch->_decision);
+    }
     auto alt = node._alternative ? str(node._alternative) : "";
-    _result = "(basic-if " + cond + " " + decision;
     if (!alt.empty())
-        _result += " " + alt;
-    _result += ")";
+        result += " " + alt;
+    result += ")";
+    _result = result;
 }
 
 void Lisper::visit(While& node)
@@ -154,7 +157,7 @@ void Lisper::visit(Subroutine& node)
     std::string parlis;
     for( auto& ip : node._parameters ) {
         parlis.append("\"");
-        parlis.append(ip);
+        parlis.append(ip->_name);
         parlis.append("\" ");
     }
     if( !parlis.empty() )
@@ -169,7 +172,7 @@ void Lisper::visit(Subroutine& node)
 void Lisper::visit(Program& node)
 {
     auto subs = str(node._subroutines);
-    _result = "(basic-program \"" + node._filename + "\"";
+    _result = "(basic-program";
     if (!subs.empty()) _result += " " + subs;
     _result += ")\n";
 }

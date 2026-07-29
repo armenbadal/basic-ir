@@ -60,7 +60,8 @@ Program::Ptr Parser::parseProgram()
 Subroutine::Ptr Parser::parseSubroutine()
 {
     auto line = lookahead.line;
-    auto name = match(Token::Subroutine);
+    match(Token::Subroutine);
+    auto name = match(Token::Identifier);
 
     std::vector<Variable::Ptr> parameters;
     if( lookahead.is(Token::LeftPar) ) {
@@ -160,7 +161,7 @@ Dim::Ptr Parser::parseDim()
 }
 
 // Input = 'INPUT' IDENT.
-Statement::Ptr Parser::parseInput()
+Input::Ptr Parser::parseInput()
 {
     auto line = lookahead.line;
 
@@ -171,7 +172,7 @@ Statement::Ptr Parser::parseInput()
 }
 
 // Print = 'PRINT' Expression.
-Statement::Ptr Parser::parsePrint()
+Print::Ptr Parser::parsePrint()
 {
     auto line = lookahead.line;
 
@@ -182,7 +183,7 @@ Statement::Ptr Parser::parsePrint()
 }
 
 // If = 'IF' Expression 'THEN' Statements {'ELSEIF' Expression 'THEN' Statements } ['ELSE' Statements] 'END' 'IF'.
-Statement::Ptr Parser::parseIf()
+If::Ptr Parser::parseIf()
 {
     auto line = lookahead.line;
 
@@ -220,7 +221,7 @@ If::IfThen::Ptr Parser::parseIfThen(bool first)
 }
 
 // While = 'WHILE' Expression Statements 'END' 'WHILE'.
-Statement::Ptr Parser::parseWhile()
+While::Ptr Parser::parseWhile()
 {
     auto line = lookahead.line;
 
@@ -313,32 +314,6 @@ Operation opCode( Token tok )
         { Token::Or, Operation::Or }
     };
     return opcodes[tok];
-}
-
-Expression::Ptr parseExpression()
-{
-    auto left = parseConjunction();
-    while( lookahead.is(Token::Or) ) {
-        auto line = lookahead.line;
-        match(Token::Or);
-        auto right = parseConjunction();
-        left = node<Binary>(Operation::Or, left, right, line);
-    }
-
-    return left;
-}
-
-Expression::Ptr parseExpression()
-{
-    auto left = parseEquality();
-    while (lookahead.is(Token::And)) {
-        auto line = lookahead.line;
-        match(Token::And);
-        auto right = parseEquality();
-        left = node<Binary>(Operation::And, left, right, line);
-    }
-
-    return left;
 }
 
 /*

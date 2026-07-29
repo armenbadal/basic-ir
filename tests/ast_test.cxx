@@ -263,10 +263,11 @@ TEST_CASE("If node without else", "[ast]")
 {
     auto cond = node<Boolean>(true, 1);
     auto decision = std::make_shared<Print>(node<Text>("yes", 2), 2);
-    If i{cond, decision, nullptr, 3};
+    auto branch = std::make_shared<If::IfThen>(cond, decision, 3);
+    If i{{branch}, nullptr, 3};
     CHECK(i.kind == NodeKind::If);
-    CHECK(i._condition->kind == NodeKind::Boolean);
-    CHECK(i._decision->kind == NodeKind::Print);
+    CHECK(i._branches[0]->_condition->kind == NodeKind::Boolean);
+    CHECK(i._branches[0]->_decision->kind == NodeKind::Print);
     CHECK(i._alternative == nullptr);
 }
 
@@ -275,7 +276,8 @@ TEST_CASE("If node with else", "[ast]")
     auto cond = node<Boolean>(false, 1);
     auto decision = std::make_shared<Print>(node<Text>("then", 2), 2);
     auto alt = std::make_shared<Print>(node<Text>("else", 3), 3);
-    If i{cond, decision, alt, 4};
+    auto branch = std::make_shared<If::IfThen>(cond, decision, 2);
+    If i{{branch}, alt, 4};
     CHECK(i._alternative->kind == NodeKind::Print);
 }
 
@@ -331,12 +333,14 @@ TEST_CASE("Call node with no arguments", "[ast]")
 TEST_CASE("Subroutine node", "[ast]")
 {
     auto body = std::make_shared<Sequence>(std::vector<Statement::Ptr>{}, 2);
-    Subroutine s{"Main", {"x", "y"}, body, 1};
+    auto p1 = std::make_shared<Variable>("x", 1);
+    auto p2 = std::make_shared<Variable>("y", 1);
+    Subroutine s{"Main", {p1, p2}, body, 1};
     CHECK(s.kind == NodeKind::Subroutine);
     CHECK(s._name == "Main");
     CHECK(s._parameters.size() == 2);
-    CHECK(s._parameters[0] == "x");
-    CHECK(s._parameters[1] == "y");
+    CHECK(s._parameters[0]->_name == "x");
+    CHECK(s._parameters[1]->_name == "y");
 }
 
 TEST_CASE("Subroutine node with no parameters", "[ast]")
@@ -351,19 +355,18 @@ TEST_CASE("Subroutine node with no parameters", "[ast]")
 TEST_CASE("Program node", "[ast]")
 {
     auto body = std::make_shared<Sequence>(std::vector<Statement::Ptr>{}, 2);
-    auto sub = std::make_shared<Subroutine>("Main", std::vector<std::string>{}, body, 1);
-    Program prog{"test.bas", {sub}, 0};
+    auto sub = std::make_shared<Subroutine>("Main", std::vector<Variable::Ptr>{}, body, 1);
+    Program prog{{sub}, 0};
     CHECK(prog.kind == NodeKind::Program);
-    CHECK(prog._filename == "test.bas");
     CHECK(prog._subroutines.size() == 1);
 }
 
 TEST_CASE("Program node with multiple subroutines", "[ast]")
 {
     auto body = std::make_shared<Sequence>(std::vector<Statement::Ptr>{}, 2);
-    auto s1 = std::make_shared<Subroutine>("A", std::vector<std::string>{}, body, 1);
-    auto s2 = std::make_shared<Subroutine>("B", std::vector<std::string>{}, body, 2);
-    Program prog{"multi.bas", {s1, s2}, 0};
+    auto s1 = std::make_shared<Subroutine>("A", std::vector<Variable::Ptr>{}, body, 1);
+    auto s2 = std::make_shared<Subroutine>("B", std::vector<Variable::Ptr>{}, body, 2);
+    Program prog{{s1, s2}, 0};
     CHECK(prog._subroutines.size() == 2);
     CHECK(prog._subroutines[0]->_name == "A");
     CHECK(prog._subroutines[1]->_name == "B");
@@ -388,7 +391,7 @@ TEST_CASE("NodeKind values match node types", "[ast]")
     CHECK(node<Input>(std::make_shared<Variable>("", 1), 1)->kind == NodeKind::Input);
     CHECK(node<Print>(dummy, 1)->kind == NodeKind::Print);
     CHECK(node<Let>(std::make_shared<Variable>("", 1), dummy, 1)->kind == NodeKind::Let);
-    CHECK(node<If>(dummy, node<Print>(dummy, 1), nullptr, 1)->kind == NodeKind::If);
+    CHECK(node<If>(std::vector<If::IfThen::Ptr>{std::make_shared<If::IfThen>(dummy, node<Print>(dummy, 1), 1)}, nullptr, 1)->kind == NodeKind::If);
     CHECK(node<While>(dummy, node<Print>(dummy, 1), 1)->kind == NodeKind::While);
 
     auto v = std::make_shared<Variable>("i", 1);
@@ -396,8 +399,8 @@ TEST_CASE("NodeKind values match node types", "[ast]")
     CHECK(node<Call>("", std::vector<Expression::Ptr>{}, 1)->kind == NodeKind::Call);
 
     auto seq = node<Sequence>(std::vector<Statement::Ptr>{}, 1);
-    CHECK(node<Subroutine>("", std::vector<std::string>{}, seq, 1)->kind == NodeKind::Subroutine);
-    CHECK(node<Program>("", std::vector<Subroutine::Ptr>{}, 1)->kind == NodeKind::Program);
+    CHECK(node<Subroutine>("", std::vector<Variable::Ptr>{}, seq, 1)->kind == NodeKind::Subroutine);
+    CHECK(node<Program>(std::vector<Subroutine::Ptr>{}, 1)->kind == NodeKind::Program);
 }
 
 // --- dynamic_cast hierarchy ---

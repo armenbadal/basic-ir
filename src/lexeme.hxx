@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <string>
 
@@ -52,7 +52,7 @@ enum class Token : int {
     Mul, //!< @c *
     Div, //!< @c /
     Mod, //!< @c MOD
-    Quot, //!< @c \ 
+    Quot, //!< @c '\'
     And, //!< @c AND
     Pow, //!< @c ^
     Not, //!< @c NOT
