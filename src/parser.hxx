@@ -19,6 +19,7 @@ public:
 private:
     Program::Ptr parseProgram();
     Subroutine::Ptr parseSubroutine();
+
     Statement::Ptr parseOneStatement();
     Sequence::Ptr parseSequence();
     Let::Ptr parseLet();
@@ -30,11 +31,22 @@ private:
     While::Ptr parseWhile();
     For::Ptr parseFor();
     Call::Ptr parseCall();
+    
+    std::vector<Expression::Ptr> parseExpressionList();
     Expression::Ptr parseExpression();
     Expression::Ptr parseAddition();
     Expression::Ptr parseMultiplication();
     Expression::Ptr parsePower();
+    Expression::Ptr parseUnary();
+    Expression::Ptr parseSubscript();
     Expression::Ptr parseFactor();
+    Boolean::Ptr parseTrueOrFalse();
+    Number::Ptr parseNumber();
+    Text::Ptr parseText();
+    Expression::Ptr parseArrayDefinition();
+    Expression::Ptr parseIdentOrApply();
+    Expression::Ptr parseGrouped();
+
     void parseNewLines();
     std::string match(Token tok);
 

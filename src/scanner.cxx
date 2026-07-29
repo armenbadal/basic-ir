@@ -42,6 +42,7 @@ static inline std::map<char, Token> metasymbols{
     { '-', Token::Sub },
     { '*', Token::Mul },
     { '/', Token::Div },
+    { '\\', Token::Quot },
     { '^', Token::Pow },
     { '&', Token::Amp },
     { '=', Token::Eq }
