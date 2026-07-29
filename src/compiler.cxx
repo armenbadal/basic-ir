@@ -1,8 +1,6 @@
 #include "compiler.hxx"
 #include "ast.hxx"
 #include "parser.hxx"
-#include "checker.hxx"
-#include "iremitter.hxx"
 #include "aslisp.hxx"
 
 #include <llvm/IR/LLVMContext.h>
@@ -60,6 +58,7 @@ bool compile(const std::filesystem::path& source, bool generateIr, bool generate
     llvm::SMDiagnostic d1;
     auto libraryModule = llvm::parseAssemblyFile(libraryPath.string(), d1, context);
 
+    /*
     // կառուցել ծրագրի LLVM մոդուլիը
     auto programModule = std::make_unique<llvm::Module>(source.string(), context);
     if( !IrEmitter(context, *programModule.get()).emitFor(program) )
@@ -91,7 +90,7 @@ bool compile(const std::filesystem::path& source, bool generateIr, bool generate
     pm.add(llvm::createVerifierPass()); // ստուգել վերջնական արդյունքը
     pm.add(llvm::createPrintModulePass(out, ""));
     pm.run(*linkedModule.get());
-      
+    */
     return true;
 }
 

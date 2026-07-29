@@ -8,39 +8,38 @@
 #include <string>
 
 namespace basic {
-class Lisper : public ASTVisitorBase {
+class Lisper : public ASTVisitor<Lisper> {
 public:
     void emit(Program::Ptr node, std::ostream& os);
 
-private:
-    using ASTVisitorBase::visit;
+    using ASTVisitor<Lisper>::visit;
 
-    void visit(Program::Ptr node) override;
-    void visit(Subroutine::Ptr node) override;
+    void visit(Program& node);
+    void visit(Subroutine& node);
 
-    void visit(Sequence::Ptr node) override;
-    void visit(Dim::Ptr node) override;
-    void visit(Let::Ptr node) override;
-    void visit(Input::Ptr node) override;
-    void visit(Print::Ptr node) override;
-    void visit(If::Ptr node) override;
-    void visit(While::Ptr node) override;
-    void visit(For::Ptr node) override;
-    void visit(Call::Ptr node) override;
+    void visit(Sequence& node);
+    void visit(Dim& node);
+    void visit(Let& node);
+    void visit(Input& node);
+    void visit(Print& node);
+    void visit(If& node);
+    void visit(While& node);
+    void visit(For& node);
+    void visit(Call& node);
 
-    void visit(Array::Ptr node) override;
-    void visit(Apply::Ptr node) override;
-    void visit(Binary::Ptr node) override;
-    void visit(Unary::Ptr node) override;
-    void visit(Variable::Ptr node) override;
-    void visit(Text::Ptr node) override;
-    void visit(Number::Ptr node) override;
-    void visit(Boolean::Ptr node) override;
+    void visit(Array& node);
+    void visit(Apply& node);
+    void visit(Binary& node);
+    void visit(Unary& node);
+    void visit(Variable& node);
+    void visit(Text& node);
+    void visit(Number& node);
+    void visit(Boolean& node);
 
     template<typename T>
     std::string str(T node)
     {
-        visit(node);
+        visit(*node);
         return _result;
     }
 
