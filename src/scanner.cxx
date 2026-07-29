@@ -11,6 +11,7 @@ namespace basic {
 static inline std::map<std::string_view, Token> keywords{
     { "SUB",    Token::Subroutine },
     { "LET",    Token::Let },
+    { "DIM",    Token::Dim },
     { "PRINT",  Token::Print },
     { "INPUT",  Token::Input },
     { "IF",     Token::If },

@@ -321,6 +321,7 @@ Operation opCode( Token tok )
         { Token::Mod, Operation::Mod },
         { Token::Quot, Operation::Quot },
         { Token::Pow, Operation::Pow },
+        { Token::Not, Operation::Not },
         { Token::Eq, Operation::Eq },
         { Token::Ne, Operation::Ne },
         { Token::Gt, Operation::Gt },
@@ -392,7 +393,7 @@ Expression::Ptr Parser::parseUnary()
 	while( lookahead.is(Token::Add, Token::Sub, Token::Not) ) {
 		auto op = lookahead.kind;
 		match(op);
-		operations.push_back(opCode(op));
+		operations.insert(operations.begin(), opCode(op));
 	}
 
 	auto right = parseSubscript();

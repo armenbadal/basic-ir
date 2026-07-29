@@ -573,17 +573,419 @@ TEST_CASE("Parse program with leading newlines", "[parser]")
     CHECK(prog->_subroutines[0]->_name == "Main");
 }
 
-// ---- WHILE with comparison ----
+// ---- DIM ----
 
-TEST_CASE("Parse WHILE with EQ comparison", "[parser]")
+TEST_CASE("Parse DIM statement", "[parser]")
 {
-    auto prog = parseStr("SUB Main\nWHILE x = 0\nPRINT x\nEND WHILE\nEND SUB\n");
+    auto prog = parseStr("SUB Main\nDIM arr[10]\nEND SUB\n");
     REQUIRE(prog != nullptr);
     auto& sub = onlySub(*prog);
     auto& seq = bodySeq(*sub._body);
+    REQUIRE(seq._items.size() == 1);
+    auto d = dynamic_cast<const Dim*>(seq._items[0].get());
+    REQUIRE(d != nullptr);
+    CHECK(d->_name == "arr");
+    auto n = dynamic_cast<const Number*>(d->_size.get());
+    REQUIRE(n != nullptr);
+    CHECK(n->_value == 10.0);
+}
+
+TEST_CASE("Parse DIM with expression size", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nDIM arr[n + 1]\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto d = dynamic_cast<const Dim*>(seq._items[0].get());
+    REQUIRE(d != nullptr);
+    auto b = dynamic_cast<const Binary*>(d->_size.get());
+    REQUIRE(b != nullptr);
+    CHECK(b->_operation == Operation::Add);
+}
+
+// ---- CALL ----
+
+TEST_CASE("Parse CALL with TRUE argument", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nCALL foo TRUE\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto c = dynamic_cast<const Call*>(seq._items[0].get());
+    REQUIRE(c != nullptr);
+    REQUIRE(c->_subrCall->_arguments.size() == 1);
+    CHECK(dynamic_cast<const Boolean*>(c->_subrCall->_arguments[0].get()) != nullptr);
+}
+
+TEST_CASE("Parse CALL with FALSE argument", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nCALL foo FALSE\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto c = dynamic_cast<const Call*>(seq._items[0].get());
+    REQUIRE(c != nullptr);
+    REQUIRE(c->_subrCall->_arguments.size() == 1);
+    auto b = dynamic_cast<const Boolean*>(c->_subrCall->_arguments[0].get());
+    REQUIRE(b != nullptr);
+    CHECK(b->_value == false);
+}
+
+TEST_CASE("Parse CALL with expression argument", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nCALL foo 1 + 2\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto c = dynamic_cast<const Call*>(seq._items[0].get());
+    REQUIRE(c != nullptr);
+    REQUIRE(c->_subrCall->_arguments.size() == 1);
+    auto b = dynamic_cast<const Binary*>(c->_subrCall->_arguments[0].get());
+    REQUIRE(b != nullptr);
+    CHECK(b->_operation == Operation::Add);
+}
+
+// ---- Unary operators ----
+
+TEST_CASE("Parse unary plus", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nLET x = +5\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto l = dynamic_cast<const Let*>(seq._items[0].get());
+    REQUIRE(l != nullptr);
+    auto u = dynamic_cast<const Unary*>(l->_expr.get());
+    REQUIRE(u != nullptr);
+    CHECK(u->_operation == Operation::Add);
+    auto n = dynamic_cast<const Number*>(u->_operand.get());
+    REQUIRE(n != nullptr);
+    CHECK(n->_value == 5.0);
+}
+
+TEST_CASE("Parse multiple consecutive unary operators", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nLET x = NOT - 5\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto l = dynamic_cast<const Let*>(seq._items[0].get());
+    REQUIRE(l != nullptr);
+    auto outer = dynamic_cast<const Unary*>(l->_expr.get());
+    REQUIRE(outer != nullptr);
+    CHECK(outer->_operation == Operation::Not);
+    auto inner = dynamic_cast<const Unary*>(outer->_operand.get());
+    REQUIRE(inner != nullptr);
+    CHECK(inner->_operation == Operation::Sub);
+}
+
+TEST_CASE("Parse double unary minus", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nLET x = - - 3\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto l = dynamic_cast<const Let*>(seq._items[0].get());
+    REQUIRE(l != nullptr);
+    auto outer = dynamic_cast<const Unary*>(l->_expr.get());
+    REQUIRE(outer != nullptr);
+    CHECK(outer->_operation == Operation::Sub);
+    auto inner = dynamic_cast<const Unary*>(outer->_operand.get());
+    REQUIRE(inner != nullptr);
+    CHECK(inner->_operation == Operation::Sub);
+}
+
+TEST_CASE("Parse unary NOT NOT", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nLET x = NOT NOT TRUE\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto l = dynamic_cast<const Let*>(seq._items[0].get());
+    REQUIRE(l != nullptr);
+    auto outer = dynamic_cast<const Unary*>(l->_expr.get());
+    REQUIRE(outer != nullptr);
+    CHECK(outer->_operation == Operation::Not);
+    auto inner = dynamic_cast<const Unary*>(outer->_operand.get());
+    REQUIRE(inner != nullptr);
+    CHECK(inner->_operation == Operation::Not);
+}
+
+// ---- Quot operator ----
+
+TEST_CASE("Parse backslash quotient operator", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nLET x = 10 \\ 3\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto l = dynamic_cast<const Let*>(seq._items[0].get());
+    REQUIRE(l != nullptr);
+    auto b = dynamic_cast<const Binary*>(l->_expr.get());
+    REQUIRE(b != nullptr);
+    CHECK(b->_operation == Operation::Quot);
+}
+
+// ---- Array subscript ----
+
+TEST_CASE("Parse array subscript access", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nLET x = a[1]\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto l = dynamic_cast<const Let*>(seq._items[0].get());
+    REQUIRE(l != nullptr);
+    auto b = dynamic_cast<const Binary*>(l->_expr.get());
+    REQUIRE(b != nullptr);
+    CHECK(b->_operation == Operation::Index);
+    auto var = dynamic_cast<const Variable*>(b->_left.get());
+    REQUIRE(var != nullptr);
+    CHECK(var->_name == "a");
+    auto idx = dynamic_cast<const Number*>(b->_right.get());
+    REQUIRE(idx != nullptr);
+    CHECK(idx->_value == 1.0);
+}
+
+TEST_CASE("Parse array subscript with expression", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nLET x = a[i + 1]\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto l = dynamic_cast<const Let*>(seq._items[0].get());
+    REQUIRE(l != nullptr);
+    auto b = dynamic_cast<const Binary*>(l->_expr.get());
+    REQUIRE(b != nullptr);
+    CHECK(b->_operation == Operation::Index);
+    auto add = dynamic_cast<const Binary*>(b->_right.get());
+    REQUIRE(add != nullptr);
+    CHECK(add->_operation == Operation::Add);
+}
+
+TEST_CASE("Parse nested array subscript", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nLET x = a[b[0]]\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto l = dynamic_cast<const Let*>(seq._items[0].get());
+    REQUIRE(l != nullptr);
+    auto outer = dynamic_cast<const Binary*>(l->_expr.get());
+    REQUIRE(outer != nullptr);
+    CHECK(outer->_operation == Operation::Index);
+    auto inner = dynamic_cast<const Binary*>(outer->_right.get());
+    REQUIRE(inner != nullptr);
+    CHECK(inner->_operation == Operation::Index);
+}
+
+// ---- FOR additional tests ----
+
+TEST_CASE("Parse FOR with variable bounds", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nFOR i = start TO end\nPRINT i\nEND FOR\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto f = dynamic_cast<const For*>(seq._items[0].get());
+    REQUIRE(f != nullptr);
+    CHECK(f->_parameter->_name == "i");
+    auto begin = dynamic_cast<const Variable*>(f->_begin.get());
+    REQUIRE(begin != nullptr);
+    CHECK(begin->_name == "start");
+    auto end = dynamic_cast<const Variable*>(f->_end.get());
+    REQUIRE(end != nullptr);
+    CHECK(end->_name == "end");
+}
+
+TEST_CASE("Parse FOR with expression bounds", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nFOR i = 1 + 2 TO n * 2\nPRINT i\nEND FOR\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto f = dynamic_cast<const For*>(seq._items[0].get());
+    REQUIRE(f != nullptr);
+    auto begin = dynamic_cast<const Binary*>(f->_begin.get());
+    REQUIRE(begin != nullptr);
+    CHECK(begin->_operation == Operation::Add);
+    auto end = dynamic_cast<const Binary*>(f->_end.get());
+    REQUIRE(end != nullptr);
+    CHECK(end->_operation == Operation::Mul);
+}
+
+// ---- Function call with no arguments in expression ----
+
+TEST_CASE("Parse function call with no arguments in expression", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nLET x = f()\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto l = dynamic_cast<const Let*>(seq._items[0].get());
+    REQUIRE(l != nullptr);
+    auto a = dynamic_cast<const Apply*>(l->_expr.get());
+    REQUIRE(a != nullptr);
+    CHECK(a->_callee == "f");
+    CHECK(a->_arguments.empty());
+}
+
+// ---- Nested control flow ----
+
+TEST_CASE("Parse IF inside WHILE", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nWHILE n <> 0\nIF n > 0 THEN\nPRINT 1\nEND IF\nEND WHILE\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    REQUIRE(seq._items.size() == 1);
     auto w = dynamic_cast<const While*>(seq._items[0].get());
     REQUIRE(w != nullptr);
-    auto cond = dynamic_cast<const Binary*>(w->_condition.get());
-    REQUIRE(cond != nullptr);
-    CHECK(cond->_operation == Operation::Eq);
+    auto wBody = dynamic_cast<const Sequence*>(w->_body.get());
+    REQUIRE(wBody != nullptr);
+    REQUIRE(wBody->_items.size() == 1);
+    CHECK(dynamic_cast<const If*>(wBody->_items[0].get()) != nullptr);
 }
+
+TEST_CASE("Parse nested IF", "[parser]")
+{
+    auto prog = parseStr(
+        "SUB Main\n"
+        "IF a THEN\n"
+        "  IF b THEN\n"
+        "    PRINT 1\n"
+        "  END IF\n"
+        "END IF\n"
+        "END SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto outer = dynamic_cast<const If*>(seq._items[0].get());
+    REQUIRE(outer != nullptr);
+    auto outerBody = dynamic_cast<const Sequence*>(outer->_branches[0]->_decision.get());
+    REQUIRE(outerBody != nullptr);
+    REQUIRE(outerBody->_items.size() == 1);
+    CHECK(dynamic_cast<const If*>(outerBody->_items[0].get()) != nullptr);
+}
+
+TEST_CASE("Parse WHILE inside FOR", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nFOR i = 1 TO 10\nWHILE x <> 0\nPRINT i\nEND WHILE\nEND FOR\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto f = dynamic_cast<const For*>(seq._items[0].get());
+    REQUIRE(f != nullptr);
+    auto fBody = dynamic_cast<const Sequence*>(f->_body.get());
+    REQUIRE(fBody != nullptr);
+    REQUIRE(fBody->_items.size() == 1);
+    CHECK(dynamic_cast<const While*>(fBody->_items[0].get()) != nullptr);
+}
+
+// ---- Multiple ELSEIF ----
+
+TEST_CASE("Parse IF with two ELSEIF branches", "[parser]")
+{
+    auto prog = parseStr(
+        "SUB Main\n"
+        "IF x = 1 THEN\n"
+        "  PRINT \"one\"\n"
+        "ELSEIF x = 2 THEN\n"
+        "  PRINT \"two\"\n"
+        "ELSEIF x = 3 THEN\n"
+        "  PRINT \"three\"\n"
+        "ELSE\n"
+        "  PRINT \"other\"\n"
+        "END IF\n"
+        "END SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto outer = dynamic_cast<const If*>(seq._items[0].get());
+    REQUIRE(outer != nullptr);
+    REQUIRE(outer->_branches.size() == 3);
+    REQUIRE(outer->_alternative != nullptr);
+}
+
+TEST_CASE("Parse IF with ELSEIF only, no ELSE", "[parser]")
+{
+    auto prog = parseStr(
+        "SUB Main\n"
+        "IF x = 1 THEN\n"
+        "  PRINT \"one\"\n"
+        "ELSEIF x = 2 THEN\n"
+        "  PRINT \"two\"\n"
+        "END IF\n"
+        "END SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto outer = dynamic_cast<const If*>(seq._items[0].get());
+    REQUIRE(outer != nullptr);
+    REQUIRE(outer->_branches.size() == 2);
+    CHECK(outer->_alternative == nullptr);
+}
+
+// ---- Additional expression tests ----
+
+TEST_CASE("Parse unary minus with parenthesized expression", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nLET x = -(1 + 2)\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto l = dynamic_cast<const Let*>(seq._items[0].get());
+    REQUIRE(l != nullptr);
+    auto u = dynamic_cast<const Unary*>(l->_expr.get());
+    REQUIRE(u != nullptr);
+    CHECK(u->_operation == Operation::Sub);
+    auto add = dynamic_cast<const Binary*>(u->_operand.get());
+    REQUIRE(add != nullptr);
+    CHECK(add->_operation == Operation::Add);
+}
+
+TEST_CASE("Parse chained comparison", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nLET x = a = b\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto l = dynamic_cast<const Let*>(seq._items[0].get());
+    REQUIRE(l != nullptr);
+    auto b = dynamic_cast<const Binary*>(l->_expr.get());
+    REQUIRE(b != nullptr);
+    CHECK(b->_operation == Operation::Eq);
+}
+
+// ---- Error cases ----
+
+TEST_CASE("Parse error: missing END FOR", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nFOR i = 1 TO 10\nPRINT i\nEND SUB\n");
+    CHECK(prog == nullptr);
+}
+
+TEST_CASE("Parse error: missing END WHILE", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nWHILE 1\nPRINT 1\nEND SUB\n");
+    CHECK(prog == nullptr);
+}
+
+TEST_CASE("Parse error: DIM without size", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nDIM arr[]\nEND SUB\n");
+    CHECK(prog == nullptr);
+}
+
+TEST_CASE("Parse error: LET without equals", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nLET x 5\nEND SUB\n");
+    CHECK(prog == nullptr);
+}
+
+TEST_CASE("Parse error: stray text after expression", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nPRINT 1 2\nEND SUB\n");
+    CHECK(prog == nullptr);
+}
+
