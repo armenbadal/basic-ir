@@ -14,6 +14,7 @@ add_executable(${PROJECT_NAME}
 	src/main.cxx
 	src/compiler.cxx
 	src/lexeme.cxx
+	src/diagnostics.cxx
 	src/scanner.cxx
 	src/parser.cxx
 	src/aslisp.cxx
@@ -41,6 +42,7 @@ if(Catch2_FOUND)
     tests/parser_test.cxx
     tests/scanner_test.cxx
     src/aslisp.cxx
+    src/diagnostics.cxx
     src/lexeme.cxx
     src/parser.cxx
     src/scanner.cxx)

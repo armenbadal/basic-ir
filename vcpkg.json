@@ -1,0 +1,6 @@
+{
+  "dependencies": [
+    "llvm",
+    "catch2"
+  ]
+}

@@ -1,26 +1,45 @@
 #include "parser.hxx"
 
 #include <algorithm>
+#include <exception>
 #include <format>
-#include <initializer_list>
 #include <iostream>
 #include <memory>
 #include <ranges>
 #include <set>
-#include <stdexcept>
 #include <utility>
 
 using namespace std::string_view_literals;
 
 namespace basic {
 
-class ParseError : public std::runtime_error {
-public:
-    using std::runtime_error::runtime_error;
-};
-
 const std::set<Token> FirstStat = {Token::Let, Token::Dim, Token::Input, Token::Print, Token::If, Token::While, Token::For, Token::Call};
 const std::set<Token> FirstExpr = {Token::True, Token::False, Token::Number, Token::Text, Token::Identifier, Token::Sub, Token::Not, Token::LeftPar};
+
+//! @brief Թոքենները, որոնցով ավարտվում է հրամանների հաջորդականությունը
+const std::set<Token> FollowStat = {Token::End, Token::ElseIf, Token::Else, Token::Subroutine, Token::Eof};
+
+//! @brief Հրամանի մակարդակի համաժամեցման կետերը
+const std::set<Token> StatementSync = {
+    Token::NewLine, Token::Let, Token::Dim, Token::Input, Token::Print,
+    Token::If, Token::While, Token::For, Token::Call,
+    Token::End, Token::ElseIf, Token::Else, Token::Subroutine, Token::Eof
+};
+
+//! @brief Ենթածրագրի մակարդակի համաժամեցման կետերը
+const std::set<Token> SubroutineSync = {Token::Subroutine, Token::Eof};
+
+//! @brief Արտահայտության մակարդակի համաժամեցման կետերը
+//!
+//! Բացի արտահայտություն սկսող թոքեններից՝ պարունակում է նաև փակող
+//! թոքենները, որպեսզի սխալ արտահայտությունը չկլանի իրեն շրջապատող
+//! կառուցվածքը։
+const std::set<Token> ExprSync = {
+    Token::True, Token::False, Token::Number, Token::Text, Token::Identifier,
+    Token::Sub, Token::Not, Token::LeftPar,
+    Token::RightPar, Token::RightBrack, Token::Comma,
+    Token::NewLine, Token::End, Token::ElseIf, Token::Else, Token::Subroutine, Token::Eof
+};
 
 Parser::Parser(Scanner& sc)
     : scanner{sc}
@@ -30,78 +49,66 @@ Parser::~Parser() = default;
 
 bool Parser::hasErrors() const noexcept
 {
-    return !errors.empty();
+    return diagnostics.hasErrors();
 }
 
-const std::vector<std::string>& Parser::getErrors() const noexcept
+const std::vector<Diagnostic>& Parser::getErrors() const noexcept
 {
-    return errors;
+    return diagnostics.all();
 }
 
 void Parser::advance()
 {
     lookahead = scanner.scan();
+    ++tokenIndex;
 }
 
-void Parser::reportError(const Lexeme& token, std::string_view message)
+void Parser::mark(std::string_view message)
 {
-    if( panicMode )
-        return;
-
-    panicMode = true;
-    errors.push_back(std::format("{}: {}", token.line, message));
+    diagnostics.mark(lookahead, message, tokenIndex);
 }
 
-void Parser::synchronize(std::initializer_list<Token> syncTokens)
+//! @brief Համաժամեցման կետ (Վիրտի sync)
+//!
+//! Եթե ընթացիկ թոքենը սպասվողներից չէ, գրանցվում է սխալը և թոքենները
+//! բաց են թողնվում մինչև @c stops բազմության որևէ տարրը։
+void Parser::sync(const std::set<Token>& stops, std::string_view message)
 {
-    if( !panicMode )
+    if( stops.contains(lookahead.kind) )
         return;
 
-    while( !lookahead.is(Token::Eof) && !std::any_of(syncTokens.begin(), syncTokens.end(), [this](Token tok){ return lookahead.is(tok); }) )
+    mark(message);
+
+    while( !stops.contains(lookahead.kind) )
         advance();
-
-    panicMode = false;
 }
 
 Program::Ptr Parser::parse()
 {
-    try {
-        return parseProgram();
-    }
-    catch( ParseError& e ) {
-        reportError(lookahead, e.what());
-        return nullptr;
-    }
+    return parseProgram();
 }
 
 // Program = [NewLines] { Subroutine NewLines }.
 Program::Ptr Parser::parseProgram()
 {
-    lookahead = scanner.scan();
+    // առաջին թոքենը
+    advance();
     auto line = lookahead.line;
 
-    parseNewLines();
+    // [NewLines]. ֆայլի սկզբում դատարկ տողերը պարտադիր չեն
+    if( lookahead.is(Token::NewLine) )
+        parseNewLines();
 
     std::vector<Subroutine::Ptr> subroutines;
     while( !lookahead.is(Token::Eof) ) {
-        if( lookahead.is(Token::Subroutine) ) {
-            try {
-                auto s = parseSubroutine();
-                subroutines.push_back(s);
-            }
-            catch( ParseError& ) {
-                synchronize({Token::Subroutine, Token::Eof});
-            }
-        }
-        else {
-            reportError(lookahead, std::format("Անհայտ տողահերթ. սպասվում է SUB, բայց հանդիպել է '{}'։", lookahead.value));
-            synchronize({Token::Subroutine, Token::Eof});
-        }
+        // sync
+        sync(SubroutineSync, std::format("Սպասվում է 'SUB', բայց հանդիպել է {}։", describe(lookahead)));
+
+        if( lookahead.is(Token::Subroutine) )
+            subroutines.push_back(parseSubroutine());
 
         parseNewLines();
     }
-
-    match(Token::Eof);
 
     return node<Program>(std::move(subroutines), line);
 }
@@ -133,8 +140,7 @@ Subroutine::Ptr Parser::parseSubroutine()
     // մարմինը
     auto body = parseSequence();
 
-    match(Token::End);
-    match(Token::Subroutine);
+    parseBlockEnd(Token::Subroutine);
 
     return node<Subroutine>(name, parameters, body, line);
 }
@@ -146,35 +152,19 @@ Sequence::Ptr Parser::parseSequence()
     parseNewLines();
 
     std::vector<Statement::Ptr> items;
-    constexpr std::initializer_list<Token> syncTokens = {
-        Token::NewLine, Token::Let, Token::Dim, Token::Input, Token::Print,
-        Token::If, Token::While, Token::For, Token::Call,
-        Token::End, Token::ElseIf, Token::Else, Token::Subroutine, Token::Eof
-    };
-
-    while( true ) {
-        if( FirstStat.contains(lookahead.kind) ) {
-            try {
-                auto statement = parseOneStatement();
-                if( statement )
-                    items.push_back(statement);
-            }
-            catch( ParseError& ) {
-                synchronize(syncTokens);
-            }
-            continue;
-        }
-
+    while( !FollowStat.contains(lookahead.kind) ) {
         if( lookahead.is(Token::NewLine) ) {
             parseNewLines();
             continue;
         }
 
-        if( lookahead.is(Token::End, Token::ElseIf, Token::Else, Token::Subroutine, Token::Eof) )
-            break;
+        // sync
+        sync(StatementSync, std::format("Սպասվում է հրաման, բայց հանդիպել է {}։", describe(lookahead)));
 
-        reportError(lookahead, std::format("Անհայտ հրաման՝ '{}'.", lookahead.value));
-        synchronize(syncTokens);
+        if( FirstStat.contains(lookahead.kind) ) {
+            items.push_back(parseOneStatement());
+            parseNewLines();
+        }
     }
 
     return node<Sequence>(std::move(items), line);
@@ -183,39 +173,31 @@ Sequence::Ptr Parser::parseSequence()
 // Statement = Let | Dim | Input | Print | If | While | For | Call.
 Statement::Ptr Parser::parseOneStatement()
 {
-    try {
-        if( lookahead.is(Token::Let) )
-            return parseLet();
+    if( lookahead.is(Token::Let) )
+        return parseLet();
 
-        if( lookahead.is(Token::Dim) )
-            return parseDim();
+    if( lookahead.is(Token::Dim) )
+        return parseDim();
 
-        if( lookahead.is(Token::Input) )
-            return parseInput();
+    if( lookahead.is(Token::Input) )
+        return parseInput();
 
-        if( lookahead.is(Token::Print) )
-            return parsePrint();
+    if( lookahead.is(Token::Print) )
+        return parsePrint();
 
-        if( lookahead.is(Token::If) )
-            return parseIf();
+    if( lookahead.is(Token::If) )
+        return parseIf();
 
-        if( lookahead.is(Token::While) )
-            return parseWhile();
+    if( lookahead.is(Token::While) )
+        return parseWhile();
 
-        if( lookahead.is(Token::For) )
-            return parseFor();
+    if( lookahead.is(Token::For) )
+        return parseFor();
 
-        if( lookahead.is(Token::Call) )
-            return parseCall();
-    }
-    catch( ParseError& ) {
-        constexpr std::initializer_list<Token> statementSync = {
-            Token::NewLine, Token::Let, Token::Dim, Token::Input, Token::Print,
-            Token::If, Token::While, Token::For, Token::Call,
-            Token::End, Token::ElseIf, Token::Else, Token::Subroutine, Token::Eof
-        };
-        synchronize(statementSync);
-    }
+    if( lookahead.is(Token::Call) )
+        return parseCall();
+
+    // կանչվում է միայն FirstStat-ի թոքենի դեպքում
     return {};
 }
 
@@ -288,8 +270,7 @@ If::Ptr Parser::parseIf()
         alternative = parseSequence();
     }
 
-    match(Token::End);
-    match(Token::If);
+    parseBlockEnd(Token::If);
 
     return node<If>(branches, alternative, line);
 }
@@ -314,8 +295,7 @@ While::Ptr Parser::parseWhile()
     match(Token::While);
     auto cond = parseExpression();
     auto body = parseSequence();
-    match(Token::End);
-    match(Token::While);
+    parseBlockEnd(Token::While);
 
     return node<While>(cond, body, line);
 }
@@ -354,8 +334,7 @@ For::Ptr Parser::parseFor()
     // մարմինը
     auto body = parseSequence();
 
-    match(Token::End);
-    match(Token::For);
+    parseBlockEnd(Token::For);
 
     return node<For>(parameter, begin, end, step, body, line);
 }
@@ -498,6 +477,14 @@ Expression::Ptr Parser::parseSubscript()
 
 Expression::Ptr Parser::parseFactor()
 {
+    // sync
+    if( !FirstExpr.contains(lookahead.kind) ) {
+        mark(std::format("Սպասվում է արտահայտություն, բայց հանդիպել է {}։", describe(lookahead)));
+
+        while( !ExprSync.contains(lookahead.kind) )
+            advance();
+    }
+
     if( lookahead.is(Token::True, Token::False) )
         return parseTrueOrFalse();
 
@@ -513,7 +500,9 @@ Expression::Ptr Parser::parseFactor()
     if( lookahead.is(Token::LeftPar) )
         return parseGrouped();
 
-    throw ParseError("Սպասվում է NUMBER, TEXT, '-', NOT, IDENT կամ '(', բայց հանդիպել է " + lookahead.value + "։");
+    // արտահայտություն այդպես էլ չգտնվեց. վերադարձնում ենք չեզոք հանգույց,
+    // որպեսզի կանչողները շարունակեն սովորական ձևով
+    return node<Number>(0.0, lookahead.line);
 }
 
 Boolean::Ptr Parser::parseTrueOrFalse()
@@ -527,9 +516,15 @@ Number::Ptr Parser::parseNumber()
 {
     auto line = lookahead.line;
     auto value = match(Token::Number);
-    if( value.empty() )
+
+    // std::stod-ը դեն է նետում out_of_range՝ չափազանց մեծ հաստատունի դեպքում
+    try {
+        return node<Number>(value.empty() ? 0.0 : std::stod(value), line);
+    }
+    catch( const std::exception& ) {
+        mark(std::format("Սխալ թվային հաստատուն՝ '{}'։", value));
         return node<Number>(0.0, line);
-    return node<Number>(std::stod(value), line);
+    }
 }
 
 Text::Ptr Parser::parseText()
@@ -571,24 +566,40 @@ Expression::Ptr Parser::parseGrouped()
     return expr;
 }
 
-//
+// NewLines = NL { NL }.
 void Parser::parseNewLines()
 {
+    // ֆայլի ավարտն ինքնին տողի ավարտ է
+    if( !lookahead.is(Token::NewLine, Token::Eof) )
+        mark(std::format("Սպասվում է տողի ավարտ, բայց հանդիպել է {}։", describe(lookahead)));
+
     while( lookahead.is(Token::NewLine) )
         advance();
 }
 
 std::string Parser::match(Token exp)
 {
-    if( lookahead.is(exp) ) {
-        const auto val = lookahead.value;
-        advance();
-        return val;
+    if( !lookahead.is(exp) ) {
+        mark(std::format("Սպասվում է '{}', բայց հանդիպել է {}։", toString(exp), describe(lookahead)));
+        return {};
     }
 
-    const auto message = std::format("Սպասվում է {}, բայց հանդիպել է {}։", toString(exp), lookahead.value);
-    reportError(lookahead, message);
-    throw ParseError(message);
+    const auto value = lookahead.value;
+    advance();
+    return value;
+}
+
+void Parser::parseBlockEnd(Token keyword)
+{
+    // 'END'-ը բացակայելիս բանալի բառը չենք էլ փնտրում, որպեսզի մեկ սխալի
+    // համար երկու հաղորդագրություն չստացվի
+    if( !lookahead.is(Token::End) ) {
+        mark(std::format("Սպասվում է 'END {}', բայց հանդիպել է {}։", toString(keyword), describe(lookahead)));
+        return;
+    }
+
+    advance();
+    match(keyword);
 }
 
 } // basic

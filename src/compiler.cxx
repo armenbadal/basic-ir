@@ -34,13 +34,12 @@ bool compile(const std::filesystem::path& source, bool generateIr, bool generate
     Scanner scanner{file};
     Parser parser{scanner};
     auto program = parser.parse();
-    if( nullptr == program ) {
-        if( parser.hasErrors() ) {
-            for( auto& err : parser.getErrors() )
-                std::cerr << err << std::endl;
-        } else {
-            std::cerr << "Վերլուծության սխալ։" << std::endl;
-        }
+
+    // սխալների առկայության դեպքում ծառը թերի է, ուստի հաջորդ փուլերին
+    // չի փոխանցվում
+    if( parser.hasErrors() ) {
+        for( const auto& diagnostic : parser.getErrors() )
+            std::cerr << source.string() << ":" << diagnostic.toString() << std::endl;
         return false;
     }
 
