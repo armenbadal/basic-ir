@@ -592,7 +592,7 @@ TEST_CASE("Reported errors are capped", "[parser][recovery]")
     input += "END SUB\n";
 
     auto [prog, errors] = parseStrWithErrors(input);
-    CHECK(errors.size() < 100);
+    CHECK(errors.size() == Diagnostics::MaxErrors);
 }
 
 TEST_CASE("Parse parenthesized expression", "[parser]")
@@ -685,25 +685,33 @@ TEST_CASE("Parse IF with ELSEIF", "[parser]")
 TEST_CASE("Parse error: missing END SUB", "[parser]")
 {
     auto errors = parseErrors("SUB Main\nPRINT 1\n");
-    CHECK(!errors.empty());
+    REQUIRE(errors.size() == 1);
+    CHECK(errors[0].line == 3);
+    CHECK(errors[0].message.find("END SUB") != std::string::npos);
 }
 
 TEST_CASE("Parse error: missing END IF", "[parser]")
 {
     auto errors = parseErrors("SUB Main\nIF 1 THEN\nPRINT 1\nEND SUB\n");
-    CHECK(!errors.empty());
+    REQUIRE(!errors.empty());
+    CHECK(errors[0].line == 4);
+    CHECK(errors[0].message.find("IF") != std::string::npos);
 }
 
 TEST_CASE("Parse error: stray token", "[parser]")
 {
     auto errors = parseErrors("SUB Main\nLET x = \nEND SUB\n");
-    CHECK(!errors.empty());
+    REQUIRE(errors.size() == 1);
+    CHECK(errors[0].line == 2);
+    CHECK(errors[0].message.find("արտահայտություն") != std::string::npos);
 }
 
 TEST_CASE("Parse error: IF without THEN", "[parser]")
 {
     auto errors = parseErrors("SUB Main\nIF 1\nPRINT 1\nEND IF\nEND SUB\n");
-    CHECK(!errors.empty());
+    REQUIRE(errors.size() == 1);
+    CHECK(errors[0].line == 2);
+    CHECK(errors[0].message.find("THEN") != std::string::npos);
 }
 
 // ---- Comments ----
@@ -1137,30 +1145,89 @@ TEST_CASE("Parse chained comparison", "[parser]")
 TEST_CASE("Parse error: missing END FOR", "[parser]")
 {
     auto errors = parseErrors("SUB Main\nFOR i = 1 TO 10\nPRINT i\nEND SUB\n");
-    CHECK(!errors.empty());
+    REQUIRE(!errors.empty());
+    CHECK(errors[0].line == 4);
+    CHECK(errors[0].message.find("FOR") != std::string::npos);
 }
 
 TEST_CASE("Parse error: missing END WHILE", "[parser]")
 {
     auto errors = parseErrors("SUB Main\nWHILE 1\nPRINT 1\nEND SUB\n");
-    CHECK(!errors.empty());
+    REQUIRE(!errors.empty());
+    CHECK(errors[0].line == 4);
+    CHECK(errors[0].message.find("WHILE") != std::string::npos);
 }
 
 TEST_CASE("Parse error: DIM without size", "[parser]")
 {
     auto errors = parseErrors("SUB Main\nDIM arr[]\nEND SUB\n");
-    CHECK(!errors.empty());
+    REQUIRE(errors.size() == 1);
+    CHECK(errors[0].line == 2);
+    CHECK(errors[0].message.find("արտահայտություն") != std::string::npos);
 }
 
 TEST_CASE("Parse error: LET without equals", "[parser]")
 {
     auto errors = parseErrors("SUB Main\nLET x 5\nEND SUB\n");
-    CHECK(!errors.empty());
+    REQUIRE(errors.size() == 1);
+    CHECK(errors[0].line == 2);
+    CHECK(errors[0].message.find("'='") != std::string::npos);
 }
 
 TEST_CASE("Parse error: stray text after expression", "[parser]")
 {
     auto errors = parseErrors("SUB Main\nPRINT 1 2\nEND SUB\n");
-    CHECK(!errors.empty());
+    REQUIRE(errors.size() == 1);
+    CHECK(errors[0].line == 2);
+    CHECK(errors[0].message.find("2") != std::string::npos);
+}
+
+// ---- Cascade suppression ----
+
+TEST_CASE("Cascade suppression prevents duplicate errors", "[parser][recovery]")
+{
+    // PRINT 1 ] — parseNewLines-ը սխալ է գրանցում, բայց sync-ի սխալը
+    // ճնշվում է, քանի որ advance չի կանչվել parseNewLines-ից հետո
+    auto [prog, errors] = parseStrWithErrors("SUB Main\nPRINT 1 ]\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    REQUIRE(errors.size() == 1);
+    CHECK(errors[0].line == 2);
+    CHECK(errors[0].message.find("]") != std::string::npos);
+    CHECK(prog->_subroutines.size() == 1);
+}
+
+// ---- ELSEIF ----
+
+TEST_CASE("ELSEIF without THEN is recovered", "[parser][recovery]")
+{
+    auto [prog, errors] = parseStrWithErrors(
+        "SUB Main\n"
+        "IF a THEN\n"
+        "  PRINT 1\n"
+        "ELSEIF b\n"
+        "  PRINT 2\n"
+        "END IF\n"
+        "END SUB\n");
+    REQUIRE(prog != nullptr);
+    REQUIRE(errors.size() == 1);
+    CHECK(errors[0].line == 4);
+    CHECK(errors[0].message.find("THEN") != std::string::npos);
+
+    // ELSEIF-ի մարմինը պահպանվում է
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto i = dynamic_cast<const If*>(seq._items[0].get());
+    REQUIRE(i != nullptr);
+    REQUIRE(i->_branches.size() == 2);
+}
+
+// ---- INPUT ----
+
+TEST_CASE("INPUT without identifier", "[parser]")
+{
+    auto errors = parseErrors("SUB Main\nINPUT\nEND SUB\n");
+    REQUIRE(errors.size() == 1);
+    CHECK(errors[0].line == 2);
+    CHECK(errors[0].message.find("IDENT") != std::string::npos);
 }
 
