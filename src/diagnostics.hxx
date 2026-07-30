@@ -3,51 +3,40 @@
 #include "lexeme.hxx"
 
 #include <cstddef>
+#include <ostream>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace basic {
 
-//! @brief Վերլուծության ժամանակ գրանցված սխալի նկարագրությունը
-struct Diagnostic {
-    unsigned int line = 0; //!< սխալի տողի համարը
-    std::string message;   //!< սխալի հաղորդագրությունը
-
-    std::string toString() const;
+// Վերլուծության սխալ
+struct SyntaxError {
+    unsigned int line = 0; // տողի համարը
+    std::string message;   // հաղորդագրությունը
 };
 
-//! @brief Լեքսեմի ընթեռնելի ներկայացումը սխալի հաղորդագրության համար
-//!
-//! Անմիջապես @c value-ն օգտագործելը սխալ է. օրինակ՝ նոր տողի լեքսեմի արժեքը
-//! հենց նոր տողի նիշն է, որը կոտրում է հաղորդագրությունը երկու մասի։
+std::ostream& operator<<(std::ostream& os, const SyntaxError& err);
+
+// Լեքսեմի ընթեռնելի ներկայացումը սխալի հաղորդագրության համար
 std::string describe(const Lexeme& lex);
 
-//! @brief Սխալների հավաքիչը
-//!
-//! Կրկնվող հաղորդագրությունները զտվում են Վիրտի եղանակով (@c Mark
-//! պրոցեդուրան, «Compiler construction», 7.3)․ սխալը գրանցվում է միայն
-//! այն դեպքում, երբ վերլուծիչն առաջ է շարժվել վերջին գրանցված սխալից
-//! հետո։ Դա բավական է մեկ սխալի հետևանքով առաջացող «սխալների հեղեղը»
-//! կանխելու համար։
 class Diagnostics {
 public:
-    //! @brief Հաղորդվող սխալների առավելագույն քանակը
-    static constexpr std::size_t MaxErrors = 64;
+    // Հաղորդվող սխալների առավելագույն քանակը
+    static constexpr std::size_t MaxErrors = 8;
 
-    //! @brief Գրանցում է սխալը, եթե այն նոր տեղեկություն է պարունակում
-    //!
-    //! @param token սխալի տեղը ցույց տվող լեքսեմը
-    //! @param message սխալի հաղորդագրությունը
-    //! @param tokenIndex կլանված թոքենների քանակը՝ վերլուծիչի դիրքը
-    void mark(const Lexeme& token, std::string_view message, std::size_t tokenIndex);
+    // Գրանցում է սխալը, եթե այն նոր տեղեկություն է պարունակում
+    void mark(unsigned int line, std::string_view message);
 
-    bool hasErrors() const noexcept;
-    const std::vector<Diagnostic>& all() const noexcept;
+    // Նշում է, որ թոքեն է սպառվել (Վիրտի կանոնի համար)
+    void advance() noexcept { _advanced = true; }
+
+    const std::vector<SyntaxError>& errors() const noexcept;
 
 private:
-    std::vector<Diagnostic> errors;
-    std::size_t lastErrorToken = 0; //!< վերջին սխալի դիրքը
+    std::vector<SyntaxError> _errors;
+    bool _advanced = true;
 };
 
 } // basic

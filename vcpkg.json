@@ -1,6 +1,0 @@
-{
-  "dependencies": [
-    "llvm",
-    "catch2"
-  ]
-}

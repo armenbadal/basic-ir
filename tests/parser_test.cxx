@@ -13,22 +13,24 @@ static Program::Ptr parseStr(const std::string& input)
 {
     auto stream = std::make_shared<std::istringstream>(input);
     Scanner scanner{*stream};
-    Parser parser{scanner};
+    Diagnostics diagnostics;
+    Parser parser{scanner, diagnostics};
     return parser.parse();
 }
 
-static std::pair<Program::Ptr, std::vector<Diagnostic>> parseStrWithErrors(const std::string& input)
+static std::pair<Program::Ptr, std::vector<SyntaxError>> parseStrWithErrors(const std::string& input)
 {
     auto stream = std::make_shared<std::istringstream>(input);
     Scanner scanner{*stream};
-    Parser parser{scanner};
+    Diagnostics diagnostics;
+    Parser parser{scanner, diagnostics};
     auto program = parser.parse();
-    return {program, parser.getErrors()};
+    return {program, diagnostics.errors()};
 }
 
 // Վերականգնման շնորհիվ parse()-ը սխալի դեպքում էլ ծառ է վերադարձնում,
 // ուստի սխալի փաստը ստուգվում է սխալների ցուցակով, ոչ թե nullptr-ով։
-static std::vector<Diagnostic> parseErrors(const std::string& input)
+static std::vector<SyntaxError> parseErrors(const std::string& input)
 {
     return parseStrWithErrors(input).second;
 }

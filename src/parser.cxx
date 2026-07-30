@@ -13,71 +13,61 @@ using namespace std::string_view_literals;
 
 namespace basic {
 
-const std::set<Token> FirstStat = {Token::Let, Token::Dim, Token::Input, Token::Print, Token::If, Token::While, Token::For, Token::Call};
-const std::set<Token> FirstExpr = {Token::True, Token::False, Token::Number, Token::Text, Token::Identifier, Token::Sub, Token::Not, Token::LeftPar};
+const std::set FirstStat = {
+    Token::Let, Token::Dim, Token::Input, Token::Print,
+    Token::If, Token::While, Token::For, Token::Call
+};
+const std::set FirstExpr = {
+    Token::True, Token::False, Token::Number, Token::Text,
+    Token::Identifier, Token::Sub, Token::Not, Token::LeftPar
+};
 
 //! @brief Թոքենները, որոնցով ավարտվում է հրամանների հաջորդականությունը
-const std::set<Token> FollowStat = {Token::End, Token::ElseIf, Token::Else, Token::Subroutine, Token::Eof};
+const std::set FollowStat = {
+    Token::End, Token::ElseIf, Token::Else,
+    Token::Subroutine, Token::Eof
+};
 
 //! @brief Հրամանի մակարդակի համաժամեցման կետերը
 const std::set<Token> StatementSync = {
-    Token::NewLine, Token::Let, Token::Dim, Token::Input, Token::Print,
-    Token::If, Token::While, Token::For, Token::Call,
-    Token::End, Token::ElseIf, Token::Else, Token::Subroutine, Token::Eof
+    Token::NewLine, Token::Let, Token::Dim, Token::Input, 
+    Token::Print, Token::If, Token::While, Token::For, 
+    Token::Call, Token::End, Token::ElseIf, Token::Else,
+    Token::Subroutine, Token::Eof
 };
 
 //! @brief Ենթածրագրի մակարդակի համաժամեցման կետերը
-const std::set<Token> SubroutineSync = {Token::Subroutine, Token::Eof};
-
-//! @brief Արտահայտության մակարդակի համաժամեցման կետերը
-//!
-//! Բացի արտահայտություն սկսող թոքեններից՝ պարունակում է նաև փակող
-//! թոքենները, որպեսզի սխալ արտահայտությունը չկլանի իրեն շրջապատող
-//! կառուցվածքը։
-const std::set<Token> ExprSync = {
-    Token::True, Token::False, Token::Number, Token::Text, Token::Identifier,
-    Token::Sub, Token::Not, Token::LeftPar,
-    Token::RightPar, Token::RightBrack, Token::Comma,
-    Token::NewLine, Token::End, Token::ElseIf, Token::Else, Token::Subroutine, Token::Eof
+const std::set<Token> SubroutineSync = {
+    Token::Subroutine, Token::Eof
 };
 
-Parser::Parser(Scanner& sc)
-    : scanner{sc}
+//! @brief Արտահայտության մակարդակի համաժամեցման կետերը
+const std::set<Token> ExprSync = {
+    Token::True, Token::False, Token::Number, Token::Text,
+    Token::Identifier, Token::Sub, Token::Not, Token::LeftPar,
+    Token::RightPar, Token::RightBrack, Token::Comma,
+    Token::NewLine, Token::End, Token::ElseIf, Token::Else,
+    Token::Subroutine, Token::Eof
+};
+
+Parser::Parser(Scanner& sc, Diagnostics& diag)
+    : scanner{sc}, diagnostics{diag}
 {}
 
 Parser::~Parser() = default;
 
-bool Parser::hasErrors() const noexcept
-{
-    return diagnostics.hasErrors();
-}
-
-const std::vector<Diagnostic>& Parser::getErrors() const noexcept
-{
-    return diagnostics.all();
-}
-
 void Parser::advance()
 {
     lookahead = scanner.scan();
-    ++tokenIndex;
+    diagnostics.advance();
 }
 
-void Parser::mark(std::string_view message)
-{
-    diagnostics.mark(lookahead, message, tokenIndex);
-}
-
-//! @brief Համաժամեցման կետ (Վիրտի sync)
-//!
-//! Եթե ընթացիկ թոքենը սպասվողներից չէ, գրանցվում է սխալը և թոքենները
-//! բաց են թողնվում մինչև @c stops բազմության որևէ տարրը։
 void Parser::sync(const std::set<Token>& stops, std::string_view message)
 {
     if( stops.contains(lookahead.kind) )
         return;
 
-    mark(message);
+    diagnostics.mark(lookahead.line, message);
 
     while( !stops.contains(lookahead.kind) )
         advance();
@@ -367,26 +357,44 @@ std::vector<Expression::Ptr> Parser::parseExpressionList()
 
 Operation opCode( Token tok )
 {
-    static std::map<Token, Operation> opcodes{
-        { Token::Add, Operation::Add },
-        { Token::Sub, Operation::Sub },
-        { Token::Amp, Operation::Conc },
-        { Token::Mul, Operation::Mul },
-        { Token::Div, Operation::Div },
-        { Token::Mod, Operation::Mod },
-        { Token::Quot, Operation::Quot },
-        { Token::Pow, Operation::Pow },
-        { Token::Not, Operation::Not },
-        { Token::Eq, Operation::Eq },
-        { Token::Ne, Operation::Ne },
-        { Token::Gt, Operation::Gt },
-        { Token::Ge, Operation::Ge },
-        { Token::Lt, Operation::Lt },
-        { Token::Le, Operation::Le },
-        { Token::And, Operation::And },
-        { Token::Or, Operation::Or }
-    };
-    return opcodes[tok];
+    switch( tok ) {
+        case Token::Add:
+            return Operation::Add;
+        case Token::Sub:
+            return Operation::Sub;
+        case Token::Amp:
+            return Operation::Conc;
+        case Token::Mul:
+            return Operation::Mul;
+        case Token::Div:
+            return Operation::Div;
+        case Token::Mod:
+            return Operation::Mod;
+        case Token::Quot:
+            return Operation::Quot;
+        case Token::Pow:
+            return Operation::Pow;
+        case Token::Not:
+            return Operation::Not;
+        case Token::Eq:
+            return Operation::Eq;
+        case Token::Ne:
+            return Operation::Ne;
+        case Token::Gt:
+            return Operation::Gt;
+        case Token::Ge:
+            return Operation::Ge;
+        case Token::Lt:
+            return Operation::Lt;
+        case Token::Le:
+            return Operation::Le;
+        case Token::And:
+            return Operation::And;
+        case Token::Or:
+            return Operation::Or;
+        default:
+            return Operation::None;
+    }
 }
 
 Expression::Ptr Parser::parseExpression()
@@ -479,7 +487,7 @@ Expression::Ptr Parser::parseFactor()
 {
     // sync
     if( !FirstExpr.contains(lookahead.kind) ) {
-        mark(std::format("Սպասվում է արտահայտություն, բայց հանդիպել է {}։", describe(lookahead)));
+        diagnostics.mark(lookahead.line, std::format("Սպասվում է արտահայտություն, բայց հանդիպել է {}։", describe(lookahead)));
 
         while( !ExprSync.contains(lookahead.kind) )
             advance();
@@ -522,7 +530,7 @@ Number::Ptr Parser::parseNumber()
         return node<Number>(value.empty() ? 0.0 : std::stod(value), line);
     }
     catch( const std::exception& ) {
-        mark(std::format("Սխալ թվային հաստատուն՝ '{}'։", value));
+        diagnostics.mark(lookahead.line, std::format("Սխալ թվային հաստատուն՝ '{}'։", value));
         return node<Number>(0.0, line);
     }
 }
@@ -571,7 +579,7 @@ void Parser::parseNewLines()
 {
     // ֆայլի ավարտն ինքնին տողի ավարտ է
     if( !lookahead.is(Token::NewLine, Token::Eof) )
-        mark(std::format("Սպասվում է տողի ավարտ, բայց հանդիպել է {}։", describe(lookahead)));
+        diagnostics.mark(lookahead.line, std::format("Սպասվում է տողի ավարտ, բայց հանդիպել է {}։", describe(lookahead)));
 
     while( lookahead.is(Token::NewLine) )
         advance();
@@ -580,7 +588,7 @@ void Parser::parseNewLines()
 std::string Parser::match(Token exp)
 {
     if( !lookahead.is(exp) ) {
-        mark(std::format("Սպասվում է '{}', բայց հանդիպել է {}։", toString(exp), describe(lookahead)));
+        diagnostics.mark(lookahead.line, std::format("Սպասվում է '{}', բայց հանդիպել է {}։", toString(exp), describe(lookahead)));
         return {};
     }
 
@@ -594,7 +602,7 @@ void Parser::parseBlockEnd(Token keyword)
     // 'END'-ը բացակայելիս բանալի բառը չենք էլ փնտրում, որպեսզի մեկ սխալի
     // համար երկու հաղորդագրություն չստացվի
     if( !lookahead.is(Token::End) ) {
-        mark(std::format("Սպասվում է 'END {}', բայց հանդիպել է {}։", toString(keyword), describe(lookahead)));
+        diagnostics.mark(lookahead.line, std::format("Սպասվում է 'END {}', բայց հանդիպել է {}։", toString(keyword), describe(lookahead)));
         return;
     }
 

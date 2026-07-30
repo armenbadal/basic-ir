@@ -4,9 +4,9 @@
 
 namespace basic {
 
-std::string Diagnostic::toString() const
+std::ostream& operator<<(std::ostream& os, const SyntaxError& err)
 {
-    return std::format("{}: {}", line, message);
+    return os << err.line << ": " << err.message;
 }
 
 std::string describe(const Lexeme& lex)
@@ -27,32 +27,18 @@ std::string describe(const Lexeme& lex)
     }
 }
 
-void Diagnostics::mark(const Lexeme& token, std::string_view message, std::size_t tokenIndex)
+void Diagnostics::mark(unsigned int line, std::string_view message)
 {
-    // Վիրտի կանոնը. եթե վերլուծիչը տեղից չի շարժվել, ուրեմն այս սխալը
-    // նախորդի կրկնությունն է
-    if( tokenIndex <= lastErrorToken )
+    if( !_advanced || _errors.size() >= MaxErrors )
         return;
 
-    lastErrorToken = tokenIndex;
-
-    if( errors.size() >= MaxErrors ) {
-        if( errors.size() == MaxErrors )
-            errors.push_back({token.line, "Չափազանց շատ սխալներ։"});
-        return;
-    }
-
-    errors.push_back({token.line, std::string{message}});
+    _advanced = false;
+    _errors.push_back({line, std::string{message}});
 }
 
-bool Diagnostics::hasErrors() const noexcept
+const std::vector<SyntaxError>& Diagnostics::errors() const noexcept
 {
-    return !errors.empty();
-}
-
-const std::vector<Diagnostic>& Diagnostics::all() const noexcept
-{
-    return errors;
+    return _errors;
 }
 
 } // basic
