@@ -49,29 +49,30 @@ TEST_CASE("Lexeme::is matches with two tokens", "[lexeme]")
     CHECK(lex.is(Token::None, Token::Eof));
 }
 
-TEST_CASE("Lexeme::isIn range check", "[lexeme]")
+TEST_CASE("Lexeme::is matches literal tokens", "[lexeme]")
 {
     Lexeme num{Token::Number, "99", 1};
-    CHECK(num.isIn(Token::Number, Token::False));
-    CHECK_FALSE(num.isIn(Token::Subroutine, Token::NewLine));
+    CHECK(num.is(Token::Number, Token::True, Token::False));
+    CHECK_FALSE(num.is(Token::Subroutine, Token::Input));
 }
 
-TEST_CASE("Lexeme::isIn with Add in operator range", "[lexeme]")
+TEST_CASE("Lexeme::is matches operator tokens", "[lexeme]")
 {
     Lexeme op{Token::Add, "+", 1};
-    CHECK(op.isIn(Token::Add, Token::Not));
+    CHECK(op.is(Token::Add, Token::Sub, Token::Mul));
 }
 
-TEST_CASE("Lexeme::isIn with Eof", "[lexeme]")
+TEST_CASE("Lexeme::is matches keyword tokens", "[lexeme]")
 {
-    Lexeme eof{Token::Eof, "EOF", 0};
-    CHECK(eof.isIn(Token::Eof, Token::Eof));
+    Lexeme kw{Token::While, "WHILE", 1};
+    CHECK(kw.is(Token::For, Token::While, Token::Let));
+    CHECK_FALSE(kw.is(Token::If, Token::Call));
 }
 
-TEST_CASE("Lexeme::isIn with None", "[lexeme]")
+TEST_CASE("Lexeme::is with None token", "[lexeme]")
 {
     Lexeme none;
-    CHECK(none.isIn(Token::None, Token::None));
+    CHECK(none.is(Token::None));
 }
 
 TEST_CASE("Lexeme::toString format", "[lexeme]")

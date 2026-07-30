@@ -77,7 +77,7 @@ public:
 public:
     Lexeme() = default;
     Lexeme(Token k, std::string v, unsigned int l)
-        : kind{ k }, value{ std::move(v) }, line{ l }
+        : kind{k}, value{std::move(v)}, line{l}
     {}
 
     bool is(Token exp) const
@@ -89,11 +89,6 @@ public:
     bool is(Token ex, Tokens... exps) const
     {
         return is(ex) || is(exps...);
-    }
-
-    bool isIn(Token el, Token eh) const
-    {
-        return kind >= el && kind <= eh;
     }
 
     //! @brief Լեքսեմի տեքստային ներկայացում

@@ -63,26 +63,27 @@ Program::Ptr Parser::parseProgram()
 Subroutine::Ptr Parser::parseSubroutine()
 {
     auto line = lookahead.line;
-    match(Token::Subroutine);
-    auto name = match(Token::Identifier);
 
+    match(Token::Subroutine);
+    auto name = match(Token::Identifier); // ենթածրագրի անունը
+
+    // պարամետրերը՝ որպես փոփոխականներ
     std::vector<Variable::Ptr> parameters;
     if( lookahead.is(Token::LeftPar) ) {
         match(Token::LeftPar);
         if( lookahead.is(Token::Identifier) ) {
-            auto line = lookahead.line;
-            auto idlex = match(Token::Identifier);
-            parameters.push_back(node<Variable>(idlex, line));
+            auto param = match(Token::Identifier);
+            parameters.push_back(node<Variable>(param, line));
             while( lookahead.is(Token::Comma) ) {
                 match(Token::Comma);
-                line = lookahead.line;
-                idlex = match(Token::Identifier);
-                parameters.push_back(node<Variable>(idlex, line));
+                param = match(Token::Identifier);
+                parameters.push_back(node<Variable>(param, line));
             }
         }
         match(Token::RightPar);
     }
 
+    // մարմինը
     auto body = parseSequence();
 
     match(Token::End);
@@ -199,7 +200,7 @@ If::Ptr Parser::parseIf()
         branches.push_back(s);
     }
 
-    Statement::Ptr alternative{ nullptr };
+    Statement::Ptr alternative{nullptr};
     if( lookahead.is(Token::Else) ) {
         match(Token::Else);
         alternative = parseSequence();
@@ -237,21 +238,25 @@ While::Ptr Parser::parseWhile()
     return node<While>(cond, body, line);
 }
 
-//
-// For = 'FOR' IDENT '=' Expression 'TO' Expression ['STEP' NUMBER]
-//    Statements 'END' 'FOR'.
-//
+// For = 'FOR' IDENT '=' Expression 'TO' Expression ['STEP' NUMBER] Statements 'END' 'FOR'.
 For::Ptr Parser::parseFor()
 {
-    auto forLine = lookahead.line;
+    auto line = lookahead.line;
+
     match(Token::For);
-    auto par = match(Token::Identifier);
+
+    // պարամետրը
+    auto name = match(Token::Identifier);
+    auto parameter = node<Variable>(name, line);
     match(Token::Eq);
-    auto be = parseExpression();
+    auto begin = parseExpression();
+
+    // վերջին արժեքը
     match(Token::To);
-    auto en = parseExpression();
-    double spvl = 1;
-    Position stepLine = forLine;
+    auto end = parseExpression();
+
+    // քայլը
+    auto step = node<Number>(1.0, line);
     if( lookahead.is(Token::Step) ) {
         match(Token::Step);
         bool neg = false;
@@ -259,41 +264,30 @@ For::Ptr Parser::parseFor()
             match(Token::Sub);
             neg = true;
         }
-        stepLine = lookahead.line;
-        auto lex = match(Token::Number);
-        spvl = std::stod(lex);
+        step = parseNumber();
         if( neg )
-            spvl = -spvl;
+            step = node<Number>(-step->_value, line);
     }
-    auto vp = node<Variable>(par, forLine);
-    auto dy = parseSequence();
+
+    // մարմինը
+    auto body = parseSequence();
+
     match(Token::End);
     match(Token::For);
 
-    return node<For>(vp, be, en, node<Number>(spvl, stepLine), dy, forLine);
+    return node<For>(parameter, begin, end, step, body, line);
 }
 
-//
 // Call = 'CALL' IDENT [ExpressionList].
-//
 Call::Ptr Parser::parseCall()
 {
-    auto ln = lookahead.line;
+    auto line = lookahead.line;
+
     match(Token::Call);
     auto name = match(Token::Identifier);
-    std::vector<Expression::Ptr> args;
 
-    if( FirstExpr.contains(lookahead.kind) ) {
-        auto exo = parseExpression();
-        args.push_back(exo);
-        while( lookahead.is(Token::Comma) ) {
-            match(Token::Comma);
-            exo = parseExpression();
-            args.push_back(exo);
-        }
-    }
-
-    return node<Call>(name, std::move(args), ln);
+    auto arguments = parseExpressionList();
+    return node<Call>(name, std::move(arguments), line);
 }
 
 std::vector<Expression::Ptr> Parser::parseExpressionList()
