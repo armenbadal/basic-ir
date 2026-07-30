@@ -5,6 +5,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <sstream>
+#include <utility>
 
 using namespace basic;
 
@@ -14,6 +15,15 @@ static Program::Ptr parseStr(const std::string& input)
     Scanner scanner{*stream};
     Parser parser{scanner};
     return parser.parse();
+}
+
+static std::pair<Program::Ptr, std::vector<std::string>> parseStrWithErrors(const std::string& input)
+{
+    auto stream = std::make_shared<std::istringstream>(input);
+    Scanner scanner{*stream};
+    Parser parser{scanner};
+    auto program = parser.parse();
+    return {program, parser.getErrors()};
 }
 
 static const Subroutine& onlySub(const Program& prog)
@@ -418,6 +428,54 @@ TEST_CASE("Parse TRUE and FALSE literals", "[parser]")
     REQUIRE(l2 != nullptr);
     CHECK(dynamic_cast<const Boolean*>(l2->_expr.get()) != nullptr);
     CHECK(dynamic_cast<const Boolean*>(l2->_expr.get())->_value == false);
+}
+
+TEST_CASE("Recover from missing THEN in IF", "[parser]")
+{
+    auto [prog, errors] = parseStrWithErrors("SUB Main\nIF 1\nPRINT 1\nEND IF\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    REQUIRE(!errors.empty());
+    CHECK(errors[0].find("THEN") != std::string::npos);
+
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    REQUIRE(seq._items.size() == 1);
+    auto p = dynamic_cast<const Print*>(seq._items[0].get());
+    REQUIRE(p != nullptr);
+    auto n = dynamic_cast<const Number*>(p->_expr.get());
+    REQUIRE(n != nullptr);
+    CHECK(n->_value == 1.0);
+}
+
+TEST_CASE("Recover from missing END IF", "[parser]")
+{
+    auto [prog, errors] = parseStrWithErrors("SUB Main\nIF 1 THEN\nPRINT 0\nEND\nPRINT 1\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    REQUIRE(!errors.empty());
+    CHECK(errors[0].find("IF") != std::string::npos);
+
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    REQUIRE(seq._items.size() == 1);
+    auto p = dynamic_cast<const Print*>(seq._items[0].get());
+    REQUIRE(p != nullptr);
+    auto n = dynamic_cast<const Number*>(p->_expr.get());
+    REQUIRE(n != nullptr);
+    CHECK(n->_value == 1.0);
+}
+
+TEST_CASE("Recover from unknown statement token", "[parser]")
+{
+    auto [prog, errors] = parseStrWithErrors("SUB Main\nFOO\nPRINT 1\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    REQUIRE(!errors.empty());
+    CHECK(errors[0].find("Անհայտ") != std::string::npos);
+
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    REQUIRE(seq._items.size() == 1);
+    auto p = dynamic_cast<const Print*>(seq._items[0].get());
+    REQUIRE(p != nullptr);
 }
 
 TEST_CASE("Parse parenthesized expression", "[parser]")

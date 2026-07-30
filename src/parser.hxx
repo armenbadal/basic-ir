@@ -4,6 +4,7 @@
 #include "lexeme.hxx"
 #include "scanner.hxx"
 
+#include <initializer_list>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -15,6 +16,9 @@ public:
     ~Parser();
 
     Program::Ptr parse();
+
+    bool hasErrors() const noexcept;
+    const std::vector<std::string>& getErrors() const noexcept;
 
 private:
     Program::Ptr parseProgram();
@@ -50,8 +54,13 @@ private:
     void parseNewLines();
     std::string match(Token tok);
 
+    void reportError(const Lexeme& token, std::string_view message);
+    void synchronize(std::initializer_list<Token> syncTokens);
+
 private:
     Scanner& scanner;
     Lexeme lookahead;
+    bool panicMode = false;
+    std::vector<std::string> errors;
 };
 } // basic

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <format>
+#include <initializer_list>
 #include <iostream>
 #include <memory>
 #include <ranges>
@@ -18,8 +19,8 @@ public:
     using std::runtime_error::runtime_error;
 };
 
-const std::set FirstStat = {Token::Let, Token::Dim, Token::Input, Token::Print, Token::If, Token::While, Token::For, Token::Call};
-const std::set FirstExpr = {Token::True, Token::False, Token::Number, Token::Text, Token::Identifier, Token::Sub, Token::Not, Token::LeftPar};
+const std::set<Token> FirstStat = {Token::Let, Token::Dim, Token::Input, Token::Print, Token::If, Token::While, Token::For, Token::Call};
+const std::set<Token> FirstExpr = {Token::True, Token::False, Token::Number, Token::Text, Token::Identifier, Token::Sub, Token::Not, Token::LeftPar};
 
 Parser::Parser(Scanner& sc)
     : scanner{sc}
@@ -27,31 +28,77 @@ Parser::Parser(Scanner& sc)
 
 Parser::~Parser() = default;
 
+bool Parser::hasErrors() const noexcept
+{
+    return !errors.empty();
+}
+
+const std::vector<std::string>& Parser::getErrors() const noexcept
+{
+    return errors;
+}
+
+void Parser::advance()
+{
+    lookahead = scanner.scan();
+}
+
+void Parser::reportError(const Lexeme& token, std::string_view message)
+{
+    if( panicMode )
+        return;
+
+    panicMode = true;
+    errors.push_back(std::format("{}: {}", token.line, message));
+}
+
+void Parser::synchronize(std::initializer_list<Token> syncTokens)
+{
+    if( !panicMode )
+        return;
+
+    while( !lookahead.is(Token::Eof) && !std::any_of(syncTokens.begin(), syncTokens.end(), [this](Token tok){ return lookahead.is(tok); }) )
+        advance();
+
+    panicMode = false;
+}
 
 Program::Ptr Parser::parse()
-try {
-    return parseProgram();
-}
-catch( ParseError& e ) {
-    std::cerr << "Վերլուծության սխալ։ " << e.what() << std::endl;
-    return nullptr;
+{
+    try {
+        return parseProgram();
+    }
+    catch( ParseError& e ) {
+        reportError(lookahead, e.what());
+        return nullptr;
+    }
 }
 
 // Program = [NewLines] { Subroutine NewLines }.
 Program::Ptr Parser::parseProgram()
 {
-    // առաջին թոքենը
     lookahead = scanner.scan();
     auto line = lookahead.line;
 
-    if( lookahead.is(Token::NewLine) )
-        parseNewLines();
+    parseNewLines();
 
     std::vector<Subroutine::Ptr> subroutines;
     while( !lookahead.is(Token::Eof) ) {
-        auto s = parseSubroutine();
+        if( lookahead.is(Token::Subroutine) ) {
+            try {
+                auto s = parseSubroutine();
+                subroutines.push_back(s);
+            }
+            catch( ParseError& ) {
+                synchronize({Token::Subroutine, Token::Eof});
+            }
+        }
+        else {
+            reportError(lookahead, std::format("Անհայտ տողահերթ. սպասվում է SUB, բայց հանդիպել է '{}'։", lookahead.value));
+            synchronize({Token::Subroutine, Token::Eof});
+        }
+
         parseNewLines();
-        subroutines.push_back(s);
     }
 
     match(Token::Eof);
@@ -99,9 +146,35 @@ Sequence::Ptr Parser::parseSequence()
     parseNewLines();
 
     std::vector<Statement::Ptr> items;
-    while( FirstStat.contains(lookahead.kind) ) {
-        items.push_back(parseOneStatement());
-        parseNewLines();
+    constexpr std::initializer_list<Token> syncTokens = {
+        Token::NewLine, Token::Let, Token::Dim, Token::Input, Token::Print,
+        Token::If, Token::While, Token::For, Token::Call,
+        Token::End, Token::ElseIf, Token::Else, Token::Subroutine, Token::Eof
+    };
+
+    while( true ) {
+        if( FirstStat.contains(lookahead.kind) ) {
+            try {
+                auto statement = parseOneStatement();
+                if( statement )
+                    items.push_back(statement);
+            }
+            catch( ParseError& ) {
+                synchronize(syncTokens);
+            }
+            continue;
+        }
+
+        if( lookahead.is(Token::NewLine) ) {
+            parseNewLines();
+            continue;
+        }
+
+        if( lookahead.is(Token::End, Token::ElseIf, Token::Else, Token::Subroutine, Token::Eof) )
+            break;
+
+        reportError(lookahead, std::format("Անհայտ հրաման՝ '{}'.", lookahead.value));
+        synchronize(syncTokens);
     }
 
     return node<Sequence>(std::move(items), line);
@@ -110,30 +183,39 @@ Sequence::Ptr Parser::parseSequence()
 // Statement = Let | Dim | Input | Print | If | While | For | Call.
 Statement::Ptr Parser::parseOneStatement()
 {
-    if( lookahead.is(Token::Let) )
-        return parseLet();
+    try {
+        if( lookahead.is(Token::Let) )
+            return parseLet();
 
-    if (lookahead.is(Token::Dim))
-        return parseDim();
+        if( lookahead.is(Token::Dim) )
+            return parseDim();
 
-    if( lookahead.is(Token::Input) )
-        return parseInput();
+        if( lookahead.is(Token::Input) )
+            return parseInput();
 
-    if( lookahead.is(Token::Print) )
-        return parsePrint();
+        if( lookahead.is(Token::Print) )
+            return parsePrint();
 
-    if( lookahead.is(Token::If) )
-        return parseIf();
+        if( lookahead.is(Token::If) )
+            return parseIf();
 
-    if( lookahead.is(Token::While) )
-        return parseWhile();
+        if( lookahead.is(Token::While) )
+            return parseWhile();
 
-    if( lookahead.is(Token::For) )
-        return parseFor();
+        if( lookahead.is(Token::For) )
+            return parseFor();
 
-    if( lookahead.is(Token::Call) )
-        return parseCall();
-
+        if( lookahead.is(Token::Call) )
+            return parseCall();
+    }
+    catch( ParseError& ) {
+        constexpr std::initializer_list<Token> statementSync = {
+            Token::NewLine, Token::Let, Token::Dim, Token::Input, Token::Print,
+            Token::If, Token::While, Token::For, Token::Call,
+            Token::End, Token::ElseIf, Token::Else, Token::Subroutine, Token::Eof
+        };
+        synchronize(statementSync);
+    }
     return {};
 }
 
@@ -445,6 +527,8 @@ Number::Ptr Parser::parseNumber()
 {
     auto line = lookahead.line;
     auto value = match(Token::Number);
+    if( value.empty() )
+        return node<Number>(0.0, line);
     return node<Number>(std::stod(value), line);
 }
 
@@ -490,21 +574,21 @@ Expression::Ptr Parser::parseGrouped()
 //
 void Parser::parseNewLines()
 {
-    match(Token::NewLine);
     while( lookahead.is(Token::NewLine) )
-        match(Token::NewLine);
+        advance();
 }
 
-//
 std::string Parser::match(Token exp)
 {
-    if( !lookahead.is(exp) )
-        throw ParseError(std::format("Սպասվում է {}, բայց հանդիպել է {}։", 
-                toString(exp), lookahead.value));
+    if( lookahead.is(exp) ) {
+        const auto val = lookahead.value;
+        advance();
+        return val;
+    }
 
-    const auto val = lookahead.value;
-    lookahead = scanner.scan();
-    return val;
+    const auto message = std::format("Սպասվում է {}, բայց հանդիպել է {}։", toString(exp), lookahead.value);
+    reportError(lookahead, message);
+    throw ParseError(message);
 }
 
 } // basic

@@ -35,7 +35,12 @@ bool compile(const std::filesystem::path& source, bool generateIr, bool generate
     Parser parser{scanner};
     auto program = parser.parse();
     if( nullptr == program ) {
-        std::cerr << "Վերլուծության սխալ։";
+        if( parser.hasErrors() ) {
+            for( auto& err : parser.getErrors() )
+                std::cerr << err << std::endl;
+        } else {
+            std::cerr << "Վերլուծության սխալ։" << std::endl;
+        }
         return false;
     }
 
