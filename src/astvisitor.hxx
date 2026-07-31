@@ -26,6 +26,8 @@ protected:
             return derived().visit(static_cast<Print&>(node));
         case NodeKind::If:
             return derived().visit(static_cast<If&>(node));
+        case NodeKind::IfThen:
+            return derived().visit(static_cast<If::IfThen&>(node));
         case NodeKind::While:
             return derived().visit(static_cast<While&>(node));
         case NodeKind::For:
@@ -49,10 +51,10 @@ protected:
         case NodeKind::Boolean:
             return derived().visit(static_cast<Boolean&>(node));
         default:
-            return;
+            return ReturnType{};
         }
 
-        return;
+        return ReturnType{};
     }
 
 private:

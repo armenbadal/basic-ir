@@ -105,7 +105,7 @@ TEST_CASE("Subroutine with parameters", "[lisp]")
 {
     auto result = tos(makeProg({makeSub("max", {"x", "y"}, makeSeq({}))}));
     CHECK_THAT(result, ContainsSubstring("(basic-subroutine \"max\""));
-    CHECK_THAT(result, ContainsSubstring("'(\"x\" \"y\")"));
+    CHECK_THAT(result, ContainsSubstring("'((basic-variable \"x\") (basic-variable \"y\"))"));
 }
 
 TEST_CASE("Print number", "[lisp]")
@@ -165,7 +165,7 @@ TEST_CASE("If without else", "[lisp]")
     auto cond = node<Boolean>(true, 1);
     auto thenP = makePrint(node<Text>("yes", 2));
     auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeIf(cond, thenP, nullptr)}))}));
-    CHECK_THAT(result, ContainsSubstring("(basic-if (basic-boolean T) (basic-print (basic-text \"yes\")))"));
+    CHECK_THAT(result, ContainsSubstring("(basic-if (basic-if-then (basic-boolean T) (basic-print (basic-text \"yes\"))))"));
 }
 
 TEST_CASE("If with else", "[lisp]")
@@ -174,7 +174,7 @@ TEST_CASE("If with else", "[lisp]")
     auto thenP = makePrint(node<Text>("t", 2));
     auto elseP = makePrint(node<Text>("f", 3));
     auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeIf(cond, thenP, elseP)}))}));
-    CHECK_THAT(result, ContainsSubstring("(basic-if (basic-boolean NIL) (basic-print (basic-text \"t\")) (basic-print (basic-text \"f\")))"));
+    CHECK_THAT(result, ContainsSubstring("(basic-if (basic-if-then (basic-boolean NIL) (basic-print (basic-text \"t\"))) (basic-print (basic-text \"f\")))"));
 }
 
 TEST_CASE("While loop", "[lisp]")

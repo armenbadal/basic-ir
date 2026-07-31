@@ -1,14 +1,14 @@
 #include "aslisp.hxx"
 
 #include <format>
-#include <map>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace basic {
 
-std::map<Operation, std::string> mnemonic{
+std::unordered_map<Operation, std::string> mnemonic{
     { Operation::None, "?" },
     { Operation::Add,  "ADD" },
     { Operation::Sub,  "SUB" },
@@ -30,151 +30,123 @@ std::map<Operation, std::string> mnemonic{
 
 void Lisper::emit(Program::Ptr node, std::ostream& os)
 {
-    os << str(node);
+    os << visit(*node) << '\n';
 }
 
-void Lisper::visit(Boolean& node)
+std::string Lisper::visit(Boolean& node)
 {
-    _result = std::format("(basic-boolean {})", node._value ? "T" : "NIL");
+    return std::format("(basic-boolean {})", node._value ? "T" : "NIL");
 }
 
-void Lisper::visit(Number& node)
+std::string Lisper::visit(Number& node)
 {
-    _result = std::format("(basic-number {})", node._value);
+    return std::format("(basic-number {})", node._value);
 }
 
-void Lisper::visit(Text& node)
+std::string Lisper::visit(Text& node)
 {
-    _result = std::format("(basic-text \"{}\")", node._value);
+    return std::format("(basic-text \"{}\")", node._value);
 }
 
-void Lisper::visit(Variable& node)
+std::string Lisper::visit(Variable& node)
 {
-    _result = std::format("(basic-variable \"{}\")", node._name);
+    return std::format("(basic-variable \"{}\")", node._name);
 }
 
-void Lisper::visit(Unary& node)
+std::string Lisper::visit(Unary& node)
 {
-    _result = std::format("(basic-unary \"{}\" {})", 
-                          mnemonic[node._operation],
-                          str(node._operand));
+    return std::format("(basic-unary \"{}\" {})", 
+                       mnemonic[node._operation],
+                       visit(*node._operand));
 }
 
-void Lisper::visit(Binary& node)
+std::string Lisper::visit(Binary& node)
 {
-    _result = std::format("(basic-binary \"{}\" {} {})", 
-                          mnemonic[node._operation],
-                          str(node._left),
-                          str(node._right));
+    return std::format("(basic-binary \"{}\" {} {})", 
+                       mnemonic[node._operation],
+                       visit(*node._left),
+                       visit(*node._right));
 }
 
-void Lisper::visit(Array& node)
+std::string Lisper::visit(Array& node)
 {
-    _result = std::format("(basic-array {})", str(node._elements));
+    return std::format("(basic-array {})", visitVector(node._elements));
 }
 
-void Lisper::visit(Apply& node)
+std::string Lisper::visit(Apply& node)
 {
-    _result = std::format("(basic-apply \"{}\" {})",
-                          node._callee, str(node._arguments));
+    return std::format("(basic-apply \"{}\" {})",
+                       node._callee,
+                       visitVector(node._arguments));
 }
 
-void Lisper::visit(Let& node)
+std::string Lisper::visit(Let& node)
 {
-    _result = std::format("(basic-let (basic-variable \"{}\") {})", 
-                          node._variable->_name,
-                          str(node._expr));
+    return std::format("(basic-let (basic-variable \"{}\") {})", 
+                       node._variable->_name,
+                       visit(*node._expr));
 }
 
-void Lisper::visit(Input& node)
+std::string Lisper::visit(Input& node)
 {
-    _result = std::format("(basic-input (basic-variable \"{}\"))",
-                          node._variable->_name);
+    return std::format("(basic-input (basic-variable \"{}\"))", node._variable->_name);
 }
 
-void Lisper::visit(Print& node)
+std::string Lisper::visit(Print& node)
 {
-    _result = std::format("(basic-print {})", str(node._expr));
+    return std::format("(basic-print {})", visit(*node._expr));
 }
 
-void Lisper::visit(Dim& node)
+std::string Lisper::visit(Dim& node)
 {
-    _result = std::format("(basic-dim \"{}\" {})", 
-                          node._name,
-                          str(node._size));
+    return std::format("(basic-dim \"{}\" {})", node._name, visit(*node._size));
 }
 
-void Lisper::visit(If& node)
+std::string Lisper::visit(If& node)
 {
-    std::string result = "(basic-if";
-    for (auto& branch : node._branches) {
-        result += " " + str(branch->_condition);
-        result += " " + str(branch->_decision);
-    }
-    auto alt = node._alternative ? str(node._alternative) : "";
-    if (!alt.empty())
-        result += " " + alt;
-    result += ")";
-    _result = result;
+    auto branches = visitVector(node._branches);
+    auto alternative = node._alternative ? " " + visit(*node._alternative) : "";
+    return std::format("(basic-if {}{})", branches, alternative);
 }
 
-void Lisper::visit(While& node)
+std::string Lisper::visit(If::IfThen& node)
 {
-    _result = std::format("(basic-while {} {})",
-                          str(node._condition),
-                          str(node._body));
+    return "(basic-if-then " + visit(*node._condition) + " " + visit(*node._decision) + ")";
 }
 
-void Lisper::visit(For& node)
+std::string Lisper::visit(While& node)
 {
-    _result = std::format("(basic-for {} {} {} {} {})",
-                          str(node._parameter),
-                          str(node._begin),
-                          str(node._end),
-                          str(node._step),
-                          str(node._body));
+    return std::format("(basic-while {} {})", visit(*node._condition), visit(*node._body));
 }
 
-void Lisper::visit(Call& node)
+std::string Lisper::visit(For& node)
 {
-    auto args = str(node._subrCall->_arguments);
-    _result = args.empty()
-        ? std::format("(basic-call \"{}\")", node._subrCall->_callee)
-        : std::format("(basic-call \"{}\" {})", node._subrCall->_callee, args);
+    return std::format("(basic-for {} {} {} {} {})",
+                       visit(*node._parameter),
+                       visit(*node._begin),
+                       visit(*node._end),
+                       visit(*node._step),
+                       visit(*node._body));
 }
 
-void Lisper::visit(Sequence& node)
+std::string Lisper::visit(Call& node)
 {
-    auto items = str(node._items);
-    _result = items.empty()
-        ? "(basic-sequence)"
-        : "(basic-sequence " + items + ")";
+    return "(basic-call \"" + node._subrCall->_callee + "\"" + spaced(node._subrCall->_arguments) + ")";
 }
 
-void Lisper::visit(Subroutine& node)
+std::string Lisper::visit(Sequence& node)
 {
-    std::string out = "(basic-subroutine \"" + node._name + "\"";
-    std::string parlis;
-    for( auto& ip : node._parameters ) {
-        parlis.append("\"");
-        parlis.append(ip->_name);
-        parlis.append("\" ");
-    }
-    if( !parlis.empty() )
-        parlis.pop_back();
-    out += " '(" + parlis + ")";
-    visit(*node._body);
-    out += " " + _result;
-    out += ")";
-    _result = out;
+    return "(basic-sequence" + spaced(node._items) + ")";
 }
 
-void Lisper::visit(Program& node)
+std::string Lisper::visit(Subroutine& node)
 {
-    auto subs = str(node._subroutines);
-    _result = "(basic-program";
-    if (!subs.empty()) _result += " " + subs;
-    _result += ")\n";
+    return "(basic-subroutine \"" + node._name + "\" '(" + visitVector(node._parameters) + ") " + visit(*node._body) + ")";
+}
+
+std::string Lisper::visit(Program& node)
+{
+    return "(basic-program" + spaced(node._subroutines) + ")";
 }
 
 } // basic
