@@ -37,6 +37,8 @@ enum class NodeKind : int {
 // Թոքենի դիրքը տեքստում (հիմա՝ տողը)
 using Position = unsigned int;
 
+using NodeId = unsigned int;
+
 // Քերականական ծառի հանգույցի բազային տիպը։
 //
 // Ծառի հանգույցների բոլոր տեսակներն այս տիպի ընդլայնում են։
@@ -50,7 +52,7 @@ public:
     {}
     virtual ~Node() = default;
 
-    virtual size_t id() const
+    virtual NodeId id() const noexcept
     {
         return _id;
     }
@@ -61,7 +63,7 @@ public:
     const Position line{0};               // տողի համարը
 
 private:
-    size_t _id{0};
+    NodeId _id{0};
     inline static size_t _index{0};
 };
 
