@@ -591,8 +591,15 @@ TEST_CASE("Reported errors are capped", "[parser][recovery]")
         input += "@\n";
     input += "END SUB\n";
 
-    auto [prog, errors] = parseStrWithErrors(input);
-    CHECK(errors.size() == Diagnostics::MaxErrors);
+    auto stream = std::make_shared<std::istringstream>(input);
+    Scanner scanner{*stream};
+    Diagnostics diagnostics;
+    Parser parser{scanner, diagnostics};
+    parser.parse();
+
+    // ցուցակը կտրված է, բայց հաշվիչը գիտի իրական քանակը
+    CHECK(diagnostics.errors().size() == Diagnostics::MaxErrors);
+    CHECK(diagnostics.count() == 500);
 }
 
 TEST_CASE("Parse parenthesized expression", "[parser]")

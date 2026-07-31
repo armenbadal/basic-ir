@@ -1,78 +1,78 @@
-﻿#pragma once
+#pragma once
 
 #include <string>
 
 namespace basic {
 
-//! @brief Բառային տարրերի պիտակները
+// Բառային տարրերի պիտակները
 enum class Token : int {
-    None, //!< ոչինչ
+    None, // ոչինչ
 
-    Number,     //!< թվային հաստատուն
-    Text,       //!< տեքստային հաստատուն
-    Identifier, //!< իդենտիֆիկատոր
-    True,       //!< @c TRUE հաստատունը
-    False,      //!< @c FALSE հաստատունը
+    Number,     // թվային հաստատուն
+    Text,       // տեքստային հաստատուն
+    Identifier, // իդենտիֆիկատոր
+    True,       // TRUE հաստատունը
+    False,      // FALSE հաստատունը
 
-    Subroutine, //!< @c SUB
-    Input,      //!< @c INPUT
-    Print,      //!< @c PRINT
-    Dim,        //!< @c DIM
-    Let,        //!< @c LET
-    If,         //!< @c IF
-    Then,       //!< @c THEN
-    ElseIf,     //!< @c ELSEIF
-    Else,       //!< @c ELSE
-    While,      //!< @c WHILE
-    For,        //!< @c FOR
-    To,         //!< @c TO
-    Step,       //!< @c STEP
-    Call,       //!< @c CALL
-    End,        //!< @c END
+    Subroutine, // SUB
+    Input,      // INPUT
+    Print,      // PRINT
+    Dim,        // DIM
+    Let,        // LET
+    If,         // IF
+    Then,       // THEN
+    ElseIf,     // ELSEIF
+    Else,       // ELSE
+    While,      // WHILE
+    For,        // FOR
+    To,         // TO
+    Step,       // STEP
+    Call,       // CALL
+    End,        // END
 
-    NewLine, //!< նոր տողի նիշ
+    NewLine, // նոր տողի նիշ
 
-    Eq, //!< @c =
-    Ne, //!< @c <>
-    Lt, //!< @c <
-    Le, //!< @c <=
-    Gt, //!< @c >
-    Ge, //!< @c >=
+    Eq, // =
+    Ne, // <>
+    Lt, // <
+    Le, // <=
+    Gt, // >
+    Ge, // >=
 
-    LeftPar,    //!< @c (
-    RightPar,   //!< @c )
-    LeftBrack,  //< @c [
-    RightBrack, //< @c ]
-    Comma,      //!< @c ,
+    LeftPar,    // (
+    RightPar,   // )
+    LeftBrack,  //< [
+    RightBrack, //< ]
+    Comma,      // ,
 
-    Add, //!< @c +
-    Sub, //!< @c -
-    Amp, //!< @c &
-    Or,  //!< @c OR
-    Mul, //!< @c *
-    Div, //!< @c /
-    Mod, //!< @c MOD
-    Quot, //!< @c '\'
-    And, //!< @c AND
-    Pow, //!< @c ^
-    Not, //!< @c NOT
+    Add, // +
+    Sub, // -
+    Amp, // &
+    Or,  // OR
+    Mul, // *
+    Div, // /
+    Mod, // MOD
+    Quot, // '\'
+    And, // AND
+    Pow, // ^
+    Not, // NOT
 
-    Eof //!< ֆայլի վերջը
+    Eof // ֆայլի վերջը
 };
 
-//! @brief Պիտակի տեքստային ներկայացումը
+// Պիտակի տեքստային ներկայացումը
 std::string toString(Token sym);
 
-//! @brief Լեքսեմի դասը
-//!
-//! Օգտագործվում է որպես բառային և շարահյուսական վերլուծիչների 
-//! տվյալների փոխանակման միավոր։
-//!
+// Լեքսեմի դասը
+//
+// Օգտագործվում է որպես բառային և շարահյուսական վերլուծիչների 
+// տվյալների փոխանակման միավոր։
+//
 class Lexeme {
 public:
-    Token kind = Token::None; //!< պիտակը
-    std::string value;   //!< տեքստը (լեքսեմը)
-    unsigned int line = 0;    //!< տողի համարը
+    Token kind = Token::None; // պիտակը
+    std::string value;   // տեքստը (լեքսեմը)
+    unsigned int line = 0;    // տողի համարը
 
 public:
     Lexeme() = default;
@@ -91,9 +91,9 @@ public:
         return is(ex) || is(exps...);
     }
 
-    //! @brief Լեքսեմի տեքստային ներկայացում
-    //!
-    //! Օգտագործվում է շտկման (debug) գործողությունների ժամանակ։
+    // Լեքսեմի տեքստային ներկայացում
+    //
+    // Օգտագործվում է շտկման (debug) գործողությունների ժամանակ։
     std::string toString() const;
 };
 } // basic

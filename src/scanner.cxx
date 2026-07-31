@@ -7,7 +7,7 @@
 
 namespace basic {
 
-//! @brief ծառայողական բառերի ցուցակ
+// ծառայողական բառերի ցուցակ
 static inline std::map<std::string_view, Token> keywords{
     { "SUB",    Token::Subroutine },
     { "LET",    Token::Let },
@@ -32,7 +32,7 @@ static inline std::map<std::string_view, Token> keywords{
     { "FALSE",  Token::False }
 };
 
-//! @brief մետասիմվոլների ցուցակ
+// մետասիմվոլների ցուցակ
 static inline std::map<char, Token> metasymbols{
     { '(', Token::LeftPar },
     { ')', Token::RightPar },
@@ -93,7 +93,7 @@ Scanner::Scanner(std::istream& input)
     source.unsetf(std::ios_base::skipws);
 }
 
-//! @brief Հերթական լեքսեմը կարդալու ֆունկցիա
+// Հերթական լեքսեմը կարդալու ֆունկցիա
 Lexeme Scanner::scan()
 {
     read_while(source, isSpace);

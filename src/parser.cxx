@@ -22,13 +22,13 @@ const std::set FirstExpr = {
     Token::Identifier, Token::Sub, Token::Not, Token::LeftPar
 };
 
-//! @brief Թոքենները, որոնցով ավարտվում է հրամանների հաջորդականությունը
+// Թոքենները, որոնցով ավարտվում է հրամանների հաջորդականությունը
 const std::set FollowStat = {
     Token::End, Token::ElseIf, Token::Else,
     Token::Subroutine, Token::Eof
 };
 
-//! @brief Հրամանի մակարդակի համաժամեցման կետերը
+// Հրամանի մակարդակի համաժամեցման կետերը
 const std::set<Token> StatementSync = {
     Token::NewLine, Token::Let, Token::Dim, Token::Input, 
     Token::Print, Token::If, Token::While, Token::For, 
@@ -36,12 +36,12 @@ const std::set<Token> StatementSync = {
     Token::Subroutine, Token::Eof
 };
 
-//! @brief Ենթածրագրի մակարդակի համաժամեցման կետերը
+// Ենթածրագրի մակարդակի համաժամեցման կետերը
 const std::set<Token> SubroutineSync = {
     Token::Subroutine, Token::Eof
 };
 
-//! @brief Արտահայտության մակարդակի համաժամեցման կետերը
+// Արտահայտության մակարդակի համաժամեցման կետերը
 const std::set<Token> ExprSync = {
     Token::True, Token::False, Token::Number, Token::Text,
     Token::Identifier, Token::Sub, Token::Not, Token::LeftPar,
@@ -530,7 +530,8 @@ Number::Ptr Parser::parseNumber()
         return node<Number>(value.empty() ? 0.0 : std::stod(value), line);
     }
     catch( const std::exception& ) {
-        diagnostics.mark(lookahead.line, std::format("Սխալ թվային հաստատուն՝ '{}'։", value));
+        // lookahead-ն արդեն հաջորդ թոքենն է, ուստի սխալը նշում ենք հաստատունի տողում
+        diagnostics.mark(line, std::format("Սխալ թվային հաստատուն՝ '{}'։", value));
         return node<Number>(0.0, line);
     }
 }

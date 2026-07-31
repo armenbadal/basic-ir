@@ -13,7 +13,7 @@
 
 namespace basic {
 
-//! @brief Բառային վերլուծիչ
+// Բառային վերլուծիչ
 class Scanner {
 public:
     explicit Scanner(std::istream& source);

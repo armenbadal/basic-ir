@@ -29,16 +29,25 @@ std::string describe(const Lexeme& lex)
 
 void Diagnostics::mark(unsigned int line, std::string_view message)
 {
-    if( !_advanced || _errors.size() >= MaxErrors )
+    if( !_advanced )
         return;
 
     _advanced = false;
-    _errors.push_back({line, std::string{message}});
+    ++_count;
+
+    // ցուցակում պահում ենք միայն առաջին MaxErrors-ը, բայց հաշվում ենք բոլորը
+    if( _count <= MaxErrors )
+        _errors.push_back({line, std::string{message}});
 }
 
 const std::vector<SyntaxError>& Diagnostics::errors() const noexcept
 {
     return _errors;
+}
+
+std::size_t Diagnostics::count() const noexcept
+{
+    return _count;
 }
 
 } // basic

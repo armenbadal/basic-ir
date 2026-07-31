@@ -9,37 +9,37 @@
 //
 namespace basic {
 
-//! @brief Աբստրակտ քերականական ծառի հանգույցի տեսակը
+// Աբստրակտ քերականական ծառի հանգույցի տեսակը
 enum class NodeKind : int {
-    Empty,      //!< ոչինչ
-    Boolean,    //!< տրամաբանական հաստատուն
-    Number,     //!< թվային հաստատուն
-    Text,       //!< տեքստային հաստատուն
-    Variable,   //!< փոփոխականի հղում
-    Unary,      //!< ունար գործողություն
-    Binary,     //!< բինար գործողություն
-    Apply,      //!< ֆունկցիայի կիրառում
-    Array,      //!< զանգվածի տարրեր
-    Sequence,   //!< հրամանների հաջորդում
-    Dim,        //!< զանգվածի սահմանում
-    Input,      //!< տվյալների ներմուծում
-    Print,      //!< տվյալների արտածում
-    Let,        //!< վերագրում
-    If,         //!< լրիվ ճյուղավորում
-    IfThen,     //!< կարճ ճյուղավորում
-    While,      //!< պայմանով կրկնություն
-    For,        //!< պարամետրով կրկնություն
-    Call,       //!< պրոցեդուրայի կանչ
-    Subroutine, //!< ենթածրագիր
-    Program     //!< ծրագիր
+    Empty,      // ոչինչ
+    Boolean,    // տրամաբանական հաստատուն
+    Number,     // թվային հաստատուն
+    Text,       // տեքստային հաստատուն
+    Variable,   // փոփոխականի հղում
+    Unary,      // ունար գործողություն
+    Binary,     // բինար գործողություն
+    Apply,      // ֆունկցիայի կիրառում
+    Array,      // զանգվածի տարրեր
+    Sequence,   // հրամանների հաջորդում
+    Dim,        // զանգվածի սահմանում
+    Input,      // տվյալների ներմուծում
+    Print,      // տվյալների արտածում
+    Let,        // վերագրում
+    If,         // լրիվ ճյուղավորում
+    IfThen,     // կարճ ճյուղավորում
+    While,      // պայմանով կրկնություն
+    For,        // պարամետրով կրկնություն
+    Call,       // պրոցեդուրայի կանչ
+    Subroutine, // ենթածրագիր
+    Program     // ծրագիր
 };
 
-// @brief Թոքենի դիրքը տեքստում (հիմա՝ տողը)
+// Թոքենի դիրքը տեքստում (հիմա՝ տողը)
 using Position = unsigned int;
 
-//! @brief Քերականական ծառի հանգույցի բազային տիպը։
-//!
-//! Ծառի հանգույցների բոլոր տեսակներն այս տիպի ընդլայնում են։
+// Քերականական ծառի հանգույցի բազային տիպը։
+//
+// Ծառի հանգույցների բոլոր տեսակներն այս տիպի ընդլայնում են։
 class Node {
 public:
     Node() = default;
@@ -57,8 +57,8 @@ public:
 
     using Ptr = std::shared_ptr<Node>;
 
-    const NodeKind kind{NodeKind::Empty}; //!< հանգույցի տեսակը
-    const Position line{0};               //!< տողի համարը
+    const NodeKind kind{NodeKind::Empty}; // հանգույցի տեսակը
+    const Position line{0};               // տողի համարը
 
 private:
     size_t _id{0};
@@ -72,7 +72,7 @@ std::shared_ptr<P> node(Args&&... args)
 }
 
 
-//! @brief Արտահայտություն
+// Արտահայտություն
 class Expression : public Node {
 public:
     Expression(NodeKind k, Position p)
@@ -83,7 +83,7 @@ public:
 };
 
 
-//! @brief Տրամաբանական հաստատուն
+// Տրամաբանական հաստատուն
 class Boolean : public Expression {
 public:
     Boolean(bool value, Position pos)
@@ -96,7 +96,7 @@ public:
 };
 
 
-//! @brief Թվային հաստատուն
+// Թվային հաստատուն
 class Number : public Expression {
 public:
     Number(double value, Position pos)
@@ -109,7 +109,7 @@ public:
 };
 
 
-//! @brief Տեքստային հաստատուն
+// Տեքստային հաստատուն
 class Text : public Expression {
 public:
     Text(std::string_view value, Position pos)
@@ -122,7 +122,7 @@ public:
 };
   
 
-//! @brief Փոփոխական
+// Փոփոխական
 class Variable : public Expression {
 public:
     Variable(std::string_view name, Position pos)
@@ -131,34 +131,34 @@ public:
     {}
     using Ptr = std::shared_ptr<Variable>;
 
-    const std::string _name; //!< փոփոխականի անունը
+    const std::string _name; // փոփոխականի անունը
 };
 
 
-//! @brief Գործողությունների անունները
+// Գործողությունների անունները
 enum class Operation {
-    None, //!< անորոշ
-    Add,  //!< գումարում
-    Sub,  //!< հանում
-    Mul,  //!< բազմապատկում
-    Div,  //!< բաժանում
-    Mod,  //!< մնացորդ
-    Quot, //!< քանորդ
-    Pow,  //!< աստիճան
-    Eq,   //!< հավասար է
-    Ne,   //!< հավասար չէ
-    Gt,   //!< մեծ է
-    Ge,   //!< մեծ է կամ հավասար
-    Lt,   //!< փոքր է
-    Le,   //!< փոքր է կամ հավասար
-    And,  //!< ԵՎ (կոնյունկցիա)
-    Or,   //!< ԿԱՄ (դիզյունկցիա)
-    Not,  //!< ՈՉ (ժխտում)
-    Conc,  //!< տեքստերի կցում
-    Index  //!< ինդեքսավորում
+    None, // անորոշ
+    Add,  // գումարում
+    Sub,  // հանում
+    Mul,  // բազմապատկում
+    Div,  // բաժանում
+    Mod,  // մնացորդ
+    Quot, // քանորդ
+    Pow,  // աստիճան
+    Eq,   // հավասար է
+    Ne,   // հավասար չէ
+    Gt,   // մեծ է
+    Ge,   // մեծ է կամ հավասար
+    Lt,   // փոքր է
+    Le,   // փոքր է կամ հավասար
+    And,  // ԵՎ (կոնյունկցիա)
+    Or,   // ԿԱՄ (դիզյունկցիա)
+    Not,  // ՈՉ (ժխտում)
+    Conc,  // տեքստերի կցում
+    Index  // ինդեքսավորում
 };
 
-//! @brief Ունար գործողություն
+// Ունար գործողություն
 class Unary : public Expression {
 public:
     Unary(Operation operation, Expression::Ptr operand, Position pos)
@@ -168,12 +168,12 @@ public:
     {}
     using Ptr = std::shared_ptr<Unary>;
 
-    const Operation _operation;      //!< գործողության կոդը
-    const Expression::Ptr _operand;  //!< օպերանդը
+    const Operation _operation;      // գործողության կոդը
+    const Expression::Ptr _operand;  // օպերանդը
 };
 
 
-//! @brief Բինար գործողություն
+// Բինար գործողություն
 class Binary : public Expression {
 public:
     Binary(Operation operation, Expression::Ptr left, 
@@ -185,12 +185,12 @@ public:
     {}
     using Ptr = std::shared_ptr<Binary>;
 
-    const Operation _operation;    //!< գործողության կոդը
-    const Expression::Ptr _left;  //!< ձախ օպերանդը
-    const Expression::Ptr _right; //!< աջ օպերանդը
+    const Operation _operation;    // գործողության կոդը
+    const Expression::Ptr _left;  // ձախ օպերանդը
+    const Expression::Ptr _right; // աջ օպերանդը
 };
 
-//! @brief Ֆունկցիայի կանչ (կիրառում)
+// Ֆունկցիայի կանչ (կիրառում)
 class Apply : public Expression {
 public:
     Apply(std::string_view callee, std::vector<Expression::Ptr> arguments, Position pos)
@@ -200,11 +200,11 @@ public:
     {}
     using Ptr = std::shared_ptr<Apply>;
 
-    const std::string _callee;                     //!< կանչվող ենթածրագիրը
-    const std::vector<Expression::Ptr> _arguments; //!< արգումենտները
+    const std::string _callee;                     // կանչվող ենթածրագիրը
+    const std::vector<Expression::Ptr> _arguments; // արգումենտները
 };
 
-//! @brief Զանգվածի թվարկված տարրեր
+// Զանգվածի թվարկված տարրեր
 class Array : public Expression {
 public:
     Array(std::vector<Expression::Ptr> elements, Position pos)
@@ -213,11 +213,11 @@ public:
     {}
     using Ptr = std::shared_ptr<Array>;
 
-    const std::vector<Expression::Ptr> _elements; //!< տարրերը
+    const std::vector<Expression::Ptr> _elements; // տարրերը
 };
 
 
-//! @brief Ղեկավարող կառուցվածք (հրաման)
+// Ղեկավարող կառուցվածք (հրաման)
 class Statement : public Node {
 public:
     Statement(NodeKind k, Position p)
@@ -227,7 +227,7 @@ public:
 };
 
 
-//! @brief Հրամանների շարք (հաջորդականություն)
+// Հրամանների շարք (հաջորդականություն)
 class Sequence : public Statement {
 public:
     Sequence(std::vector<Statement::Ptr> items, Position pos) 
@@ -239,7 +239,7 @@ public:
     const std::vector<Statement::Ptr> _items;
 };
 
-//! @brief Զանգվածի սահմանում
+// Զանգվածի սահմանում
 class Dim : public Statement {
 public:
     Dim(std::string_view name, Expression::Ptr size, Position pos)
@@ -248,11 +248,11 @@ public:
     {}
     using Ptr = std::shared_ptr<Dim>;
 
-    const std::string _name;     //!< անունը
-    const Expression::Ptr _size; //!< չափը
+    const std::string _name;     // անունը
+    const Expression::Ptr _size; // չափը
 };
 
-//! @brief Տվյալների ներմուծում
+// Տվյալների ներմուծում
 class Input : public Statement {
 public:
     Input(Variable::Ptr variable, Position pos)
@@ -261,11 +261,11 @@ public:
     {}
     using Ptr = std::shared_ptr<Input>;
 
-    const Variable::Ptr _variable;   //!< ներմուծվող փոփոխական
+    const Variable::Ptr _variable;   // ներմուծվող փոփոխական
 };
 
 
-//! @brief Տվյալների արտածում
+// Տվյալների արտածում
 class Print : public Statement {
 public:
     Print(Expression::Ptr expr, Position pos)
@@ -274,11 +274,11 @@ public:
     {}
     using Ptr = std::shared_ptr<Print>;
 
-    const Expression::Ptr _expr; //!< արտածվող արտահայտությունը
+    const Expression::Ptr _expr; // արտածվող արտահայտությունը
 };
 
 
-//! @brief Վերագրում (միաժամանակ՝ փոփոխականի սահմանում)
+// Վերագրում (միաժամանակ՝ փոփոխականի սահմանում)
 class Let : public Statement {
 public:
     Let(Variable::Ptr variable, Expression::Ptr expr, Position pos)
@@ -288,12 +288,12 @@ public:
     {}
     using Ptr = std::shared_ptr<Let>;
 
-    const Variable::Ptr _variable;  //!< փոփոխականը
-    const Expression::Ptr _expr; //!< արժեքը
+    const Variable::Ptr _variable;  // փոփոխականը
+    const Expression::Ptr _expr; // արժեքը
 };
 
 
-//! @brief Ճյուղավորում
+// Ճյուղավորում
 class If : public Statement {
 public:
     class IfThen : public Statement {
@@ -305,8 +305,8 @@ public:
         {}
         using Ptr = std::shared_ptr<IfThen>;
 
-        const Expression::Ptr _condition; //!< պայման
-        const Statement::Ptr _decision;   //!< որոշում, then
+        const Expression::Ptr _condition; // պայման
+        const Statement::Ptr _decision;   // որոշում, then
     };
 
     If(std::vector<IfThen::Ptr> branches,
@@ -317,12 +317,12 @@ public:
     {}
     using Ptr = std::shared_ptr<If>;
 
-    const std::vector<IfThen::Ptr> _branches;  //!< ճյուղեր
-    const Statement::Ptr _alternative; //!< @c else ճյուղը
+    const std::vector<IfThen::Ptr> _branches;  // ճյուղեր
+    const Statement::Ptr _alternative; // else ճյուղը
 };
 
 
-//! @brief Նախապայմանով ցիկլ
+// Նախապայմանով ցիկլ
 class While : public Statement {
 public:
     While(Expression::Ptr condition, Statement::Ptr body, Position pos)
@@ -332,12 +332,12 @@ public:
     {}
     using Ptr = std::shared_ptr<While>;
 
-    const Expression::Ptr _condition; //!< կրկնման պայման
-    const Statement::Ptr _body;       //!< ցիկլի մարմինը
+    const Expression::Ptr _condition; // կրկնման պայման
+    const Statement::Ptr _body;       // ցիկլի մարմինը
 };
 
 
-//! @brief Պարամետրով ցիկլ
+// Պարամետրով ցիկլ
 class For : public Statement {
 public:
     For(Variable::Ptr parameter, Expression::Ptr begin, Expression::Ptr end, 
@@ -351,15 +351,15 @@ public:
     {}
     using Ptr = std::shared_ptr<For>;
 
-    const Variable::Ptr _parameter; //!< ցիկլի պարամետրը
-    const Expression::Ptr _begin;   //!< պարամետրի սկզբնակական արժեքը
-    const Expression::Ptr _end;     //!< պարամետրի սահմանային արժեքը
-    const Number::Ptr _step;        //!< պարամետրի փոփոխման քայլը
-    const Statement::Ptr _body;     //!< ցիկլի մարմինը
+    const Variable::Ptr _parameter; // ցիկլի պարամետրը
+    const Expression::Ptr _begin;   // պարամետրի սկզբնակական արժեքը
+    const Expression::Ptr _end;     // պարամետրի սահմանային արժեքը
+    const Number::Ptr _step;        // պարամետրի փոփոխման քայլը
+    const Statement::Ptr _body;     // ցիկլի մարմինը
 };
 
 
-//! @brief Ենթածրագրի կանչ
+// Ենթածրագրի կանչ
 class Call : public Statement {
 public:
     Call(std::string_view callee, std::vector<Expression::Ptr> arguments, Position pos)
@@ -372,14 +372,14 @@ public:
 };
 
 
-//! @brief Ենթածրագիր
-//!
-//! Ենթածրագիրը օգտագործվում է և՛ որպես պրոցեդուրա, և՛ որպես
-//! ֆունկցիա։ Դրա վերադարձրած արժեքի տիպը որոշվում է անվան
-//! կառուցվածքով, ինչպես փոփոխականներինը։ Ենթածրագիրը 
-//! ֆունկցիա է, եթե նրա մարմնում է անվանը արժեք վերագրող
-//! @c LET հրաման։ Այդ դեպքում @c hasValue անդամի արժեքը
-//! դրվում է @c true ։
+// Ենթածրագիր
+//
+// Ենթածրագիրը օգտագործվում է և՛ որպես պրոցեդուրա, և՛ որպես
+// ֆունկցիա։ Դրա վերադարձրած արժեքի տիպը որոշվում է անվան
+// կառուցվածքով, ինչպես փոփոխականներինը։ Ենթածրագիրը 
+// ֆունկցիա է, եթե նրա մարմնում է անվանը արժեք վերագրող
+// LET հրաման։ Այդ դեպքում hasValue անդամի արժեքը
+// դրվում է true։
 class Subroutine : public Node {
 public:
     Subroutine(std::string_view name, 
@@ -399,7 +399,7 @@ public:
 };
 
 
-//! @brief Ծրագիր
+// Ծրագիր
 class Program : public Node {
 public:
     Program(std::vector<Subroutine::Ptr> subroutines, Position pos)
@@ -408,7 +408,7 @@ public:
     {}
     using Ptr = std::shared_ptr<Program>;
 
-    const std::vector<Subroutine::Ptr> _subroutines; //!< ենթածրագրերի ցուցակը
+    const std::vector<Subroutine::Ptr> _subroutines; // ենթածրագրերի ցուցակը
 };
 
 } // basic

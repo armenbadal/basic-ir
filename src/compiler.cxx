@@ -15,6 +15,7 @@
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/SourceMgr.h>
 
+#include <format>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -41,6 +42,11 @@ bool compile(const std::filesystem::path& source, bool generateIr, bool generate
     if( !diagnostics.errors().empty() ) {
         for( const auto& error : diagnostics.errors() )
             std::cerr << source.string() << ":" << error << std::endl;
+
+        if( diagnostics.count() > diagnostics.errors().size() )
+            std::cerr << std::format("... և ևս {} սխալ։",
+                    diagnostics.count() - diagnostics.errors().size()) << std::endl;
+
         return false;
     }
 

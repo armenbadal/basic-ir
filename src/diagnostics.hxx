@@ -32,10 +32,15 @@ public:
     // Նշում է, որ թոքեն է սպառվել (Վիրտի կանոնի համար)
     void advance() noexcept { _advanced = true; }
 
+    // Առաջին MaxErrors սխալները
     const std::vector<SyntaxError>& errors() const noexcept;
+
+    // Գտնված սխալների ընդհանուր քանակը. կարող է errors()-ից մեծ լինել
+    std::size_t count() const noexcept;
 
 private:
     std::vector<SyntaxError> _errors;
+    std::size_t _count = 0;
     bool _advanced = true;
 };
 

@@ -10,7 +10,7 @@
 |------|------------------|
 | [src/parser.hxx](src/parser.hxx) | `Parser` դասի հայտարարությունը |
 | [src/parser.cxx](src/parser.cxx) | վերլուծիչի իրականացումը |
-| [src/diagnostics.hxx](src/diagnostics.hxx) | `Diagnostic` կառուցվածքը և `Diagnostics` հավաքիչը |
+| [src/diagnostics.hxx](src/diagnostics.hxx) | `SyntaxError` կառուցվածքը և `Diagnostics` հավաքիչը |
 | [src/diagnostics.cxx](src/diagnostics.cxx) | սխալների գրանցման կանոնները |
 | [src/scanner.hxx](src/scanner.hxx) | բառային վերլուծիչը |
 | [src/lexeme.hxx](src/lexeme.hxx) | `Token` պիտակները և `Lexeme` դասը |
@@ -44,9 +44,9 @@ _լեքսեմներ_։ Յուրաքանչյուր լեքսեմ ([src/lexeme.hxx]
 ```cpp
 class Lexeme {
 public:
-    Token kind = Token::None; //!< պիտակը
-    std::string value;        //!< տեքստը (լեքսեմը)
-    unsigned int line = 0;    //!< տողի համարը
+    Token kind = Token::None; // պիտակը
+    std::string value;        // տեքստը (լեքսեմը)
+    unsigned int line = 0;    // տողի համարը
 };
 ```
 
@@ -129,13 +129,13 @@ Dim::Ptr Parser::parseDim()
 void Parser::advance()
 {
     lookahead = scanner.scan();
-    ++tokenIndex;
+    diagnostics.advance();
 }
 ```
 
-`tokenIndex`-ը կլանված թոքենների քանակն է՝ վերլուծիչի «դիրքը»։ Այն
-վերլուծության համար պետք չէ, բայց կենտրոնական դեր է խաղում սխալների մշակման
-մեջ (տե՛ս 2.3)։
+Երկրորդ տողն ինքնին վերլուծության համար պետք չէ. այն սխալների հավաքիչին
+հայտնում է, որ վերլուծիչն առաջ է շարժվել։ Այս ազդանշանը կենտրոնական դեր է
+խաղում սխալների զտման մեջ (տե՛ս 2.3)։
 
 Թոքենի ստուգման ու կլանման համար կա մեկ ֆունկցիա.
 
@@ -143,7 +143,7 @@ void Parser::advance()
 std::string Parser::match(Token exp)
 {
     if( !lookahead.is(exp) ) {
-        mark(std::format("Սպասվում է '{}', բայց հանդիպել է {}։", toString(exp), describe(lookahead)));
+        diagnostics.mark(lookahead.line, std::format("Սպասվում է '{}', բայց հանդիպել է {}։", toString(exp), describe(lookahead)));
         return {};
     }
 
@@ -176,14 +176,20 @@ auto name = match(Token::Identifier);
 հաջորդականությունն ավարտվեց»), օգտագործվում են բացահայտ բազմություններ.
 
 ```cpp
-const std::set<Token> FirstStat = {Token::Let, Token::Dim, Token::Input, Token::Print,
-                                   Token::If, Token::While, Token::For, Token::Call};
-const std::set<Token> FirstExpr = {Token::True, Token::False, Token::Number, Token::Text,
-                                   Token::Identifier, Token::Sub, Token::Not, Token::LeftPar};
+const std::set FirstStat = {
+    Token::Let, Token::Dim, Token::Input, Token::Print,
+    Token::If, Token::While, Token::For, Token::Call
+};
+const std::set FirstExpr = {
+    Token::True, Token::False, Token::Number, Token::Text,
+    Token::Identifier, Token::Sub, Token::Not, Token::LeftPar
+};
 
-//! @brief Թոքենները, որոնցով ավարտվում է հրամանների հաջորդականությունը
-const std::set<Token> FollowStat = {Token::End, Token::ElseIf, Token::Else,
-                                    Token::Subroutine, Token::Eof};
+// Թոքենները, որոնցով ավարտվում է հրամանների հաջորդականությունը
+const std::set FollowStat = {
+    Token::End, Token::ElseIf, Token::Else,
+    Token::Subroutine, Token::Eof
+};
 ```
 
 `FirstStat`-ը հրաման սկսող թոքենների բազմությունն է, `FirstExpr`-ը՝
@@ -267,7 +273,7 @@ void Parser::parseNewLines()
 {
     // ֆայլի ավարտն ինքնին տողի ավարտ է
     if( !lookahead.is(Token::NewLine, Token::Eof) )
-        mark(std::format("Սպասվում է տողի ավարտ, բայց հանդիպել է {}։", describe(lookahead)));
+        diagnostics.mark(lookahead.line, std::format("Սպասվում է տողի ավարտ, բայց հանդիպել է {}։", describe(lookahead)));
 
     while( lookahead.is(Token::NewLine) )
         advance();
@@ -404,11 +410,11 @@ std::shared_ptr<P> node(Args&&... args);
 
 | Ֆունկցիա | Վիրտի մոտ | Դերը |
 |----------|-----------|------|
-| `mark()` | `Mark` | գրանցում է սխալը՝ զտելով կրկնությունները |
+| `Diagnostics::mark()` | `Mark` | գրանցում է սխալը՝ զտելով կրկնությունները |
 | `match()` | `CheckSymbol` | ստուգում է թոքենը, սխալի դեպքում շարունակում է այնպես, կարծես այն կար |
 | `sync()` | համաժամեցման կետեր | բաց է թողնում ավելորդ թոքենները մինչև «անվտանգ» կետը |
 
-### 2.3. `mark()` — սխալի գրանցումը
+### 2.3. `Diagnostics::mark()` — սխալի գրանցումը
 
 Վիրտի բնագրում (Oberon կոմպիլյատորի `ORS.Mod` մոդուլից) `Mark`-ը գրված է
 այսպես.
@@ -431,43 +437,76 @@ END Mark;
 Այս մեկ պայմանը փոխարինում է «խուճապի ռեժիմի» (panic mode) դրոշին, որը
 սովորաբար օգտագործվում է նույն նպատակով։
 
-Մեր իրականացման մեջ նիշի դիրքի փոխարեն օգտագործվում է կլանված թոքենների
-քանակը՝ `tokenIndex`-ը ([src/diagnostics.cxx](src/diagnostics.cxx)).
+Վիրտին դիրքերը համեմատել է պետք, որովհետև իր `Mark`-ը դիրքը վերցնում է
+բառային վերլուծիչից և «առաջ շարժվելու» մասին առանձին ազդանշան չունի։ Մեր
+վերլուծիչում, սակայն, թոքեն կլանելու **միակ** կետը `advance()`-ն է, ուստի
+համեմատության փոխարեն բավական է մեկ դրոշ ([src/diagnostics.cxx](src/diagnostics.cxx)).
 
 ```cpp
-void Diagnostics::mark(const Lexeme& token, std::string_view message, std::size_t tokenIndex)
+void Diagnostics::mark(unsigned int line, std::string_view message)
 {
-    // Վիրտի կանոնը. եթե վերլուծիչը տեղից չի շարժվել, ուրեմն այս սխալը
-    // նախորդի կրկնությունն է
-    if( tokenIndex <= lastErrorToken )
+    if( !_advanced )
         return;
 
-    lastErrorToken = tokenIndex;
+    _advanced = false;
+    ++_count;
 
-    if( errors.size() >= MaxErrors ) {
-        if( errors.size() == MaxErrors )
-            errors.push_back({token.line, "Չափազանց շատ սխալներ։"});
-        return;
-    }
-
-    errors.push_back({token.line, std::string{message}});
+    // ցուցակում պահում ենք միայն առաջին MaxErrors-ը, բայց հաշվում ենք բոլորը
+    if( _count <= MaxErrors )
+        _errors.push_back({line, std::string{message}});
 }
 ```
 
-`MaxErrors`-ը (64) համապատասխանում է Վիրտի `errcnt < 25` սահմանափակմանը։ Այն
-պաշտպանում է օգտագործողին անիմաստ երկար ցուցակից. եթե ֆայլում 64-ից ավելի սխալ
-կա, ամենայն հավանականությամբ խնդիրը մեկն է՝ շատ վաղ սկզբում։
+իսկ վերլուծիչի կողմից.
+
+```cpp
+// diagnostics.hxx
+void advance() noexcept { _advanced = true; }
+```
+
+Դրոշն սկզբում `true` է, ուստի առաջին սխալը միշտ գրանցվում է։ Գրանցումից հետո
+այն դառնում է `false`, և հաջորդ բոլոր հաղորդագրությունները լռվում են, մինչև
+վերլուծիչը կլանի գոնե մեկ թոքեն։ Սա ուղիղ համարժեք է Վիրտի `p > errpos`
+պայմանին, բայց փոխարինում է երկու հաշվիչ դաշտ մեկ բուլյան դրոշով։
+
+`MaxErrors`-ը (8) համապատասխանում է Վիրտի `errcnt < 25` սահմանափակմանը։ Այն
+պաշտպանում է օգտագործողին անիմաստ երկար ցուցակից. եթե ֆայլում այդքան սխալ կա,
+ամենայն հավանականությամբ խնդիրը մեկն է՝ շատ վաղ սկզբում։
+
+Ուշադրություն դարձրեք, որ `_count`-ը մեծանում է սահմանաքանակից հետո էլ։ Դա
+Վիրտի `errcnt`-ի նույն դերն է. ցուցակը կտրված է, բայց իրական քանակը հայտնի է,
+և օգտագործողը լռելյայն չի մոլորվում.
+
+```
+prog.bas:2: Սպասվում է հրաման, բայց հանդիպել է անհայտ նիշ '@'։
+...
+... և ևս 492 սխալ։
+```
 
 Ամեն սխալ պահվում է որպես.
 
 ```cpp
-struct Diagnostic {
-    unsigned int line = 0; //!< սխալի տողի համարը
-    std::string message;   //!< սխալի հաղորդագրությունը
-
-    std::string toString() const;
+// Վերլուծության սխալ
+struct SyntaxError {
+    unsigned int line = 0; // տողի համարը
+    std::string message;   // հաղորդագրությունը
 };
+
+std::ostream& operator<<(std::ostream& os, const SyntaxError& err);
 ```
+
+#### Ո՞ւմ է պատկանում սխալների ցուցակը
+
+`Diagnostics`-ը վերլուծիչի մաս չէ. այն ստեղծում է կանչողը և փոխանցում է
+հղումով.
+
+```cpp
+Parser(Scanner& sc, Diagnostics& diag);
+```
+
+Այս ձևով նույն հավաքիչը կարող են կիսել կոմպիլյատորի բոլոր փուլերը՝ բառային
+վերլուծիչը, շարահյուսականը և իմաստային ստուգումները, և օգտագործողը կստանա
+սխալների մեկ միասնական ցուցակ։
 
 #### Հաղորդագրության ձևակերպումը
 
@@ -547,7 +586,7 @@ void Parser::parseBlockEnd(Token keyword)
     // 'END'-ը բացակայելիս բանալի բառը չենք էլ փնտրում, որպեսզի մեկ սխալի
     // համար երկու հաղորդագրություն չստացվի
     if( !lookahead.is(Token::End) ) {
-        mark(std::format("Սպասվում է 'END {}', բայց հանդիպել է {}։",
+        diagnostics.mark(lookahead.line, std::format("Սպասվում է 'END {}', բայց հանդիպել է {}։",
                          toString(keyword), describe(lookahead)));
         return;
     }
@@ -571,7 +610,7 @@ void Parser::sync(const std::set<Token>& stops, std::string_view message)
     if( stops.contains(lookahead.kind) )
         return;
 
-    mark(message);
+    diagnostics.mark(lookahead.line, message);
 
     while( !stops.contains(lookahead.kind) )
         advance();
@@ -589,11 +628,11 @@ void Parser::sync(const std::set<Token>& stops, std::string_view message)
 `ExprSync`-ը հատուկ ուշադրության է արժանի.
 
 ```cpp
-//! @brief Արտահայտության մակարդակի համաժամեցման կետերը
-//!
-//! Բացի արտահայտություն սկսող թոքեններից՝ պարունակում է նաև փակող
-//! թոքենները, որպեսզի սխալ արտահայտությունը չկլանի իրեն շրջապատող
-//! կառուցվածքը։
+// Արտահայտության մակարդակի համաժամեցման կետերը
+//
+// Բացի արտահայտություն սկսող թոքեններից՝ պարունակում է նաև փակող
+// թոքենները, որպեսզի սխալ արտահայտությունը չկլանի իրեն շրջապատող
+// կառուցվածքը։
 const std::set<Token> ExprSync = {
     Token::True, Token::False, Token::Number, Token::Text, Token::Identifier,
     Token::Sub, Token::Not, Token::LeftPar,
@@ -617,7 +656,7 @@ Expression::Ptr Parser::parseFactor()
 {
     // sync
     if( !FirstExpr.contains(lookahead.kind) ) {
-        mark(std::format("Սպասվում է արտահայտություն, բայց հանդիպել է {}։", describe(lookahead)));
+        diagnostics.mark(lookahead.line, std::format("Սպասվում է արտահայտություն, բայց հանդիպել է {}։", describe(lookahead)));
 
         while( !ExprSync.contains(lookahead.kind) )
             advance();
@@ -673,25 +712,33 @@ StatementSync = {NewLine} ∪ FirstStat ∪ FollowStat
 հաղորդման ու գործիքների (խմբագրիչի ընդգծումներ և այլն) համար, բայց ոչ
 կոդագեներացիայի։
 
-Ուստի `parse()`-ի պայմանագիրը հստակ ձևակերպված է վերնագրում.
+Ուստի `parse()`-ի արդյունքն օգտագործելուց առաջ կանչողը **պարտավոր է** ստուգել
+սխալների ցուցակը։ Այս պայմանագիրը գրված է վերնագրում.
 
 ```cpp
-//! @warning Սխալների առկայության դեպքում վերադարձված ծառը թերի է։
-//! Կանչողը պարտավոր է նախ ստուգել @c hasErrors()-ը և միայն դրանից
-//! հետո ծառը փոխանցել հաջորդ փուլերին։
+// Ուշադրություն. սխալի դեպքում վերլուծությունը չի ընդհատվում, և վերադարձված
+// ծառը թերի է լինում։ Կանչողը պարտավոր է նախ ստուգել Diagnostics-ը և
+// միայն սխալների բացակայության դեպքում ծառը փոխանցել հաջորդ փուլերին։
 Program::Ptr parse();
 ```
 
-Եվ պահպանվում է [src/compiler.cxx](src/compiler.cxx)-ում.
+և պահպանվում է [src/compiler.cxx](src/compiler.cxx)-ում.
 
 ```cpp
+Diagnostics diagnostics;
+Parser parser{scanner, diagnostics};
 auto program = parser.parse();
 
 // սխալների առկայության դեպքում ծառը թերի է, ուստի հաջորդ փուլերին
 // չի փոխանցվում
-if( parser.hasErrors() ) {
-    for( const auto& diagnostic : parser.getErrors() )
-        std::cerr << source.string() << ":" << diagnostic.toString() << std::endl;
+if( !diagnostics.errors().empty() ) {
+    for( const auto& error : diagnostics.errors() )
+        std::cerr << source.string() << ":" << error << std::endl;
+
+    if( diagnostics.count() > diagnostics.errors().size() )
+        std::cerr << std::format("... և ևս {} սխալ։",
+                diagnostics.count() - diagnostics.errors().size()) << std::endl;
+
     return false;
 }
 ```
