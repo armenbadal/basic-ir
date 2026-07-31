@@ -1,19 +1,24 @@
 #pragma once
 
 #include "ast.hxx"
+#include "diagnostics.hxx"
 #include "lexeme.hxx"
 #include "scanner.hxx"
 
+#include <cstddef>
+#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace basic {
+
 class Parser {
 public:
-    Parser(Scanner& sc);
+    Parser(Scanner& sc, Diagnostics& diag);
     ~Parser();
 
+    //! @brief Վերլուծում է ամբողջ ծրագիրը
     Program::Ptr parse();
 
 private:
@@ -31,7 +36,9 @@ private:
     While::Ptr parseWhile();
     For::Ptr parseFor();
     Call::Ptr parseCall();
-    
+    void parseNewLines();
+    void parseBlockEnd(Token keyword);
+
     std::vector<Expression::Ptr> parseExpressionList();
     Expression::Ptr parseExpression();
     Expression::Ptr parseAddition();
@@ -47,11 +54,16 @@ private:
     Expression::Ptr parseIdentOrApply();
     Expression::Ptr parseGrouped();
 
-    void parseNewLines();
+    void advance();
     std::string match(Token tok);
+
+    void sync(const std::set<Token>& stops, std::string_view message);
 
 private:
     Scanner& scanner;
+    Diagnostics& diagnostics;
+
     Lexeme lookahead;
+
 };
 } // basic

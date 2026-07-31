@@ -32,10 +32,15 @@ bool compile(const std::filesystem::path& source, bool generateIr, bool generate
     // վերլուծություն
     auto file = std::ifstream{source};
     Scanner scanner{file};
-    Parser parser{scanner};
+    Diagnostics diagnostics;
+    Parser parser{scanner, diagnostics};
     auto program = parser.parse();
-    if( nullptr == program ) {
-        std::cerr << "Վերլուծության սխալ։";
+
+    // սխալների առկայության դեպքում ծառը թերի է, ուստի հաջորդ փուլերին
+    // չի փոխանցվում
+    if( !diagnostics.errors().empty() ) {
+        for( const auto& error : diagnostics.errors() )
+            std::cerr << source.string() << ":" << error << std::endl;
         return false;
     }
 
