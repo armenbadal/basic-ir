@@ -64,7 +64,7 @@ public:
 
 private:
     NodeId _id{0};
-    inline static size_t _index{0};
+    inline static NodeId _index{0};
 };
 
 template<typename P, typename... Args>

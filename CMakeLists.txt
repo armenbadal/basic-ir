@@ -18,8 +18,7 @@ add_executable(${PROJECT_NAME}
 	src/scanner.cxx
 	src/parser.cxx
 	src/aslisp.cxx
-	#src/checker.cxx
-	#src/iremitter.cxx
+  src/types.cxx
   )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE LLVM)

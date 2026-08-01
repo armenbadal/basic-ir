@@ -4,7 +4,9 @@
 #include "astvisitor.hxx"
 #include "diagnostics.hxx"
 #include "symbol.hxx"
-#include "type.hxx"
+#include "types.hxx"
+
+#include <optional>
 
 namespace basic {
 
