@@ -19,10 +19,8 @@ std::string_view Symbol::name() const noexcept
     return _name;
 }
 
-
-VariableSymbol::VariableSymbol(SymbolId id, std::string name, Type::Ptr type)
-    : Symbol{id, std::move(name)}
-    , _type{std::move(type)}
+VariableSymbol::VariableSymbol(SymbolId id, std::string name, Type::Ptr type, Storage storage)
+    : Symbol{id, std::move(name)}, _type{std::move(type)}, _storage{storage}
 {
 }
 
@@ -31,14 +29,18 @@ const Type& VariableSymbol::type() const noexcept
     return *_type;
 }
 
+VariableSymbol::Storage VariableSymbol::storage() const noexcept
+{
+    return _storage;
+}
+
 Symbol::Kind VariableSymbol::kind() const noexcept
 {
     return Symbol::Kind::Variable;
 }
 
 SubroutineSymbol::SubroutineSymbol(SymbolId id, std::string name, std::vector<SymbolId> parameters)
-    : Symbol{id, std::move(name)}
-    , _parameters{std::move(parameters)}
+    : Symbol{id, std::move(name)}, _parameters{std::move(parameters)}
 {
 }
 
@@ -47,12 +49,15 @@ const std::vector<SymbolId>& SubroutineSymbol::parameters() const
     return _parameters;
 }
 
+void SubroutineSymbol::setParameters(std::vector<SymbolId> parameters)
+{
+    _parameters = std::move(parameters);
+}
+
 Symbol::Kind SubroutineSymbol::kind() const noexcept
 {
     return Symbol::Kind::Subroutine;
 }
-
-
 
 class SymbolTable::Scope {
 public:
@@ -67,7 +72,7 @@ public:
     {
         auto it = _symbols.find(std::string{name});
 
-        if (it == _symbols.end())
+        if( it == _symbols.end() )
             return std::nullopt;
 
         return it->second;
@@ -76,7 +81,6 @@ public:
 private:
     std::unordered_map<std::string, SymbolId> _symbols;
 };
-
 
 SymbolTable::SymbolTable()
 {
@@ -101,19 +105,31 @@ SymbolId SymbolTable::nextId()
 
 SymbolId SymbolTable::declareVariable(std::string name, Type::Ptr type)
 {
+    if( _scopes.back().lookup(name) )
+        return 0;
+
     SymbolId id = nextId();
-    _symbols.push_back(std::make_unique<VariableSymbol>(id, name, std::move(type)));
+    _symbols.push_back(std::make_unique<VariableSymbol>(id, name, std::move(type), VariableSymbol::Storage::Local));
     _scopes.back().declare(std::move(name), id);
     return id;
 }
 
 SymbolId SymbolTable::declareParameter(std::string name, Type::Ptr type)
 {
-    return declareVariable(std::move(name), std::move(type));
+    if( _scopes.back().lookup(name) )
+        return 0;
+
+    SymbolId id = nextId();
+    _symbols.push_back(std::make_unique<VariableSymbol>(id, name, std::move(type), VariableSymbol::Storage::Parameter));
+    _scopes.back().declare(std::move(name), id);
+    return id;
 }
 
 SymbolId SymbolTable::declareSubroutine(std::string name, std::vector<SymbolId> parameters)
 {
+    if( _scopes.back().lookup(name) )
+        return 0;
+
     SymbolId id = nextId();
     _symbols.push_back(std::make_unique<SubroutineSymbol>(id, name, std::move(parameters)));
     _scopes.back().declare(std::move(name), id);
@@ -123,7 +139,7 @@ SymbolId SymbolTable::declareSubroutine(std::string name, std::vector<SymbolId> 
 std::optional<SymbolId> SymbolTable::lookup(std::string_view name) const
 {
     for( auto it = _scopes.rbegin(); it != _scopes.rend(); ++it )
-        if (auto id = it->lookup(name))
+        if( auto id = it->lookup(name) )
             return id;
 
     return std::nullopt;
@@ -132,6 +148,11 @@ std::optional<SymbolId> SymbolTable::lookup(std::string_view name) const
 bool SymbolTable::exists(std::string_view name) const
 {
     return lookup(name).has_value();
+}
+
+Symbol& SymbolTable::symbol(SymbolId id)
+{
+    return *_symbols.at(id - 1);
 }
 
 const Symbol& SymbolTable::symbol(SymbolId id) const

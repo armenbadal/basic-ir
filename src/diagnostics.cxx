@@ -4,9 +4,9 @@
 
 namespace basic {
 
-std::ostream& operator<<(std::ostream& os, const SyntaxError& err)
+std::ostream& operator<<(std::ostream& os, const Error& err)
 {
-    return os << err.line << ": " << err.message;
+    return os << std::get<0>(err) << ": " << std::get<1>(err);
 }
 
 std::string describe(const Lexeme& lex)
@@ -40,7 +40,7 @@ void Diagnostics::mark(unsigned int line, std::string_view message)
         _errors.push_back({line, std::string{message}});
 }
 
-const std::vector<SyntaxError>& Diagnostics::errors() const noexcept
+const std::vector<Error>& Diagnostics::errors() const noexcept
 {
     return _errors;
 }

@@ -6,17 +6,15 @@
 #include <ostream>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <vector>
 
 namespace basic {
 
 // Վերլուծության սխալ
-struct SyntaxError {
-    unsigned int line = 0; // տողի համարը
-    std::string message;   // հաղորդագրությունը
-};
+using Error = std::tuple<unsigned int, std::string>;
 
-std::ostream& operator<<(std::ostream& os, const SyntaxError& err);
+std::ostream& operator<<(std::ostream& os, const Error& err);
 
 // Լեքսեմի ընթեռնելի ներկայացումը սխալի հաղորդագրության համար
 std::string describe(const Lexeme& lex);
@@ -33,13 +31,13 @@ public:
     void advance() noexcept { _advanced = true; }
 
     // Առաջին MaxErrors սխալները
-    const std::vector<SyntaxError>& errors() const noexcept;
+    const std::vector<Error>& errors() const noexcept;
 
     // Գտնված սխալների ընդհանուր քանակը. կարող է errors()-ից մեծ լինել
     std::size_t count() const noexcept;
 
 private:
-    std::vector<SyntaxError> _errors;
+    std::vector<Error> _errors;
     std::size_t _count = 0;
     bool _advanced = true;
 };

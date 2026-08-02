@@ -22,21 +22,20 @@ public:
 
 bool operator==(const Type& lhs, const Type& rhs) noexcept;
 
-
 class Types {
 public:
-    static Type::Ptr integer();
     static Type::Ptr real();
     static Type::Ptr boolean();
+    static Type::Ptr text();
     static Type::Ptr array(Type::Ptr elementType);
 };
 
 class ScalarType : public Type {
 public:
     enum class Kind {
-        Integer,
         Real,
         Boolean,
+        Text,
     };
 
     explicit ScalarType(Kind kind);
@@ -53,6 +52,7 @@ public:
     explicit ArrayType(Type::Ptr elementType);
     std::string_view name() const override;
     const Type& elementType() const noexcept;
+    Type::Ptr elementTypePtr() const noexcept;
     bool equals(const Type&) const noexcept override;
     Type::Kind kind() const noexcept override;
 

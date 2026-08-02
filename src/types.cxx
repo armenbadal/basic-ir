@@ -7,12 +7,6 @@ bool operator==(const Type& lhs, const Type& rhs) noexcept
     return lhs.equals(rhs);
 }
 
-Type::Ptr Types::integer()
-{
-    static Type::Ptr instance = std::make_shared<ScalarType>(ScalarType::Kind::Integer);
-    return instance;
-}
-
 Type::Ptr Types::real()
 {
     static Type::Ptr instance = std::make_shared<ScalarType>(ScalarType::Kind::Real);
@@ -25,32 +19,38 @@ Type::Ptr Types::boolean()
     return instance;
 }
 
+Type::Ptr Types::text()
+{
+    static Type::Ptr instance = std::make_shared<ScalarType>(ScalarType::Kind::Text);
+    return instance;
+}
+
 Type::Ptr Types::array(Type::Ptr elementType)
 {
     return std::make_shared<ArrayType>(std::move(elementType));
 }
 
-
 ScalarType::ScalarType(Kind kind)
     : _kind{kind}
-{}
+{
+}
 
 std::string_view ScalarType::name() const
 {
-    switch(_kind) {
-        case Kind::Integer:
-            return "INTEGER";
+    switch( _kind ) {
         case Kind::Real:
             return "REAL";
         case Kind::Boolean:
             return "BOOLEAN";
+        case Kind::Text:
+            return "TEXT";
     }
     return "UNKNOWN";
 }
 
 bool ScalarType::equals(const Type& other) const noexcept
 {
-    if (other.kind() != Type::Kind::Scalar)
+    if( other.kind() != Type::Kind::Scalar )
         return false;
 
     auto const& rhs = static_cast<const ScalarType&>(other);
@@ -62,10 +62,10 @@ Type::Kind ScalarType::kind() const noexcept
     return Type::Kind::Scalar;
 }
 
-
 ArrayType::ArrayType(Type::Ptr elementType)
     : _elementType{std::move(elementType)}
-{}
+{
+}
 
 std::string_view ArrayType::name() const
 {
@@ -77,9 +77,14 @@ const Type& ArrayType::elementType() const noexcept
     return *_elementType;
 }
 
+Type::Ptr ArrayType::elementTypePtr() const noexcept
+{
+    return _elementType;
+}
+
 bool ArrayType::equals(const Type& other) const noexcept
 {
-    if (other.kind() != Type::Kind::Array)
+    if( other.kind() != Type::Kind::Array )
         return false;
 
     auto const& rhs = static_cast<const ArrayType&>(other);

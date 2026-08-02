@@ -7,49 +7,49 @@ using namespace basic;
 
 TEST_CASE("ScalarType names and equality", "[types]")
 {
-    auto intType1 = Types::integer();
-    auto intType2 = Types::integer();
-    auto realType = Types::real();
+    auto realType1 = Types::real();
+    auto realType2 = Types::real();
     auto boolType = Types::boolean();
+    auto textType = Types::text();
 
-    CHECK(intType1->name() == "INTEGER");
-    CHECK(realType->name() == "REAL");
+    CHECK(realType1->name() == "REAL");
     CHECK(boolType->name() == "BOOLEAN");
+    CHECK(textType->name() == "TEXT");
 
-    CHECK(intType1->kind() == Type::Kind::Scalar);
-    CHECK(realType->kind() == Type::Kind::Scalar);
+    CHECK(realType1->kind() == Type::Kind::Scalar);
     CHECK(boolType->kind() == Type::Kind::Scalar);
+    CHECK(textType->kind() == Type::Kind::Scalar);
 
-    CHECK(*intType1 == *intType2);
-    CHECK(intType1 == intType2); // singleton check
-    CHECK_FALSE(*intType1 == *realType);
-    CHECK_FALSE(*intType1 == *boolType);
+    CHECK(*realType1 == *realType2);
+    CHECK(realType1 == realType2); // singleton check
+    CHECK_FALSE(*realType1 == *boolType);
+    CHECK_FALSE(*realType1 == *textType);
 }
 
 TEST_CASE("ArrayType names, equality, and elementType", "[types]")
 {
-    auto intArray1 = Types::array(Types::integer());
-    auto intArray2 = Types::array(Types::integer());
-    auto realArray = Types::array(Types::real());
+    auto realArray1 = Types::array(Types::real());
+    auto realArray2 = Types::array(Types::real());
+    auto textArray = Types::array(Types::text());
 
-    CHECK(intArray1->name() == "ARRAY");
-    CHECK(intArray1->kind() == Type::Kind::Array);
+    CHECK(realArray1->name() == "ARRAY");
+    CHECK(realArray1->kind() == Type::Kind::Array);
 
-    CHECK(*intArray1 == *intArray2);
-    CHECK_FALSE(*intArray1 == *realArray);
+    CHECK(*realArray1 == *realArray2);
+    CHECK_FALSE(*realArray1 == *textArray);
 
-    auto arrayTypePtr = std::dynamic_pointer_cast<const ArrayType>(intArray1);
+    auto arrayTypePtr = std::dynamic_pointer_cast<const ArrayType>(realArray1);
     REQUIRE(arrayTypePtr != nullptr);
-    CHECK(arrayTypePtr->elementType() == *Types::integer());
+    CHECK(arrayTypePtr->elementType() == *Types::real());
 }
 
 TEST_CASE("VariableSymbol functionality", "[symbol]")
 {
-    VariableSymbol varSym{1, "x", Types::integer()};
+    VariableSymbol varSym{1, "x", Types::real()};
     CHECK(varSym.id() == 1);
     CHECK(varSym.name() == "x");
     CHECK(varSym.kind() == Symbol::Kind::Variable);
-    CHECK(varSym.type() == *Types::integer());
+    CHECK(varSym.type() == *Types::real());
 }
 
 TEST_CASE("SubroutineSymbol functionality", "[symbol]")
@@ -65,8 +65,8 @@ TEST_CASE("SymbolTable declarations and lookup", "[symbol]")
 {
     SymbolTable table;
 
-    SymbolId x = table.declareVariable("x", Types::integer());
-    SymbolId p = table.declareParameter("p", Types::real());
+    SymbolId x = table.declareVariable("x", Types::real());
+    SymbolId p = table.declareParameter("p", Types::text());
     SymbolId foo = table.declareSubroutine("foo", {x, p});
 
     CHECK(table.lookup("x") == x);
@@ -78,7 +78,7 @@ TEST_CASE("SymbolTable declarations and lookup", "[symbol]")
 
     CHECK(table.symbol(x).name() == "x");
     CHECK(table.symbol<VariableSymbol>(x).kind() == Symbol::Kind::Variable);
-    CHECK(table.symbol<VariableSymbol>(x).type() == *Types::integer());
+    CHECK(table.symbol<VariableSymbol>(x).type() == *Types::real());
     CHECK(table.symbol<SubroutineSymbol>(foo).parameters() == std::vector<SymbolId>{x, p});
 }
 
@@ -86,9 +86,9 @@ TEST_CASE("SymbolTable scoping", "[symbol]")
 {
     SymbolTable table;
 
-    table.declareVariable("x", Types::integer());
+    table.declareVariable("x", Types::real());
     table.openScope();
-    table.declareVariable("y", Types::real());
+    table.declareVariable("y", Types::text());
     table.declareVariable("x", Types::boolean());
 
     CHECK(table.lookup("y").has_value());
@@ -97,5 +97,5 @@ TEST_CASE("SymbolTable scoping", "[symbol]")
     table.closeScope();
 
     CHECK(table.lookup("y") == std::nullopt);
-    CHECK(table.symbol<VariableSymbol>(*table.lookup("x")).type() == *Types::integer());
+    CHECK(table.symbol<VariableSymbol>(*table.lookup("x")).type() == *Types::real());
 }

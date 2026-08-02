@@ -18,7 +18,7 @@ static Program::Ptr parseStr(const std::string& input)
     return parser.parse();
 }
 
-static std::pair<Program::Ptr, std::vector<SyntaxError>> parseStrWithErrors(const std::string& input)
+static std::pair<Program::Ptr, std::vector<Error>> parseStrWithErrors(const std::string& input)
 {
     auto stream = std::make_shared<std::istringstream>(input);
     Scanner scanner{*stream};
@@ -30,7 +30,7 @@ static std::pair<Program::Ptr, std::vector<SyntaxError>> parseStrWithErrors(cons
 
 // Վերականգնման շնորհիվ parse()-ը սխալի դեպքում էլ ծառ է վերադարձնում,
 // ուստի սխալի փաստը ստուգվում է սխալների ցուցակով, ոչ թե nullptr-ով։
-static std::vector<SyntaxError> parseErrors(const std::string& input)
+static std::vector<Error> parseErrors(const std::string& input)
 {
     return parseStrWithErrors(input).second;
 }
@@ -453,8 +453,8 @@ TEST_CASE("Recover from missing THEN in IF", "[parser][recovery]")
     auto [prog, errors] = parseStrWithErrors("SUB Main\nIF 1\nPRINT 1\nEND IF\nEND SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(errors.size() == 1);
-    CHECK(errors[0].line == 2);
-    CHECK(errors[0].message.find("THEN") != std::string::npos);
+    CHECK(std::get<0>(errors[0]) == 2);
+    CHECK(std::get<1>(errors[0]).find("THEN") != std::string::npos);
 
     // բացակայող THEN-ը «տեղադրվում» է, ուստի IF-ը լրիվ վերականգնվում է
     auto& sub = onlySub(*prog);
@@ -472,8 +472,8 @@ TEST_CASE("Recover from END without IF", "[parser][recovery]")
     auto [prog, errors] = parseStrWithErrors("SUB Main\nIF 1 THEN\nPRINT 0\nEND\nPRINT 1\nEND SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(errors.size() == 1);
-    CHECK(errors[0].line == 4);
-    CHECK(errors[0].message.find("IF") != std::string::npos);
+    CHECK(std::get<0>(errors[0]) == 4);
+    CHECK(std::get<1>(errors[0]).find("IF") != std::string::npos);
 
     // և IF-ը, և դրան հաջորդող հրամանը պահպանվում են
     auto& sub = onlySub(*prog);
@@ -488,7 +488,7 @@ TEST_CASE("Unclosed inner block keeps the subroutine body", "[parser][recovery]"
     auto [prog, errors] = parseStrWithErrors("SUB Main\nWHILE 1\nPRINT 1\nEND SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(!errors.empty());
-    CHECK(errors[0].message.find("WHILE") != std::string::npos);
+    CHECK(std::get<1>(errors[0]).find("WHILE") != std::string::npos);
 
     // 'END SUB'-ը կլանվում է WHILE-ի փոխարեն, ուստի ենթածրագիրն անավարտ
     // է մնում, բայց մարմինը չի կորչում
@@ -505,7 +505,7 @@ TEST_CASE("Recover from missing END SUB", "[parser][recovery]")
     auto [prog, errors] = parseStrWithErrors("SUB Main\nPRINT 1\nSUB Other\nPRINT 2\nEND SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(errors.size() == 1);
-    CHECK(errors[0].message.find("END SUB") != std::string::npos);
+    CHECK(std::get<1>(errors[0]).find("END SUB") != std::string::npos);
 
     // թերի ենթածրագիրը նույնպես պահպանվում է
     REQUIRE(prog->_subroutines.size() == 2);
@@ -518,7 +518,7 @@ TEST_CASE("Recover from unknown statement token", "[parser][recovery]")
     auto [prog, errors] = parseStrWithErrors("SUB Main\nFOO\nPRINT 1\nEND SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(errors.size() == 1);
-    CHECK(errors[0].line == 2);
+    CHECK(std::get<0>(errors[0]) == 2);
 
     auto& sub = onlySub(*prog);
     auto& seq = bodySeq(*sub._body);
@@ -531,7 +531,7 @@ TEST_CASE("Bad expression reports the expression error", "[parser][recovery]")
     auto [prog, errors] = parseStrWithErrors("SUB Main\nPRINT *\nPRINT 1\nEND SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(errors.size() == 1);
-    CHECK(errors[0].message.find("արտահայտություն") != std::string::npos);
+    CHECK(std::get<1>(errors[0]).find("արտահայտություն") != std::string::npos);
 
     // սխալ արտահայտության փոխարեն դրվում է չեզոք հանգույց, և հաջորդ
     // հրամանը վերլուծվում է սովորական ձևով
@@ -550,7 +550,7 @@ TEST_CASE("Recover from unclosed parenthesis", "[parser][recovery]")
     auto [prog, errors] = parseStrWithErrors("SUB Main\nPRINT (1\nPRINT 2\nEND SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(errors.size() == 1);
-    CHECK(errors[0].message.find(")") != std::string::npos);
+    CHECK(std::get<1>(errors[0]).find(")") != std::string::npos);
 
     auto& sub = onlySub(*prog);
     auto& seq = bodySeq(*sub._body);
@@ -562,8 +562,8 @@ TEST_CASE("Report independent errors in separate subroutines", "[parser][recover
     auto [prog, errors] = parseStrWithErrors("SUB Main\nLET = 1\nEND SUB\nSUB Other\nPRINT )\nEND SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(errors.size() == 2);
-    CHECK(errors[0].line == 2);
-    CHECK(errors[1].line == 5);
+    CHECK(std::get<0>(errors[0]) == 2);
+    CHECK(std::get<0>(errors[1]) == 5);
     CHECK(prog->_subroutines.size() == 2);
 }
 
@@ -572,7 +572,7 @@ TEST_CASE("Garbage before the first subroutine", "[parser][recovery]")
     auto [prog, errors] = parseStrWithErrors("GARBAGE\nSUB Main\nPRINT 1\nEND SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(errors.size() == 1);
-    CHECK(errors[0].line == 1);
+    CHECK(std::get<0>(errors[0]) == 1);
     CHECK(prog->_subroutines.size() == 1);
 }
 
@@ -581,7 +581,7 @@ TEST_CASE("Out of range numeric literal is reported, not thrown", "[parser][reco
     auto [prog, errors] = parseStrWithErrors("SUB Main\nLET x = " + std::string(400, '9') + "\nEND SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(errors.size() == 1);
-    CHECK(errors[0].message.find("թվային") != std::string::npos);
+    CHECK(std::get<1>(errors[0]).find("թվային") != std::string::npos);
 }
 
 TEST_CASE("Reported errors are capped", "[parser][recovery]")
@@ -693,32 +693,32 @@ TEST_CASE("Parse error: missing END SUB", "[parser]")
 {
     auto errors = parseErrors("SUB Main\nPRINT 1\n");
     REQUIRE(errors.size() == 1);
-    CHECK(errors[0].line == 3);
-    CHECK(errors[0].message.find("END SUB") != std::string::npos);
+    CHECK(std::get<0>(errors[0]) == 3);
+    CHECK(std::get<1>(errors[0]).find("END SUB") != std::string::npos);
 }
 
 TEST_CASE("Parse error: missing END IF", "[parser]")
 {
     auto errors = parseErrors("SUB Main\nIF 1 THEN\nPRINT 1\nEND SUB\n");
     REQUIRE(!errors.empty());
-    CHECK(errors[0].line == 4);
-    CHECK(errors[0].message.find("IF") != std::string::npos);
+    CHECK(std::get<0>(errors[0]) == 4);
+    CHECK(std::get<1>(errors[0]).find("IF") != std::string::npos);
 }
 
 TEST_CASE("Parse error: stray token", "[parser]")
 {
     auto errors = parseErrors("SUB Main\nLET x = \nEND SUB\n");
     REQUIRE(errors.size() == 1);
-    CHECK(errors[0].line == 2);
-    CHECK(errors[0].message.find("արտահայտություն") != std::string::npos);
+    CHECK(std::get<0>(errors[0]) == 2);
+    CHECK(std::get<1>(errors[0]).find("արտահայտություն") != std::string::npos);
 }
 
 TEST_CASE("Parse error: IF without THEN", "[parser]")
 {
     auto errors = parseErrors("SUB Main\nIF 1\nPRINT 1\nEND IF\nEND SUB\n");
     REQUIRE(errors.size() == 1);
-    CHECK(errors[0].line == 2);
-    CHECK(errors[0].message.find("THEN") != std::string::npos);
+    CHECK(std::get<0>(errors[0]) == 2);
+    CHECK(std::get<1>(errors[0]).find("THEN") != std::string::npos);
 }
 
 // ---- Comments ----
@@ -1153,40 +1153,40 @@ TEST_CASE("Parse error: missing END FOR", "[parser]")
 {
     auto errors = parseErrors("SUB Main\nFOR i = 1 TO 10\nPRINT i\nEND SUB\n");
     REQUIRE(!errors.empty());
-    CHECK(errors[0].line == 4);
-    CHECK(errors[0].message.find("FOR") != std::string::npos);
+    CHECK(std::get<0>(errors[0]) == 4);
+    CHECK(std::get<1>(errors[0]).find("FOR") != std::string::npos);
 }
 
 TEST_CASE("Parse error: missing END WHILE", "[parser]")
 {
     auto errors = parseErrors("SUB Main\nWHILE 1\nPRINT 1\nEND SUB\n");
     REQUIRE(!errors.empty());
-    CHECK(errors[0].line == 4);
-    CHECK(errors[0].message.find("WHILE") != std::string::npos);
+    CHECK(std::get<0>(errors[0]) == 4);
+    CHECK(std::get<1>(errors[0]).find("WHILE") != std::string::npos);
 }
 
 TEST_CASE("Parse error: DIM without size", "[parser]")
 {
     auto errors = parseErrors("SUB Main\nDIM arr[]\nEND SUB\n");
     REQUIRE(errors.size() == 1);
-    CHECK(errors[0].line == 2);
-    CHECK(errors[0].message.find("արտահայտություն") != std::string::npos);
+    CHECK(std::get<0>(errors[0]) == 2);
+    CHECK(std::get<1>(errors[0]).find("արտահայտություն") != std::string::npos);
 }
 
 TEST_CASE("Parse error: LET without equals", "[parser]")
 {
     auto errors = parseErrors("SUB Main\nLET x 5\nEND SUB\n");
     REQUIRE(errors.size() == 1);
-    CHECK(errors[0].line == 2);
-    CHECK(errors[0].message.find("'='") != std::string::npos);
+    CHECK(std::get<0>(errors[0]) == 2);
+    CHECK(std::get<1>(errors[0]).find("'='") != std::string::npos);
 }
 
 TEST_CASE("Parse error: stray text after expression", "[parser]")
 {
     auto errors = parseErrors("SUB Main\nPRINT 1 2\nEND SUB\n");
     REQUIRE(errors.size() == 1);
-    CHECK(errors[0].line == 2);
-    CHECK(errors[0].message.find("2") != std::string::npos);
+    CHECK(std::get<0>(errors[0]) == 2);
+    CHECK(std::get<1>(errors[0]).find("2") != std::string::npos);
 }
 
 // ---- Cascade suppression ----
@@ -1198,8 +1198,8 @@ TEST_CASE("Cascade suppression prevents duplicate errors", "[parser][recovery]")
     auto [prog, errors] = parseStrWithErrors("SUB Main\nPRINT 1 ]\nEND SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(errors.size() == 1);
-    CHECK(errors[0].line == 2);
-    CHECK(errors[0].message.find("]") != std::string::npos);
+    CHECK(std::get<0>(errors[0]) == 2);
+    CHECK(std::get<1>(errors[0]).find("]") != std::string::npos);
     CHECK(prog->_subroutines.size() == 1);
 }
 
@@ -1217,8 +1217,8 @@ TEST_CASE("ELSEIF without THEN is recovered", "[parser][recovery]")
         "END SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(errors.size() == 1);
-    CHECK(errors[0].line == 4);
-    CHECK(errors[0].message.find("THEN") != std::string::npos);
+    CHECK(std::get<0>(errors[0]) == 4);
+    CHECK(std::get<1>(errors[0]).find("THEN") != std::string::npos);
 
     // ELSEIF-ի մարմինը պահպանվում է
     auto& sub = onlySub(*prog);
@@ -1234,7 +1234,6 @@ TEST_CASE("INPUT without identifier", "[parser]")
 {
     auto errors = parseErrors("SUB Main\nINPUT\nEND SUB\n");
     REQUIRE(errors.size() == 1);
-    CHECK(errors[0].line == 2);
-    CHECK(errors[0].message.find("IDENT") != std::string::npos);
+    CHECK(std::get<0>(errors[0]) == 2);
+    CHECK(std::get<1>(errors[0]).find("IDENT") != std::string::npos);
 }
-

@@ -31,31 +31,37 @@ private:
     const SymbolId _id{0};
 };
 
-
 class VariableSymbol : public Symbol {
 public:
-    VariableSymbol(SymbolId id, std::string name, Type::Ptr type);
+    enum class Storage {
+        Local,
+        Parameter,
+    };
+
+    VariableSymbol(SymbolId id, std::string name, Type::Ptr type,
+        Storage storage = Storage::Local);
 
     const Type& type() const noexcept;
+    Storage storage() const noexcept;
 
     Symbol::Kind kind() const noexcept override;
 
 private:
     Type::Ptr _type;
+    Storage _storage;
 };
-
 
 class SubroutineSymbol : public Symbol {
 public:
     SubroutineSymbol(SymbolId id, std::string name, std::vector<SymbolId> parameters);
     ~SubroutineSymbol() override = default;
     const std::vector<SymbolId>& parameters() const;
+    void setParameters(std::vector<SymbolId> parameters);
     Symbol::Kind kind() const noexcept override;
 
 private:
-    const std::vector<SymbolId> _parameters;
+    std::vector<SymbolId> _parameters;
 };
-
 
 class SymbolTable {
 public:
@@ -72,8 +78,10 @@ public:
     std::optional<SymbolId> lookup(std::string_view name) const;
     bool exists(std::string_view name) const;
 
+    Symbol& symbol(SymbolId id);
     const Symbol& symbol(SymbolId id) const;
-    template<typename T> const T& symbol(SymbolId id) const
+    template<typename T>
+    const T& symbol(SymbolId id) const
     {
         return dynamic_cast<const T&>(symbol(id));
     }

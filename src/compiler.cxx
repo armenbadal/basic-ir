@@ -2,6 +2,7 @@
 #include "ast.hxx"
 #include "parser.hxx"
 #include "aslisp.hxx"
+#include "semantic.hxx"
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
@@ -44,8 +45,22 @@ bool compile(const std::filesystem::path& source, bool generateIr, bool generate
             std::cerr << source.string() << ":" << error << std::endl;
 
         if( diagnostics.count() > diagnostics.errors().size() )
-            std::cerr << std::format("... և ևս {} սխալ։",
-                    diagnostics.count() - diagnostics.errors().size()) << std::endl;
+            std::cerr << std::format("... և ևս {} սխալ։", diagnostics.count() - diagnostics.errors().size()) << std::endl;
+
+        return false;
+    }
+
+    SymbolTable symbols;
+    SemanticModel semantic;
+    SemanticAnalyzer analyzer{symbols, semantic, diagnostics};
+    analyzer.analyze(program);
+
+    if( !diagnostics.errors().empty() ) {
+        for( const auto& error : diagnostics.errors() )
+            std::cerr << source.string() << ":" << error << std::endl;
+
+        if( diagnostics.count() > diagnostics.errors().size() )
+            std::cerr << std::format("... և ևս {} սխալ։", diagnostics.count() - diagnostics.errors().size()) << std::endl;
 
         return false;
     }
@@ -59,8 +74,7 @@ bool compile(const std::filesystem::path& source, bool generateIr, bool generate
         return true;
     }
 
-    const std::filesystem::path selfPath = 
-            llvm::sys::fs::getMainExecutable(nullptr, nullptr);
+    const std::filesystem::path selfPath = llvm::sys::fs::getMainExecutable(nullptr, nullptr);
     const auto libraryPath = selfPath.parent_path() / "basic_ir_lib.ll";
 
     llvm::LLVMContext context;
@@ -106,4 +120,3 @@ bool compile(const std::filesystem::path& source, bool generateIr, bool generate
 }
 
 } // namespace basic
-
