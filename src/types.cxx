@@ -72,6 +72,11 @@ std::string_view ArrayType::name() const
     return "ARRAY";
 }
 
+const Type& ArrayType::elementType() const noexcept
+{
+    return *_elementType;
+}
+
 bool ArrayType::equals(const Type& other) const noexcept
 {
     if (other.kind() != Type::Kind::Array)

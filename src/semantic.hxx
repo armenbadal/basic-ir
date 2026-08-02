@@ -12,11 +12,10 @@ namespace basic {
 
 class SemanticModel {
 public:
-    void bind(NodeId, SymbolId);
-    void setType(NodeId, Type);
-    std::optional<SymbolId> symbol(NodeId) const;
-    std::optional<Type> type(NodeId) const;
-
+    void bind(NodeId node, SymbolId symbol);
+    void setType(NodeId node, Type::Ptr type);
+    std::optional<SymbolId> symbol(NodeId node) const;
+    std::optional<Type::Ptr> type(NodeId node) const;
 };
 
 class SemanticAnalyzer : public ASTVisitor<SemanticAnalyzer> {
@@ -31,4 +30,4 @@ public:
 private:
 };
 
-}// namespace basic 
+} // namespace basic

@@ -18,7 +18,9 @@ add_executable(${PROJECT_NAME}
 	src/scanner.cxx
 	src/parser.cxx
 	src/aslisp.cxx
-  src/types.cxx
+	src/types.cxx
+	src/symbol.cxx
+	src/semantic.cxx
   )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE LLVM)
@@ -40,11 +42,15 @@ if(Catch2_FOUND)
     tests/lexeme_test.cxx
     tests/parser_test.cxx
     tests/scanner_test.cxx
+    tests/types_test.cxx
     src/aslisp.cxx
     src/diagnostics.cxx
     src/lexeme.cxx
     src/parser.cxx
-    src/scanner.cxx)
+    src/scanner.cxx
+    src/types.cxx
+    src/symbol.cxx
+    src/semantic.cxx)
   target_link_libraries(${PROJECT_NAME}-tests PRIVATE Catch2::Catch2WithMain)
   target_include_directories(${PROJECT_NAME}-tests PRIVATE src)
 endif()
