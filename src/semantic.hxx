@@ -7,6 +7,7 @@
 #include "types.hxx"
 
 #include <optional>
+#include <unordered_map>
 
 namespace basic {
 
@@ -16,6 +17,10 @@ public:
     void setType(NodeId node, Type::Ptr type);
     std::optional<SymbolId> symbol(NodeId node) const;
     std::optional<Type::Ptr> type(NodeId node) const;
+
+private:
+    std::unordered_map<NodeId, SymbolId> _symbols;
+    std::unordered_map<NodeId, Type::Ptr> _types;
 };
 
 class SemanticAnalyzer : public ASTVisitor<SemanticAnalyzer> {

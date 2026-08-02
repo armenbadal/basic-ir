@@ -42,6 +42,7 @@ if(Catch2_FOUND)
     tests/lexeme_test.cxx
     tests/parser_test.cxx
     tests/scanner_test.cxx
+    tests/semantic_test.cxx
     tests/types_test.cxx
     src/aslisp.cxx
     src/diagnostics.cxx
@@ -54,5 +55,4 @@ if(Catch2_FOUND)
   target_link_libraries(${PROJECT_NAME}-tests PRIVATE Catch2::Catch2WithMain)
   target_include_directories(${PROJECT_NAME}-tests PRIVATE src)
 endif()
-
 
