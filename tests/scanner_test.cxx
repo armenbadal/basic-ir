@@ -105,6 +105,9 @@ TEST_CASE("Scanner recognizes all keywords", "[scanner]")
     check("NOT",    Token::Not);
     check("TRUE",   Token::BoolLit);
     check("FALSE",  Token::BoolLit);
+    check("REAL",   Token::Real);
+    check("TEXT",   Token::Text);
+    check("BOOL",   Token::Bool);
 }
 
 TEST_CASE("Identifier containing a keyword prefix is not a keyword", "[scanner]")

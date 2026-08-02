@@ -6,6 +6,6 @@ SUB Main
   LET n = 0
   LET q = n
 
-  LET e$ = "տեքստ"
-  LET f$ = e$
+  LET e = "տեքստ"
+  LET f = e
 END SUB

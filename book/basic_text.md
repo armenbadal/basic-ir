@@ -17,7 +17,7 @@ char *text_concatenate(const char *so, const char *si)
 }
 ```
 
-Իսկ երբ BASIC-IR ծրագրում հանդիպում է `LET a$ = "Ok" & "?"` տեսքի
+Իսկ երբ BASIC-IR ծրագրում հանդիպում է `LET a = "Ok" & "?"` տեսքի
 հրաման, ապա պետք է կազմակերպել մոտավորապես հետևյալ տիպի կոդ։
 
 ```c
@@ -52,8 +52,8 @@ text_clone-ի միձոցով պատճենվում և կապվում է լոկա�
 Օրինակ.
 
 ```basic
-SUB f$(x$, y)
-  LET a$ = "Ok"
+SUB f(x, y)
+  LET a = "Ok"
 END SUB
 ```
 

@@ -1,5 +1,5 @@
 
 SUB Main
-    LET ok? = TRUE
-    LET bad? = ok?
+    LET ok = TRUE
+    LET bad = ok
 END SUB

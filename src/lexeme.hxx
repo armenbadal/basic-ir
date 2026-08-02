@@ -28,6 +28,10 @@ enum class Token : int {
     Call,       // CALL
     End,        // END
 
+    Real,       // REAL
+    Text,       // TEXT
+    Bool,       // BOOL
+
     NewLine, // նոր տողի նիշ
 
     Eq, // =

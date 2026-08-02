@@ -7,14 +7,14 @@ SUB Main
 END SUB
 
 SUB one
-  LET a$ = "Hi!"
+  LET a = "Hi!"
 END SUB
 
 SUB two(x)
   LET b = x
 END SUB
 
-SUB three(x, y$)
+SUB three(x, y)
   LET c = x
-  LET d$ = y$
+  LET d = y
 END SUB

@@ -711,7 +711,7 @@ TEST_CASE("Parse program with leading newlines", "[parser]")
 
 TEST_CASE("Parse DIM statement", "[parser]")
 {
-    auto prog = parseStr("SUB Main\nDIM arr[10]\nEND SUB\n");
+    auto prog = parseStr("SUB Main\nDIM arr[10] AS REAL\nEND SUB\n");
     REQUIRE(prog != nullptr);
     auto& sub = onlySub(*prog);
     auto& seq = bodySeq(*sub._body);
@@ -719,22 +719,67 @@ TEST_CASE("Parse DIM statement", "[parser]")
     auto d = dynamic_cast<const Dim*>(seq._items[0].get());
     REQUIRE(d != nullptr);
     CHECK(d->_name == "arr");
+    CHECK(d->_type == "REAL");
     auto n = dynamic_cast<const Number*>(d->_size.get());
     REQUIRE(n != nullptr);
     CHECK(n->_value == 10.0);
 }
 
+TEST_CASE("Parse DIM with all type keywords", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nDIM a[3] AS REAL\nDIM b[4] AS TEXT\nDIM c[5] AS BOOL\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    REQUIRE(seq._items.size() == 3);
+
+    auto d1 = dynamic_cast<const Dim*>(seq._items[0].get());
+    REQUIRE(d1 != nullptr);
+    CHECK(d1->_type == "REAL");
+
+    auto d2 = dynamic_cast<const Dim*>(seq._items[1].get());
+    REQUIRE(d2 != nullptr);
+    CHECK(d2->_type == "TEXT");
+
+    auto d3 = dynamic_cast<const Dim*>(seq._items[2].get());
+    REQUIRE(d3 != nullptr);
+    CHECK(d3->_type == "BOOL");
+}
+
 TEST_CASE("Parse DIM with expression size", "[parser]")
 {
-    auto prog = parseStr("SUB Main\nDIM arr[n + 1]\nEND SUB\n");
+    auto prog = parseStr("SUB Main\nDIM arr[n + 1] AS TEXT\nEND SUB\n");
     REQUIRE(prog != nullptr);
     auto& sub = onlySub(*prog);
     auto& seq = bodySeq(*sub._body);
     auto d = dynamic_cast<const Dim*>(seq._items[0].get());
     REQUIRE(d != nullptr);
+    CHECK(d->_type == "TEXT");
     auto b = dynamic_cast<const Binary*>(d->_size.get());
     REQUIRE(b != nullptr);
     CHECK(b->_operation == Operation::Add);
+}
+
+TEST_CASE("Parse DIM without size", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nDIM arr AS BOOL\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    REQUIRE(seq._items.size() == 1);
+    auto d = dynamic_cast<const Dim*>(seq._items[0].get());
+    REQUIRE(d != nullptr);
+    CHECK(d->_name == "arr");
+    CHECK(d->_type == "BOOL");
+    CHECK(d->_size == nullptr);
+}
+
+TEST_CASE("Parse error: DIM with invalid type", "[parser]")
+{
+    auto errors = parseErrors("SUB Main\nDIM arr[10] AS FOO\nEND SUB\n");
+    REQUIRE(errors.size() == 1);
+    CHECK(errors[0].line == 2);
+    CHECK(errors[0].message.find("REAL") != std::string::npos);
 }
 
 // ---- CALL ----
@@ -1112,9 +1157,11 @@ TEST_CASE("Parse error: missing END WHILE", "[parser]")
 TEST_CASE("Parse error: DIM without size", "[parser]")
 {
     auto errors = parseErrors("SUB Main\nDIM arr[]\nEND SUB\n");
-    REQUIRE(errors.size() == 1);
+    REQUIRE(errors.size() == 2);
     CHECK(errors[0].line == 2);
     CHECK(errors[0].message.find("արտահայտություն") != std::string::npos);
+    CHECK(errors[1].line == 2);
+    CHECK(errors[1].message.find("'AS'") != std::string::npos);
 }
 
 TEST_CASE("Parse error: LET without equals", "[parser]")

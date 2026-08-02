@@ -1,7 +1,7 @@
 
 SUB max(x, y)
   IF x + y > 0 THEN
-    LET t$ = "Yes"
+    LET t = "Yes"
   END IF
 
   IF x > y THEN

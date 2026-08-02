@@ -100,7 +100,7 @@ _կարդացվում է_. կոդն ինքն է քերականության փա�
 | `[a]` (ոչ պարտադիր) | `if( lookahead.is(Token::A) ) ...` |
 | `{a}` (կրկնություն) | `while( lookahead.is(Token::A) ) ...` |
 
-Օրինակ՝ `Dim = 'DIM' IDENT '[' Expression ']'.` կանոնը դառնում է.
+Օրինակ՝ `Dim = 'DIM' IDENT '[' Expression ']' 'AS' (REAL | TEXT | BOOL).` կանոնը դառնում է.
 
 ```cpp
 Dim::Ptr Parser::parseDim()
@@ -112,8 +112,15 @@ Dim::Ptr Parser::parseDim()
     match(Token::LeftBrack);
     auto size = parseExpression();
     match(Token::RightBrack);
+    match(Token::As);
 
-    return node<Dim>(name, size, line);
+    std::string type;
+    if( lookahead.is(Token::Real, Token::Text, Token::Bool) )
+        type = match(lookahead.kind);
+    else
+        diagnostics.mark(lookahead.line, std::format("Սպասվում է տիպ (REAL | TEXT | BOOL), բայց հանդիպել է {}։", describe(lookahead)));
+
+    return node<Dim>(name, size, type, line);
 }
 ```
 

@@ -57,9 +57,9 @@ static Call::Ptr makeCall(std::string_view callee, std::vector<Expression::Ptr> 
     return std::make_shared<Call>(callee, std::move(args), 10);
 }
 
-static Dim::Ptr makeDim(std::string_view name, Expression::Ptr size)
+static Dim::Ptr makeDim(std::string_view name, Expression::Ptr size, std::string_view type)
 {
-    return std::make_shared<Dim>(name, std::move(size), 13);
+    return std::make_shared<Dim>(name, std::move(size), type, 13);
 }
 
 static std::string tos(Program::Ptr prog)
@@ -185,9 +185,16 @@ TEST_CASE("Call subroutine", "[lisp]")
 
 TEST_CASE("Dim statement", "[lisp]")
 {
-    auto d = makeDim("arr", node<Number>(100.0, 1));
+    auto d = makeDim("arr", node<Number>(100.0, 1), "REAL");
     auto result = tos(makeProg({makeSub("Main", {}, makeSeq({d}))}));
-    CHECK_THAT(result, ContainsSubstring("(basic-dim \"arr\" (basic-number 100))"));
+    CHECK_THAT(result, ContainsSubstring("(basic-dim \"arr\" (basic-number 100) \"REAL\")"));
+}
+
+TEST_CASE("Dim statement without size", "[lisp]")
+{
+    auto d = makeDim("arr", nullptr, "REAL");
+    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({d}))}));
+    CHECK_THAT(result, ContainsSubstring("(basic-dim \"arr\" NIL \"REAL\")"));
 }
 
 TEST_CASE("Array expression", "[lisp]")

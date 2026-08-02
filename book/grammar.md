@@ -7,6 +7,7 @@ Subroutine = 'SUB' IDENT ['(' [IdentList] ')'] Statements 'END' 'SUB'.
 Statements = NewLines { (Let | If | While | For | Call) NewLines }.
 IdentList = IDENT {',' IDENT}.
 Let = 'LET' IDENT '=' Expression.
+Dim = 'DIM' IDENT '[' Expression ']' 'AS' (REAL | TEXT | BOOL).
 If = 'IF' Expression 'THEN' Statements
      {'ELSEIF' Expression 'THEN' Statements }
      ['ELSE' Statements] 'END' 'IF'.

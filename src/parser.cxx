@@ -198,18 +198,30 @@ Let::Ptr Parser::parseLet()
     return node<Let>(node<Variable>(vnm, ln), exo, ln);
 }
 
-// Dim = 'DIM' IDENT '[' Expression ']'.
+// Dim = 'DIM' IDENT ['[' Expression ']'] 'AS' (REAL | TEXT | BOOL).
 Dim::Ptr Parser::parseDim()
 {
     auto line = lookahead.line;
 
     match(Token::Dim);
     auto name = match(Token::Identifier);
-    match(Token::LeftBrack);
-    auto size = parseExpression();
-    match(Token::RightBrack);
 
-    return node<Dim>(name, size, line);
+    Expression::Ptr size;
+    if( lookahead.is(Token::LeftBrack) ) {
+        match(Token::LeftBrack);
+        size = parseExpression();
+        match(Token::RightBrack);
+    }
+
+    match(Token::As);
+
+    std::string type;
+    if( lookahead.is(Token::Real, Token::Text, Token::Bool) )
+        type = match(lookahead.kind);
+    else
+        diagnostics.mark(lookahead.line, std::format("Սպասվում է տիպ (REAL | TEXT | BOOL), բայց հանդիպել է {}։", describe(lookahead)));
+
+    return node<Dim>(name, size, type, line);
 }
 
 // If = 'IF' Expression 'THEN' Statements {'ELSEIF' Expression 'THEN' Statements } ['ELSE' Statements] 'END' 'IF'.

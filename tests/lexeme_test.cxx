@@ -108,8 +108,7 @@ TEST_CASE("toString for all Token values", "[lexeme]")
     CHECK(toString(Token::Identifier) == "IDENT");
     CHECK(toString(Token::Subroutine) == "SUB");
     CHECK(toString(Token::Let) == "LET");
-    CHECK(toString(Token::If) == "IF");
-    CHECK(toString(Token::Then) == "THEN");
+    CHECK(toString(Token::If) == "IF");    CHECK(toString(Token::Then) == "THEN");
     CHECK(toString(Token::ElseIf) == "ELSEIF");
     CHECK(toString(Token::Else) == "ELSE");
     CHECK(toString(Token::While) == "WHILE");
@@ -118,6 +117,9 @@ TEST_CASE("toString for all Token values", "[lexeme]")
     CHECK(toString(Token::Step) == "STEP");
     CHECK(toString(Token::Call) == "CALL");
     CHECK(toString(Token::End) == "END");
+    CHECK(toString(Token::Real) == "REAL");
+    CHECK(toString(Token::Text) == "TEXT");
+    CHECK(toString(Token::Bool) == "BOOL");
     CHECK(toString(Token::NewLine) == "New Line");
     CHECK(toString(Token::Eq) == "=");
     CHECK(toString(Token::Ne) == "<>");

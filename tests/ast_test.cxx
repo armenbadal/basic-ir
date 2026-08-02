@@ -219,9 +219,10 @@ TEST_CASE("Sequence node", "[ast]")
 TEST_CASE("Dim node", "[ast]")
 {
     auto size = node<Number>(10.0, 1);
-    Dim d{"arr", size, 2};
+    Dim d{"arr", size, "REAL", 2};
     CHECK(d.kind == NodeKind::Dim);
     CHECK(d._name == "arr");
+    CHECK(d._type == "REAL");
     CHECK(d._size->kind == NodeKind::Number);
 }
 
@@ -367,7 +368,7 @@ TEST_CASE("NodeKind values match node types", "[ast]")
     CHECK(node<Apply>("", std::vector<Expression::Ptr>{}, 1)->kind == NodeKind::Apply);
     CHECK(node<Array>(std::vector<Expression::Ptr>{}, 1)->kind == NodeKind::Array);
     CHECK(node<Sequence>(std::vector<Statement::Ptr>{}, 1)->kind == NodeKind::Sequence);
-    CHECK(node<Dim>("", dummy, 1)->kind == NodeKind::Dim);
+    CHECK(node<Dim>("", dummy, "REAL", 1)->kind == NodeKind::Dim);
     CHECK(node<Let>(std::make_shared<Variable>("", 1), dummy, 1)->kind == NodeKind::Let);
     CHECK(node<If>(std::vector<If::IfThen::Ptr>{std::make_shared<If::IfThen>(dummy, node<Let>(std::make_shared<Variable>("", 1), dummy, 1), 1)}, nullptr, 1)->kind == NodeKind::If);
     CHECK(node<While>(dummy, node<Let>(std::make_shared<Variable>("", 1), dummy, 1), 1)->kind == NodeKind::While);

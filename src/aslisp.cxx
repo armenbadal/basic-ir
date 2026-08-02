@@ -89,7 +89,8 @@ std::string Lisper::visit(Let& node)
 
 std::string Lisper::visit(Dim& node)
 {
-    return std::format("(basic-dim \"{}\" {})", node._name, visit(*node._size));
+    return std::format("(basic-dim \"{}\" {} \"{}\")",
+                       node._name, node._size ? visit(*node._size) : "NIL", node._type);
 }
 
 std::string Lisper::visit(If& node)

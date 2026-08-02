@@ -511,10 +511,10 @@ llvm::FunctionCallee IrEmitter::libraryFunction(std::string_view name)
 
 llvm::FunctionCallee IrEmitter::userFunction(std::string_view name)
 {
-    if( "MID$" == name )
+    if( "MID" == name )
         return libraryFunction("text_mid");
 
-    if( "STR$" == name )
+    if( "STR" == name )
         return libraryFunction("text_str");
 
     if( "SQR" == name )

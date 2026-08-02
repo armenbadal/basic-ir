@@ -1,4 +1,4 @@
 
 SUB Main
-  LET s$ = "Hello!"
+  LET s = "Hello!"
 END SUB
