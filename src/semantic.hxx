@@ -58,7 +58,13 @@ private:
     Type::Ptr expressionType(const Expression::Ptr& expression);
     std::optional<SymbolId> variableSymbol(const Variable& variable);
     void requireType(const Node& node, const Type& actual, const Type& expected, std::string_view context);
-    void error(const Node& node, std::string_view message);
+
+    void error(const Node& node, std::string_view fmt, auto&&... args)
+    {
+        _diagnostics.advance();
+        const auto msg = std::vformat(fmt, std::make_format_args(args...));
+        _diagnostics.mark(node.line, msg);
+    }
 
     SymbolTable& _symbols;
     SemanticModel& _semantic;

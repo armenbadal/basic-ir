@@ -10,6 +10,7 @@
 namespace basic {
 
 using SymbolId = unsigned int;
+constexpr SymbolId UnknownSymbol = 0; 
 
 class Symbol {
 public:
@@ -38,8 +39,7 @@ public:
         Parameter,
     };
 
-    VariableSymbol(SymbolId id, std::string name, Type::Ptr type,
-        Storage storage = Storage::Local);
+    VariableSymbol(SymbolId id, std::string name, Type::Ptr type, Storage storage = Storage::Local);
 
     const Type& type() const noexcept;
     Storage storage() const noexcept;
