@@ -181,7 +181,7 @@ const std::set FirstStat = {
     Token::If, Token::While, Token::For, Token::Call
 };
 const std::set FirstExpr = {
-    Token::True, Token::False, Token::Number, Token::Text,
+    Token::BoolLit, Token::RealLit, Token::TextLit,
     Token::Identifier, Token::Sub, Token::Not, Token::LeftPar
 };
 
@@ -519,8 +519,8 @@ std::string describe(const Lexeme& lex)
         case Token::NewLine:    return "տողի ավարտ";
         case Token::Eof:        return "ֆայլի ավարտ";
         case Token::None:       return std::format("անհայտ նիշ '{}'", lex.value);
-        case Token::Number:
-        case Token::Text:
+        case Token::RealLit:
+        case Token::TextLit:
         case Token::Identifier: return std::format("'{}'", lex.value);
         default:                return std::format("'{}'", toString(lex.kind));
     }
@@ -634,7 +634,7 @@ void Parser::sync(const std::set<Token>& stops, std::string_view message)
 // թոքենները, որպեսզի սխալ արտահայտությունը չկլանի իրեն շրջապատող
 // կառուցվածքը։
 const std::set<Token> ExprSync = {
-    Token::True, Token::False, Token::Number, Token::Text, Token::Identifier,
+    Token::BoolLit, Token::RealLit, Token::TextLit, Token::Identifier,
     Token::Sub, Token::Not, Token::LeftPar,
     Token::RightPar, Token::RightBrack, Token::Comma,
     Token::NewLine, Token::End, Token::ElseIf, Token::Else, Token::Subroutine, Token::Eof
@@ -662,9 +662,9 @@ Expression::Ptr Parser::parseFactor()
             advance();
     }
 
-    if( lookahead.is(Token::True, Token::False) )  return parseTrueOrFalse();
-    if( lookahead.is(Token::Number) )              return parseNumber();
-    if( lookahead.is(Token::Text) )                return parseText();
+    if( lookahead.is(Token::BoolLit) )             return parseTrueOrFalse();
+    if( lookahead.is(Token::RealLit) )             return parseNumber();
+    if( lookahead.is(Token::TextLit) )             return parseText();
     if( lookahead.is(Token::Identifier) )          return parseIdentOrApply();
     if( lookahead.is(Token::LeftPar) )             return parseGrouped();
 

@@ -8,11 +8,10 @@ namespace basic {
 enum class Token : int {
     None, // ոչինչ
 
-    Number,     // թվային հաստատուն
-    Text,       // տեքստային հաստատուն
     Identifier, // իդենտիֆիկատոր
-    True,       // TRUE հաստատունը
-    False,      // FALSE հաստատունը
+    RealLit,    // թվային հաստատուն
+    TextLit,    // տեքստային հաստատուն
+    BoolLit,    // բուլյան հաստատուն
 
     Subroutine, // SUB
     Dim,        // DIM

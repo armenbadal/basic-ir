@@ -15,16 +15,16 @@ TEST_CASE("Lexeme default constructor", "[lexeme]")
 
 TEST_CASE("Lexeme parameterized constructor", "[lexeme]")
 {
-    Lexeme lex{Token::Number, "42", 3};
-    CHECK(lex.kind == Token::Number);
+    Lexeme lex{Token::RealLit, "42", 3};
+    CHECK(lex.kind == Token::RealLit);
     CHECK(lex.value == "42");
     CHECK(lex.line == 3);
 }
 
 TEST_CASE("Lexeme parameterized constructor with text", "[lexeme]")
 {
-    Lexeme lex{Token::Text, "hello", 7};
-    CHECK(lex.kind == Token::Text);
+    Lexeme lex{Token::TextLit, "hello", 7};
+    CHECK(lex.kind == Token::TextLit);
     CHECK(lex.value == "hello");
     CHECK(lex.line == 7);
 }
@@ -51,8 +51,8 @@ TEST_CASE("Lexeme::is matches with two tokens", "[lexeme]")
 
 TEST_CASE("Lexeme::is matches literal tokens", "[lexeme]")
 {
-    Lexeme num{Token::Number, "99", 1};
-    CHECK(num.is(Token::Number, Token::True, Token::False));
+    Lexeme num{Token::RealLit, "99", 1};
+    CHECK(num.is(Token::RealLit, Token::BoolLit));
     CHECK_FALSE(num.is(Token::Subroutine, Token::Dim));
 }
 
@@ -77,14 +77,14 @@ TEST_CASE("Lexeme::is with None token", "[lexeme]")
 
 TEST_CASE("Lexeme::toString format", "[lexeme]")
 {
-    Lexeme lex{Token::Number, "42", 3};
-    CHECK(lex.toString() == "<Number, 42, 3>");
+    Lexeme lex{Token::RealLit, "42", 3};
+    CHECK(lex.toString() == "<RealLit, 42, 3>");
 }
 
 TEST_CASE("Lexeme::toString for text token", "[lexeme]")
 {
-    Lexeme lex{Token::Text, "hello", 1};
-    CHECK(lex.toString() == "<Text, hello, 1>");
+    Lexeme lex{Token::TextLit, "hello", 1};
+    CHECK(lex.toString() == "<TextLit, hello, 1>");
 }
 
 TEST_CASE("Lexeme::toString for identifier token", "[lexeme]")
@@ -102,10 +102,9 @@ TEST_CASE("Lexeme::toString for default lexeme", "[lexeme]")
 TEST_CASE("toString for all Token values", "[lexeme]")
 {
     CHECK(toString(Token::None) == "None");
-    CHECK(toString(Token::Number) == "Number");
-    CHECK(toString(Token::Text) == "Text");
-    CHECK(toString(Token::True) == "TRUE");
-    CHECK(toString(Token::False) == "FALSE");
+    CHECK(toString(Token::RealLit) == "RealLit");
+    CHECK(toString(Token::TextLit) == "TextLit");
+    CHECK(toString(Token::BoolLit) == "BoolLit");
     CHECK(toString(Token::Identifier) == "IDENT");
     CHECK(toString(Token::Subroutine) == "SUB");
     CHECK(toString(Token::Let) == "LET");

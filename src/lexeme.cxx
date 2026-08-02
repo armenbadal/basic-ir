@@ -10,10 +10,9 @@ std::string toString(Token sym)
 {
     static std::map<Token, std::string> names{
         { Token::None, "None" },
-        { Token::Number, "Number" },
-        { Token::Text, "Text" },
-        { Token::True, "TRUE" },
-        { Token::False, "FALSE" },
+        { Token::RealLit, "RealLit" },
+        { Token::TextLit, "TextLit" },
+        { Token::BoolLit, "BoolLit" },
         { Token::Identifier, "IDENT" },
         { Token::Subroutine, "SUB" },
         { Token::Dim, "DIM" },

@@ -18,7 +18,7 @@ const std::set FirstStat = {
     Token::If, Token::While, Token::For, Token::Call
 };
 const std::set FirstExpr = {
-    Token::True, Token::False, Token::Number, Token::Text,
+    Token::BoolLit, Token::RealLit, Token::TextLit,
     Token::Identifier, Token::Sub, Token::Not, Token::LeftPar
 };
 
@@ -43,7 +43,7 @@ const std::set<Token> SubroutineSync = {
 
 // Արտահայտության մակարդակի համաժամեցման կետերը
 const std::set<Token> ExprSync = {
-    Token::True, Token::False, Token::Number, Token::Text,
+    Token::BoolLit, Token::RealLit, Token::TextLit,
     Token::Identifier, Token::Sub, Token::Not, Token::LeftPar,
     Token::RightPar, Token::RightBrack, Token::Comma,
     Token::NewLine, Token::End, Token::ElseIf, Token::Else,
@@ -465,13 +465,13 @@ Expression::Ptr Parser::parseFactor()
             advance();
     }
 
-    if( lookahead.is(Token::True, Token::False) )
+    if( lookahead.is(Token::BoolLit) )
         return parseTrueOrFalse();
 
-    if( lookahead.is(Token::Number) )
+    if( lookahead.is(Token::RealLit) )
         return parseNumber();
 
-    if( lookahead.is(Token::Text) )
+    if( lookahead.is(Token::TextLit) )
         return parseText();
 
     if( lookahead.is(Token::Identifier) )
@@ -495,7 +495,7 @@ Boolean::Ptr Parser::parseTrueOrFalse()
 Number::Ptr Parser::parseNumber()
 {
     auto line = lookahead.line;
-    auto value = match(Token::Number);
+    auto value = match(Token::RealLit);
 
     // std::stod-ը դեն է նետում out_of_range՝ չափազանց մեծ հաստատունի դեպքում
     try {
@@ -511,7 +511,7 @@ Number::Ptr Parser::parseNumber()
 Text::Ptr Parser::parseText()
 {
     auto line = lookahead.line;
-    auto value = match(Token::Text);
+    auto value = match(Token::TextLit);
     return node<Text>(value, line);
 }
 
