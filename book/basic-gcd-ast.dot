@@ -73,7 +73,9 @@ digraph G {
     astnode_33 -> astnode_34;
     astnode_33 -> astnode_31;
     astnode_33 -> astnode_32;
-    astnode_35[label="PRINT"];
+    astnode_39[label="VARIABLE: result"];
+    astnode_35[label="LET"];
+    astnode_35 -> astnode_39;
     astnode_35 -> astnode_33;
     astnode_36[label="SEQUENCE"];
     astnode_36 -> astnode_35;

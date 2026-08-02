@@ -23,7 +23,7 @@ SUB Gcd(x, y)
 END SUB
 
 SUB Main
-    PRINT Gcd(18, 192)
+    LET result = Gcd(18, 192)
 END SUB
 ```
 
@@ -64,7 +64,7 @@ emit(Program)
           emit(Variable)
   emit(Subroutine)
     emit(Sequence)
-      emit(Print)
+      emit(Let)
         emit(Apply)
           emit(Number)
           emit(Number)

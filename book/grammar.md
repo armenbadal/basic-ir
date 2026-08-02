@@ -4,11 +4,10 @@
 Program = [NewLines] { Subroutine NewLines }.
 NewLines = EOL { EOL }.
 Subroutine = 'SUB' IDENT ['(' [IdentList] ')'] Statements 'END' 'SUB'.
-Statements = NewLines { (Let | Input | Print | If | While | For | Call) NewLines }.
+Statements = NewLines { (Let | If | While | For | Call) NewLines }.
 IdentList = IDENT {',' IDENT}.
 Let = 'LET' IDENT '=' Expression.
-Input = 'INPUT' IDENT.
-Print = 'PRINT' Expression.
+Dim = 'DIM' IDENT '[' Expression ']' 'AS' (REAL | TEXT | BOOL).
 If = 'IF' Expression 'THEN' Statements
      {'ELSEIF' Expression 'THEN' Statements }
      ['ELSE' Statements] 'END' 'IF'.

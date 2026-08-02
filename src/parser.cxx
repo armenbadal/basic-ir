@@ -14,11 +14,11 @@ using namespace std::string_view_literals;
 namespace basic {
 
 const std::set FirstStat = {
-    Token::Let, Token::Dim, Token::Input, Token::Print,
+    Token::Let, Token::Dim,
     Token::If, Token::While, Token::For, Token::Call
 };
 const std::set FirstExpr = {
-    Token::True, Token::False, Token::Number, Token::Text,
+    Token::BoolLit, Token::RealLit, Token::TextLit,
     Token::Identifier, Token::Sub, Token::Not, Token::LeftPar
 };
 
@@ -30,8 +30,8 @@ const std::set FollowStat = {
 
 // Հրամանի մակարդակի համաժամեցման կետերը
 const std::set<Token> StatementSync = {
-    Token::NewLine, Token::Let, Token::Dim, Token::Input, 
-    Token::Print, Token::If, Token::While, Token::For, 
+    Token::NewLine, Token::Let, Token::Dim, 
+    Token::If, Token::While, Token::For, 
     Token::Call, Token::End, Token::ElseIf, Token::Else,
     Token::Subroutine, Token::Eof
 };
@@ -43,7 +43,7 @@ const std::set<Token> SubroutineSync = {
 
 // Արտահայտության մակարդակի համաժամեցման կետերը
 const std::set<Token> ExprSync = {
-    Token::True, Token::False, Token::Number, Token::Text,
+    Token::BoolLit, Token::RealLit, Token::TextLit,
     Token::Identifier, Token::Sub, Token::Not, Token::LeftPar,
     Token::RightPar, Token::RightBrack, Token::Comma,
     Token::NewLine, Token::End, Token::ElseIf, Token::Else,
@@ -160,7 +160,7 @@ Sequence::Ptr Parser::parseSequence()
     return node<Sequence>(std::move(items), line);
 }
 
-// Statement = Let | Dim | Input | Print | If | While | For | Call.
+// Statement = Let | Dim | If | While | For | Call.
 Statement::Ptr Parser::parseOneStatement()
 {
     if( lookahead.is(Token::Let) )
@@ -168,12 +168,6 @@ Statement::Ptr Parser::parseOneStatement()
 
     if( lookahead.is(Token::Dim) )
         return parseDim();
-
-    if( lookahead.is(Token::Input) )
-        return parseInput();
-
-    if( lookahead.is(Token::Print) )
-        return parsePrint();
 
     if( lookahead.is(Token::If) )
         return parseIf();
@@ -204,40 +198,30 @@ Let::Ptr Parser::parseLet()
     return node<Let>(node<Variable>(vnm, ln), exo, ln);
 }
 
-// Dim = 'DIM' IDENT '[' Expression ']'.
+// Dim = 'DIM' IDENT ['[' Expression ']'] 'AS' (REAL | TEXT | BOOL).
 Dim::Ptr Parser::parseDim()
 {
     auto line = lookahead.line;
 
     match(Token::Dim);
     auto name = match(Token::Identifier);
-    match(Token::LeftBrack);
-    auto size = parseExpression();
-    match(Token::RightBrack);
 
-    return node<Dim>(name, size, line);
-}
+    Expression::Ptr size;
+    if( lookahead.is(Token::LeftBrack) ) {
+        match(Token::LeftBrack);
+        size = parseExpression();
+        match(Token::RightBrack);
+    }
 
-// Input = 'INPUT' IDENT.
-Input::Ptr Parser::parseInput()
-{
-    auto line = lookahead.line;
+    match(Token::As);
 
-    match(Token::Input);
-    auto vnm = match(Token::Identifier);
+    std::string type;
+    if( lookahead.is(Token::Real, Token::Text, Token::Bool) )
+        type = match(lookahead.kind);
+    else
+        diagnostics.mark(lookahead.line, std::format("Սպասվում է տիպ (REAL | TEXT | BOOL), բայց հանդիպել է {}։", describe(lookahead)));
 
-    return node<Input>(node<Variable>(vnm, line), line);
-}
-
-// Print = 'PRINT' Expression.
-Print::Ptr Parser::parsePrint()
-{
-    auto line = lookahead.line;
-
-    match(Token::Print);
-    auto expr = parseExpression();
-
-    return node<Print>(expr, line);
+    return node<Dim>(name, size, type, line);
 }
 
 // If = 'IF' Expression 'THEN' Statements {'ELSEIF' Expression 'THEN' Statements } ['ELSE' Statements] 'END' 'IF'.
@@ -493,13 +477,13 @@ Expression::Ptr Parser::parseFactor()
             advance();
     }
 
-    if( lookahead.is(Token::True, Token::False) )
+    if( lookahead.is(Token::BoolLit) )
         return parseTrueOrFalse();
 
-    if( lookahead.is(Token::Number) )
+    if( lookahead.is(Token::RealLit) )
         return parseNumber();
 
-    if( lookahead.is(Token::Text) )
+    if( lookahead.is(Token::TextLit) )
         return parseText();
 
     if( lookahead.is(Token::Identifier) )
@@ -523,7 +507,7 @@ Boolean::Ptr Parser::parseTrueOrFalse()
 Number::Ptr Parser::parseNumber()
 {
     auto line = lookahead.line;
-    auto value = match(Token::Number);
+    auto value = match(Token::RealLit);
 
     // std::stod-ը դեն է նետում out_of_range՝ չափազանց մեծ հաստատունի դեպքում
     try {
@@ -539,7 +523,7 @@ Number::Ptr Parser::parseNumber()
 Text::Ptr Parser::parseText()
 {
     auto line = lookahead.line;
-    auto value = match(Token::Text);
+    auto value = match(Token::TextLit);
     return node<Text>(value, line);
 }
 

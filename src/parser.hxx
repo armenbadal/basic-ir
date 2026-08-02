@@ -33,8 +33,6 @@ private:
     Sequence::Ptr parseSequence();
     Let::Ptr parseLet();
     Dim::Ptr parseDim();
-    Input::Ptr parseInput();
-    Print::Ptr parsePrint();
     If::IfThen::Ptr parseIfThen(bool first);
     If::Ptr parseIf();
     While::Ptr parseWhile();

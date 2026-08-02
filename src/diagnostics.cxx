@@ -18,8 +18,8 @@ std::string describe(const Lexeme& lex)
             return "ֆայլի ավարտ";
         case Token::None:
             return std::format("անհայտ նիշ '{}'", lex.value);
-        case Token::Number:
-        case Token::Text:
+        case Token::RealLit:
+        case Token::TextLit:
         case Token::Identifier:
             return std::format("'{}'", lex.value);
         default:

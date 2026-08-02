@@ -1,15 +1,14 @@
 
-SUB s$
-  LET s$ = "Ok"
+SUB s
+  LET s = "Ok"
 END SUB
 
-SUB f(x$, y)
-  PRINT 3.14
-  PRINT y
+SUB f(x, y)
+  LET a = 3.14
+  LET b = y
   
-  PRINT "Halo!"
-  PRINT x$
-  PRINT "--> " & x$
-  PRINT s$()
+  LET c = "Halo!"
+  LET d = x
+  LET e = "--> " & x
+  LET f = s()
 END SUB
-

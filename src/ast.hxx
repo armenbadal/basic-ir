@@ -22,8 +22,6 @@ enum class NodeKind : int {
     Array,      // զանգվածի տարրեր
     Sequence,   // հրամանների հաջորդում
     Dim,        // զանգվածի սահմանում
-    Input,      // տվյալների ներմուծում
-    Print,      // տվյալների արտածում
     Let,        // վերագրում
     If,         // լրիվ ճյուղավորում
     IfThen,     // կարճ ճյուղավորում
@@ -242,41 +240,16 @@ public:
 // Զանգվածի սահմանում
 class Dim : public Statement {
 public:
-    Dim(std::string_view name, Expression::Ptr size, Position pos)
+    Dim(std::string_view name, Expression::Ptr size, std::string_view type, Position pos)
         : Statement{NodeKind::Dim, pos}
-        , _name{name}, _size{std::move(size)}
+        , _name{name}, _size{std::move(size)}, _type{type}
     {}
     using Ptr = std::shared_ptr<Dim>;
 
     const std::string _name;     // անունը
     const Expression::Ptr _size; // չափը
+    const std::string _type;    // տիպը (REAL, TEXT, BOOL)
 };
-
-// Տվյալների ներմուծում
-class Input : public Statement {
-public:
-    Input(Variable::Ptr variable, Position pos)
-        : Statement{NodeKind::Input, pos}
-        , _variable{std::move(variable)}
-    {}
-    using Ptr = std::shared_ptr<Input>;
-
-    const Variable::Ptr _variable;   // ներմուծվող փոփոխական
-};
-
-
-// Տվյալների արտածում
-class Print : public Statement {
-public:
-    Print(Expression::Ptr expr, Position pos)
-        : Statement{NodeKind::Print, pos}
-        , _expr{std::move(expr)}
-    {}
-    using Ptr = std::shared_ptr<Print>;
-
-    const Expression::Ptr _expr; // արտածվող արտահայտությունը
-};
-
 
 // Վերագրում (միաժամանակ՝ փոփոխականի սահմանում)
 class Let : public Statement {

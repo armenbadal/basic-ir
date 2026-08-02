@@ -5,9 +5,7 @@ SUB f(x, y)
     LET x = x - 1
     WHILE y < 10
       LET y = y + 1
-      PRINT y
+      LET out = y
     END WHILE
-    'PRINT x
   END WHILE
 END SUB
-

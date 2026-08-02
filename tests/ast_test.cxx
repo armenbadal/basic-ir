@@ -192,15 +192,15 @@ TEST_CASE("Array node with elements", "[ast]")
 
 TEST_CASE("Statement base class", "[ast]")
 {
-    Statement s{NodeKind::Print, 7};
-    CHECK(s.kind == NodeKind::Print);
+    Statement s{NodeKind::Let, 7};
+    CHECK(s.kind == NodeKind::Let);
     CHECK(s.line == 7);
 }
 
 TEST_CASE("Statement::Ptr typedef", "[ast]")
 {
-    Statement::Ptr ptr = std::make_shared<Print>(node<Number>(0.0, 1), 1);
-    CHECK(ptr->kind == NodeKind::Print);
+    Statement::Ptr ptr = std::make_shared<Let>(std::make_shared<Variable>("x", 1), node<Number>(0.0, 1), 1);
+    CHECK(ptr->kind == NodeKind::Let);
 }
 
 // --- Sequence ---
@@ -208,7 +208,7 @@ TEST_CASE("Statement::Ptr typedef", "[ast]")
 TEST_CASE("Sequence node", "[ast]")
 {
     std::vector<Statement::Ptr> items;
-    items.push_back(std::make_shared<Print>(node<Number>(1.0, 1), 1));
+    items.push_back(std::make_shared<Let>(std::make_shared<Variable>("x", 1), node<Number>(1.0, 1), 1));
     Sequence seq{std::move(items), 2};
     CHECK(seq.kind == NodeKind::Sequence);
     CHECK(seq._items.size() == 1);
@@ -219,30 +219,11 @@ TEST_CASE("Sequence node", "[ast]")
 TEST_CASE("Dim node", "[ast]")
 {
     auto size = node<Number>(10.0, 1);
-    Dim d{"arr", size, 2};
+    Dim d{"arr", size, "REAL", 2};
     CHECK(d.kind == NodeKind::Dim);
     CHECK(d._name == "arr");
+    CHECK(d._type == "REAL");
     CHECK(d._size->kind == NodeKind::Number);
-}
-
-// --- Input ---
-
-TEST_CASE("Input node", "[ast]")
-{
-    auto var = std::make_shared<Variable>("n", 1);
-    Input inp{var, 2};
-    CHECK(inp.kind == NodeKind::Input);
-    CHECK(inp._variable->_name == "n");
-}
-
-// --- Print ---
-
-TEST_CASE("Print node", "[ast]")
-{
-    auto expr = node<Text>("hello", 1);
-    Print p{expr, 2};
-    CHECK(p.kind == NodeKind::Print);
-    CHECK(p._expr->kind == NodeKind::Text);
 }
 
 // --- Let ---
@@ -262,23 +243,23 @@ TEST_CASE("Let node", "[ast]")
 TEST_CASE("If node without else", "[ast]")
 {
     auto cond = node<Boolean>(true, 1);
-    auto decision = std::make_shared<Print>(node<Text>("yes", 2), 2);
+    auto decision = std::make_shared<Let>(std::make_shared<Variable>("x", 2), node<Number>(1.0, 2), 2);
     auto branch = std::make_shared<If::IfThen>(cond, decision, 3);
     If i{{branch}, nullptr, 3};
     CHECK(i.kind == NodeKind::If);
     CHECK(i._branches[0]->_condition->kind == NodeKind::Boolean);
-    CHECK(i._branches[0]->_decision->kind == NodeKind::Print);
+    CHECK(i._branches[0]->_decision->kind == NodeKind::Let);
     CHECK(i._alternative == nullptr);
 }
 
 TEST_CASE("If node with else", "[ast]")
 {
     auto cond = node<Boolean>(false, 1);
-    auto decision = std::make_shared<Print>(node<Text>("then", 2), 2);
-    auto alt = std::make_shared<Print>(node<Text>("else", 3), 3);
+    auto decision = std::make_shared<Let>(std::make_shared<Variable>("x", 2), node<Number>(1.0, 2), 2);
+    auto alt = std::make_shared<Let>(std::make_shared<Variable>("y", 3), node<Number>(2.0, 3), 3);
     auto branch = std::make_shared<If::IfThen>(cond, decision, 2);
     If i{{branch}, alt, 4};
-    CHECK(i._alternative->kind == NodeKind::Print);
+    CHECK(i._alternative->kind == NodeKind::Let);
 }
 
 // --- While ---
@@ -286,11 +267,11 @@ TEST_CASE("If node with else", "[ast]")
 TEST_CASE("While node", "[ast]")
 {
     auto cond = node<Boolean>(true, 1);
-    auto body = std::make_shared<Print>(node<Number>(0.0, 2), 2);
+    auto body = std::make_shared<Let>(std::make_shared<Variable>("x", 2), node<Number>(0.0, 2), 2);
     While w{cond, body, 3};
     CHECK(w.kind == NodeKind::While);
     CHECK(w._condition->kind == NodeKind::Boolean);
-    CHECK(w._body->kind == NodeKind::Print);
+    CHECK(w._body->kind == NodeKind::Let);
 }
 
 // --- For ---
@@ -301,14 +282,14 @@ TEST_CASE("For node", "[ast]")
     auto begin = node<Number>(0.0, 2);
     auto end = node<Number>(10.0, 3);
     auto step = node<Number>(2.0, 4);
-    auto body = std::make_shared<Print>(node<Number>(0.0, 5), 5);
+    auto body = std::make_shared<Let>(std::make_shared<Variable>("x", 5), node<Number>(0.0, 5), 5);
     For f{param, begin, end, step, body, 6};
     CHECK(f.kind == NodeKind::For);
     CHECK(f._parameter->_name == "i");
     CHECK(f._begin->kind == NodeKind::Number);
     CHECK(f._end->kind == NodeKind::Number);
     CHECK(f._step->_value == 2.0);
-    CHECK(f._body->kind == NodeKind::Print);
+    CHECK(f._body->kind == NodeKind::Let);
 }
 
 // --- Call ---
@@ -387,15 +368,13 @@ TEST_CASE("NodeKind values match node types", "[ast]")
     CHECK(node<Apply>("", std::vector<Expression::Ptr>{}, 1)->kind == NodeKind::Apply);
     CHECK(node<Array>(std::vector<Expression::Ptr>{}, 1)->kind == NodeKind::Array);
     CHECK(node<Sequence>(std::vector<Statement::Ptr>{}, 1)->kind == NodeKind::Sequence);
-    CHECK(node<Dim>("", dummy, 1)->kind == NodeKind::Dim);
-    CHECK(node<Input>(std::make_shared<Variable>("", 1), 1)->kind == NodeKind::Input);
-    CHECK(node<Print>(dummy, 1)->kind == NodeKind::Print);
+    CHECK(node<Dim>("", dummy, "REAL", 1)->kind == NodeKind::Dim);
     CHECK(node<Let>(std::make_shared<Variable>("", 1), dummy, 1)->kind == NodeKind::Let);
-    CHECK(node<If>(std::vector<If::IfThen::Ptr>{std::make_shared<If::IfThen>(dummy, node<Print>(dummy, 1), 1)}, nullptr, 1)->kind == NodeKind::If);
-    CHECK(node<While>(dummy, node<Print>(dummy, 1), 1)->kind == NodeKind::While);
+    CHECK(node<If>(std::vector<If::IfThen::Ptr>{std::make_shared<If::IfThen>(dummy, node<Let>(std::make_shared<Variable>("", 1), dummy, 1), 1)}, nullptr, 1)->kind == NodeKind::If);
+    CHECK(node<While>(dummy, node<Let>(std::make_shared<Variable>("", 1), dummy, 1), 1)->kind == NodeKind::While);
 
     auto v = std::make_shared<Variable>("i", 1);
-    CHECK(node<For>(v, dummy, dummy, node<Number>(1.0, 1), node<Print>(dummy, 1), 1)->kind == NodeKind::For);
+    CHECK(node<For>(v, dummy, dummy, node<Number>(1.0, 1), node<Let>(std::make_shared<Variable>("", 1), dummy, 1), 1)->kind == NodeKind::For);
     CHECK(node<Call>("", std::vector<Expression::Ptr>{}, 1)->kind == NodeKind::Call);
 
     auto seq = node<Sequence>(std::vector<Statement::Ptr>{}, 1);
@@ -413,8 +392,8 @@ TEST_CASE("Dynamic casts between AST node types", "[ast]")
     CHECK(dynamic_cast<Node*>(expr.get()) != nullptr);
     CHECK(dynamic_cast<Statement*>(expr.get()) == nullptr);
 
-    Statement::Ptr stmt = std::make_shared<Print>(node<Number>(0.0, 1), 1);
-    CHECK(dynamic_cast<Print*>(stmt.get()) != nullptr);
+    Statement::Ptr stmt = std::make_shared<Let>(std::make_shared<Variable>("x", 1), node<Number>(0.0, 1), 1);
+    CHECK(dynamic_cast<Let*>(stmt.get()) != nullptr);
     CHECK(dynamic_cast<Statement*>(stmt.get()) != nullptr);
     CHECK(dynamic_cast<Node*>(stmt.get()) != nullptr);
     CHECK(dynamic_cast<Expression*>(stmt.get()) == nullptr);

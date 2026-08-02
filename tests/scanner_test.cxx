@@ -25,7 +25,7 @@ static ScanResult scanOne(std::string input) {
 TEST_CASE("Scanner scans integer numbers", "[scanner]")
 {
     auto r = scanOne("42");
-    CHECK(r.kind == Token::Number);
+    CHECK(r.kind == Token::RealLit);
     CHECK(r.value == "42");
     CHECK(r.line == 1);
 }
@@ -33,35 +33,35 @@ TEST_CASE("Scanner scans integer numbers", "[scanner]")
 TEST_CASE("Scanner scans multi-digit integer", "[scanner]")
 {
     auto r = scanOne("100500");
-    CHECK(r.kind == Token::Number);
+    CHECK(r.kind == Token::RealLit);
     CHECK(r.value == "100500");
 }
 
 TEST_CASE("Scanner scans floating point numbers", "[scanner]")
 {
     auto r = scanOne("3.14");
-    CHECK(r.kind == Token::Number);
+    CHECK(r.kind == Token::RealLit);
     CHECK(r.value == "3.14");
 }
 
 TEST_CASE("Scanner scans number starting with digit then dot", "[scanner]")
 {
     auto r = scanOne("0.5");
-    CHECK(r.kind == Token::Number);
+    CHECK(r.kind == Token::RealLit);
     CHECK(r.value == "0.5");
 }
 
 TEST_CASE("Scanner scans text strings", "[scanner]")
 {
     auto r = scanOne(R"("Hello, World!")");
-    CHECK(r.kind == Token::Text);
+    CHECK(r.kind == Token::TextLit);
     CHECK(r.value == "Hello, World!");
 }
 
 TEST_CASE("Scanner scans empty text string", "[scanner]")
 {
     auto r = scanOne(R"("")");
-    CHECK(r.kind == Token::Text);
+    CHECK(r.kind == Token::TextLit);
     CHECK(r.value == "");
 }
 
@@ -89,8 +89,6 @@ TEST_CASE("Scanner recognizes all keywords", "[scanner]")
 
     check("SUB",    Token::Subroutine);
     check("LET",    Token::Let);
-    check("PRINT",  Token::Print);
-    check("INPUT",  Token::Input);
     check("IF",     Token::If);
     check("THEN",   Token::Then);
     check("ELSEIF", Token::ElseIf);
@@ -105,8 +103,11 @@ TEST_CASE("Scanner recognizes all keywords", "[scanner]")
     check("AND",    Token::And);
     check("OR",     Token::Or);
     check("NOT",    Token::Not);
-    check("TRUE",   Token::True);
-    check("FALSE",  Token::False);
+    check("TRUE",   Token::BoolLit);
+    check("FALSE",  Token::BoolLit);
+    check("REAL",   Token::Real);
+    check("TEXT",   Token::Text);
+    check("BOOL",   Token::Bool);
 }
 
 TEST_CASE("Identifier containing a keyword prefix is not a keyword", "[scanner]")
@@ -189,7 +190,7 @@ TEST_CASE("Scanner skips comments", "[scanner]")
     CHECK(nl.kind == Token::NewLine);
 
     auto num = scanner.scan();
-    CHECK(num.kind == Token::Number);
+    CHECK(num.kind == Token::RealLit);
     CHECK(num.value == "42");
 }
 
@@ -198,7 +199,7 @@ TEST_CASE("Scanner skips spaces between tokens", "[scanner]")
     std::istringstream input{"  42"};
     Scanner scanner{input};
     auto r = scanner.scan();
-    CHECK(r.kind == Token::Number);
+    CHECK(r.kind == Token::RealLit);
     CHECK(r.value == "42");
 }
 
@@ -219,7 +220,7 @@ TEST_CASE("Scanner handles empty input", "[scanner]")
 
 TEST_CASE("Scanner scans a complete sequence of tokens", "[scanner]")
 {
-    std::istringstream input{"LET x = 42\nPRINT x"};
+    std::istringstream input{"LET x = 42\nCALL foo"};
     Scanner scanner{input};
 
     auto t1 = scanner.scan();
@@ -234,18 +235,18 @@ TEST_CASE("Scanner scans a complete sequence of tokens", "[scanner]")
     CHECK(t3.kind == Token::Eq);
 
     auto t4 = scanner.scan();
-    CHECK(t4.kind == Token::Number);
+    CHECK(t4.kind == Token::RealLit);
     CHECK(t4.value == "42");
 
     auto t5 = scanner.scan();
     CHECK(t5.kind == Token::NewLine);
 
     auto t6 = scanner.scan();
-    CHECK(t6.kind == Token::Print);
+    CHECK(t6.kind == Token::Call);
 
     auto t7 = scanner.scan();
     CHECK(t7.kind == Token::Identifier);
-    CHECK(t7.value == "x");
+    CHECK(t7.value == "foo");
 
     CHECK(scanner.scan().kind == Token::Eof);
 }
@@ -254,7 +255,7 @@ TEST_CASE("Scanner scans a minimal BASIC program", "[scanner]")
 {
     std::istringstream input{
         "SUB Main\n"
-        "  PRINT \"Hello!\"\n"
+        "  LET x = 42\n"
         "END SUB\n"
     };
     Scanner scanner{input};
@@ -266,11 +267,17 @@ TEST_CASE("Scanner scans a minimal BASIC program", "[scanner]")
     CHECK(mainId.value == "Main");
 
     CHECK(scanner.scan().kind == Token::NewLine);
-    CHECK(scanner.scan().kind == Token::Print);
+    CHECK(scanner.scan().kind == Token::Let);
 
-    auto hello = scanner.scan();
-    CHECK(hello.kind == Token::Text);
-    CHECK(hello.value == "Hello!");
+    auto xvar = scanner.scan();
+    CHECK(xvar.kind == Token::Identifier);
+    CHECK(xvar.value == "x");
+
+    CHECK(scanner.scan().kind == Token::Eq);
+
+    auto forty = scanner.scan();
+    CHECK(forty.kind == Token::RealLit);
+    CHECK(forty.value == "42");
 
     CHECK(scanner.scan().kind == Token::NewLine);
     CHECK(scanner.scan().kind == Token::End);
@@ -287,7 +294,7 @@ TEST_CASE("Scanner handles IF-THEN with comparison", "[scanner]")
     CHECK(scanner.scan().kind == Token::If);
     CHECK(scanner.scan().kind == Token::Identifier);
     CHECK(scanner.scan().kind == Token::Ne);
-    CHECK(scanner.scan().kind == Token::Number);
+    CHECK(scanner.scan().kind == Token::RealLit);
     CHECK(scanner.scan().kind == Token::Then);
     CHECK(scanner.scan().kind == Token::Eof);
 }
@@ -304,21 +311,21 @@ TEST_CASE("Scanner handles FOR loop header", "[scanner]")
     CHECK(eq.kind == Token::Eq);
 
     auto one = scanner.scan();
-    CHECK(one.kind == Token::Number);
+    CHECK(one.kind == Token::RealLit);
     CHECK(one.value == "1");
 
     auto to = scanner.scan();
     CHECK(to.kind == Token::To);
 
     auto ten = scanner.scan();
-    CHECK(ten.kind == Token::Number);
+    CHECK(ten.kind == Token::RealLit);
     CHECK(ten.value == "10");
 
     auto step = scanner.scan();
     CHECK(step.kind == Token::Step);
 
     auto two = scanner.scan();
-    CHECK(two.kind == Token::Number);
+    CHECK(two.kind == Token::RealLit);
     CHECK(two.value == "2");
 
     CHECK(scanner.scan().kind == Token::Eof);
@@ -360,14 +367,14 @@ TEST_CASE("Consecutive comments are skipped", "[scanner]")
     CHECK(scanner.scan().kind == Token::NewLine);
 
     auto num = scanner.scan();
-    CHECK(num.kind == Token::Number);
+    CHECK(num.kind == Token::RealLit);
     CHECK(num.value == "42");
 }
 
 TEST_CASE("Text at EOF without closing quote", "[scanner]")
 {
     auto r = scanOne(R"("unclosed)");
-    CHECK(r.kind == Token::Text);
+    CHECK(r.kind == Token::TextLit);
     CHECK(r.value == "unclosed");
 }
 
@@ -389,7 +396,7 @@ TEST_CASE("Number at EOF", "[scanner]")
     Scanner scanner{input};
 
     auto num = scanner.scan();
-    CHECK(num.kind == Token::Number);
+    CHECK(num.kind == Token::RealLit);
     CHECK(num.value == "123");
 
     CHECK(scanner.scan().kind == Token::Eof);
@@ -447,9 +454,9 @@ TEST_CASE("Scanner handles BASIC program with WHILE loop", "[scanner]")
 {
     std::istringstream input{
         "SUB Main\n"
-        "  INPUT n\n"
+        "  LET n = 0\n"
         "  WHILE n <> 0\n"
-        "    PRINT n\n"
+        "    LET m = n\n"
         "    LET n = n - 1\n"
         "  END WHILE\n"
         "END SUB\n"
@@ -464,12 +471,17 @@ TEST_CASE("Scanner handles BASIC program with WHILE loop", "[scanner]")
     CHECK(name.value == "Main");
     CHECK(scanner.scan().kind == Token::NewLine);
 
-    auto inp = scanner.scan();
-    CHECK(inp.kind == Token::Input);
+    auto let = scanner.scan();
+    CHECK(let.kind == Token::Let);
 
     auto ivar = scanner.scan();
     CHECK(ivar.kind == Token::Identifier);
     CHECK(ivar.value == "n");
+    CHECK(scanner.scan().kind == Token::Eq);
+
+    auto izero = scanner.scan();
+    CHECK(izero.kind == Token::RealLit);
+    CHECK(izero.value == "0");
     CHECK(scanner.scan().kind == Token::NewLine);
 
     auto wh = scanner.scan();
@@ -480,19 +492,23 @@ TEST_CASE("Scanner handles BASIC program with WHILE loop", "[scanner]")
     auto wne = scanner.scan();
     CHECK(wne.kind == Token::Ne);
     auto wzero = scanner.scan();
-    CHECK(wzero.kind == Token::Number);
+    CHECK(wzero.kind == Token::RealLit);
     CHECK(wzero.value == "0");
     CHECK(scanner.scan().kind == Token::NewLine);
 
-    CHECK(scanner.scan().kind == Token::Print);
+    CHECK(scanner.scan().kind == Token::Let);
 
-    auto pvar = scanner.scan();
-    CHECK(pvar.kind == Token::Identifier);
-    auto afterPrint = pvar.value;
+    auto mvar = scanner.scan();
+    CHECK(mvar.kind == Token::Identifier);
+    CHECK(mvar.value == "m");
+    CHECK(scanner.scan().kind == Token::Eq);
+
+    auto mval = scanner.scan();
+    CHECK(mval.kind == Token::Identifier);
+    CHECK(mval.value == "n");
     CHECK(scanner.scan().kind == Token::NewLine);
 
-    auto let = scanner.scan();
-    CHECK(let.kind == Token::Let);
+    CHECK(scanner.scan().kind == Token::Let);
 
     auto lvar = scanner.scan();
     CHECK(lvar.kind == Token::Identifier);
@@ -503,7 +519,7 @@ TEST_CASE("Scanner handles BASIC program with WHILE loop", "[scanner]")
     auto lsub = scanner.scan();
     CHECK(lsub.kind == Token::Sub);
     auto lone = scanner.scan();
-    CHECK(lone.kind == Token::Number);
+    CHECK(lone.kind == Token::RealLit);
     CHECK(lone.value == "1");
     CHECK(scanner.scan().kind == Token::NewLine);
 

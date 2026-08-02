@@ -36,7 +36,7 @@ BASIC-IR լեզվով գրված ծրագրի տեքստի վերլուծութ�
 
 * `Program` ― _կոմպիլյացիայի միավոր_։ Քանի որ կոմպիլյատորը կարող է թարգմանել միայն մեկ կոմպիլյացիայի միավոր, ստեղծվում է `Program` դասի միակ նմուշ։
 * `Subrotine` ― _ենթածրագիր_։ Կոմպիլյացիայի միավորում հանդիպող յուրաքանչյուր ենթածրագրի համար ստեղծվում է `Subroutine` դասի մեկ նմուշ։
-* `Statement` ― _հրաման_։ Սա աբստրակտ դաս է, որից ժառանգված են կոնկրետ հրամանների դասերը՝ `Sequence` \(հաջորդականություն\), `Call` \(պրոցեդուրայի կանչ\), `Let` \(վերագրում\), `If` \(ճյուղավորում\), `For` \(հաշվիչով ցիկլ\), `While` \(պայմանով ցիկլ\), `Input` \(ներմուծում\) և `Print` \(արտածում\)։
+* `Statement` ― _հրաման_։ Սա աբստրակտ դաս է, որից ժառանգված են կոնկրետ հրամանների դասերը՝ `Sequence` \(հաջորդականություն\), `Call` \(պրոցեդուրայի կանչ\), `Let` \(վերագրում\), `If` \(ճյուղավորում\), `For` \(հաշվիչով ցիկլ\), `While` \(պայմանով ցիկլ\)։
 * `Expression` ― _արտահայտություն_։ Նույնպես աբստրակտ դաս է, որից ժառանգված են `Variable` \(փոփոխական\), `Number` \(թիվ\), `Text` \(տեքստ\), `Unary` \(ունար գործողություն\)`Binary` \(բինար գործողություն\) և `Apply` \(ֆունկցիայի կիրառում\)։
 
 Բոլոր այս նշված դասերը ժառանգած են `AstNode` վերացական դասից։
@@ -215,30 +215,6 @@ private:
 public:
   ForLoop(const std::string& pr, Expression* sa, Expression* so, Expression* se, Statement* bo)
     : param{pr}, start{sa}, stop{so}, step{se}, body{bo} {}
-  /* ... */
-};
-```
-
-### Ներմուծում և արտածում
-
-```c++
-class Input : public Statement {
-private:
-  symbolvector vars;
-public:
-  Input(const symbolvector& vs)
-    : vars{vs} {}
-  /* ... */
-};
-```
-
-```c++
-class Print : public Statement {
-private:
-  std::vector<Expression*> vals;
-public:
-  Print(const std::vector<Expression*>& vl)
-    : vals{vl} {}
   /* ... */
 };
 ```

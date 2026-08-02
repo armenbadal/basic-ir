@@ -1,5 +1,4 @@
 
 SUB Main
-  PRINT "Hello!"
+  LET s = "Hello!"
 END SUB
-

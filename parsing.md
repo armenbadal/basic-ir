@@ -100,7 +100,7 @@ _կարդացվում է_. կոդն ինքն է քերականության փա�
 | `[a]` (ոչ պարտադիր) | `if( lookahead.is(Token::A) ) ...` |
 | `{a}` (կրկնություն) | `while( lookahead.is(Token::A) ) ...` |
 
-Օրինակ՝ `Dim = 'DIM' IDENT '[' Expression ']'.` կանոնը դառնում է.
+Օրինակ՝ `Dim = 'DIM' IDENT '[' Expression ']' 'AS' (REAL | TEXT | BOOL).` կանոնը դառնում է.
 
 ```cpp
 Dim::Ptr Parser::parseDim()
@@ -112,8 +112,15 @@ Dim::Ptr Parser::parseDim()
     match(Token::LeftBrack);
     auto size = parseExpression();
     match(Token::RightBrack);
+    match(Token::As);
 
-    return node<Dim>(name, size, line);
+    std::string type;
+    if( lookahead.is(Token::Real, Token::Text, Token::Bool) )
+        type = match(lookahead.kind);
+    else
+        diagnostics.mark(lookahead.line, std::format("Սպասվում է տիպ (REAL | TEXT | BOOL), բայց հանդիպել է {}։", describe(lookahead)));
+
+    return node<Dim>(name, size, type, line);
 }
 ```
 
@@ -177,11 +184,11 @@ auto name = match(Token::Identifier);
 
 ```cpp
 const std::set FirstStat = {
-    Token::Let, Token::Dim, Token::Input, Token::Print,
+    Token::Let, Token::Dim,
     Token::If, Token::While, Token::For, Token::Call
 };
 const std::set FirstExpr = {
-    Token::True, Token::False, Token::Number, Token::Text,
+    Token::BoolLit, Token::RealLit, Token::TextLit,
     Token::Identifier, Token::Sub, Token::Not, Token::LeftPar
 };
 
@@ -281,7 +288,7 @@ void Parser::parseNewLines()
 ```
 
 Քերականությունն ասում է `NewLines = EOL { EOL }.` — **առնվազն մեկ**։ Ուստի
-տողի ավարտի բացակայությունը սխալ է. առանց այս ստուգման `PRINT 1 PRINT 2`
+տողի ավարտի բացակայությունը սխալ է. առանց այս ստուգման `LET a = 1 LET b = 2`
 տողը լուռ կընդունվեր որպես երկու հրաման։
 
 Այն մեկ տեղում, որտեղ քերականությունը դատարկ տողերը թույլ է տալիս, բայց չի
@@ -519,8 +526,8 @@ std::string describe(const Lexeme& lex)
         case Token::NewLine:    return "տողի ավարտ";
         case Token::Eof:        return "ֆայլի ավարտ";
         case Token::None:       return std::format("անհայտ նիշ '{}'", lex.value);
-        case Token::Number:
-        case Token::Text:
+        case Token::RealLit:
+        case Token::TextLit:
         case Token::Identifier: return std::format("'{}'", lex.value);
         default:                return std::format("'{}'", toString(lex.kind));
     }
@@ -561,7 +568,7 @@ IF sym = expected THEN Get(sym) ELSE Mark("... expected") END
 ```basic
 SUB Main
 IF 1
-PRINT 1
+LET a = 1
 END IF
 END SUB
 ```
@@ -575,7 +582,7 @@ END SUB
 
 (basic-program (basic-subroutine "Main" '()
   (basic-sequence (basic-if (basic-number 1)
-    (basic-sequence (basic-print (basic-number 1)))))))
+    (basic-sequence (basic-let (basic-variable "a") (basic-number 1)))))))
 ```
 
 Բլոկների ավարտի համար կա առանձին օժանդակ ֆունկցիա.
@@ -634,7 +641,7 @@ void Parser::sync(const std::set<Token>& stops, std::string_view message)
 // թոքենները, որպեսզի սխալ արտահայտությունը չկլանի իրեն շրջապատող
 // կառուցվածքը։
 const std::set<Token> ExprSync = {
-    Token::True, Token::False, Token::Number, Token::Text, Token::Identifier,
+    Token::BoolLit, Token::RealLit, Token::TextLit, Token::Identifier,
     Token::Sub, Token::Not, Token::LeftPar,
     Token::RightPar, Token::RightBrack, Token::Comma,
     Token::NewLine, Token::End, Token::ElseIf, Token::Else, Token::Subroutine, Token::Eof
@@ -662,9 +669,9 @@ Expression::Ptr Parser::parseFactor()
             advance();
     }
 
-    if( lookahead.is(Token::True, Token::False) )  return parseTrueOrFalse();
-    if( lookahead.is(Token::Number) )              return parseNumber();
-    if( lookahead.is(Token::Text) )                return parseText();
+    if( lookahead.is(Token::BoolLit) )             return parseTrueOrFalse();
+    if( lookahead.is(Token::RealLit) )             return parseNumber();
+    if( lookahead.is(Token::TextLit) )             return parseText();
     if( lookahead.is(Token::Identifier) )          return parseIdentOrApply();
     if( lookahead.is(Token::LeftPar) )             return parseGrouped();
 
@@ -749,9 +756,9 @@ if( !diagnostics.errors().empty() ) {
 |-------|---------|------------------------|
 | `IF 1` (առանց `THEN`) | 1 | `IF`-ը վերականգնվում է ամբողջությամբ |
 | `IF 1 THEN ... END` (առանց `IF`) | 1 | `IF`-ը և հաջորդող հրամանը պահպանվում են |
-| `PRINT (1` | 1 | `PRINT`-ը և հաջորդող հրամանը պահպանվում են |
+| `LET x = (1` | 1 | `LET`-ը և հաջորդող հրամանը պահպանվում են |
 | `SUB Main` առանց `END SUB` | 1 | երկու ենթածրագրերն էլ պահպանվում են |
-| `PRINT *` | 1 | չեզոք հանգույց, հաջորդ հրամանը՝ նորմալ |
+| `LET x = *` | 1 | չեզոք հանգույց, հաջորդ հրամանը՝ նորմալ |
 | `FOO` հրամանի փոխարեն | 1 | հրամանը բաց է թողնվում |
 | `LET = 1` | 1 | անանուն փոփոխականով `LET` |
 | `SUB` առանց անվան | 1 | անանուն ենթածրագիր՝ ամբողջական մարմնով |
@@ -766,7 +773,7 @@ if( !diagnostics.errors().empty() ) {
 ```basic
 SUB Main
 WHILE 1
-PRINT 1
+LET x = 1
 END SUB
 ```
 
