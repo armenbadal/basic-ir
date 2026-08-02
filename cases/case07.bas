@@ -16,13 +16,12 @@ END SUB
 SUB Main
   LET e0? = IsPrime?(17)
   IF e0? THEN
-    PRINT "Yes"
+    LET s$ = "Yes"
   END IF
 
   IF IsPrime?(16) THEN
-    PRINT "Yes"
+    LET s$ = "Yes"
   ELSE
-    PRINT "No"
+    LET s$ = "No"
   END IF
 END SUB
-

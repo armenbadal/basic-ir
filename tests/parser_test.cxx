@@ -121,48 +121,6 @@ TEST_CASE("Parse multiple subroutines", "[parser]")
     CHECK(prog->_subroutines[1]->_name == "B");
 }
 
-// ---- PRINT ----
-
-TEST_CASE("Parse PRINT number", "[parser]")
-{
-    auto prog = parseStr("SUB Main\nPRINT 42\nEND SUB\n");
-    REQUIRE(prog != nullptr);
-    auto& sub = onlySub(*prog);
-    auto& seq = bodySeq(*sub._body);
-    REQUIRE(seq._items.size() == 1);
-    auto p = dynamic_cast<const Print*>(seq._items[0].get());
-    REQUIRE(p != nullptr);
-    auto n = dynamic_cast<const Number*>(p->_expr.get());
-    REQUIRE(n != nullptr);
-    CHECK(n->_value == 42.0);
-}
-
-TEST_CASE("Parse PRINT text", "[parser]")
-{
-    auto prog = parseStr("SUB Main\nPRINT \"Hello\"\nEND SUB\n");
-    REQUIRE(prog != nullptr);
-    auto& sub = onlySub(*prog);
-    auto& seq = bodySeq(*sub._body);
-    auto p = dynamic_cast<const Print*>(seq._items[0].get());
-    REQUIRE(p != nullptr);
-    auto t = dynamic_cast<const Text*>(p->_expr.get());
-    REQUIRE(t != nullptr);
-    CHECK(t->_value == "Hello");
-}
-
-TEST_CASE("Parse PRINT variable", "[parser]")
-{
-    auto prog = parseStr("SUB Main\nPRINT x\nEND SUB\n");
-    REQUIRE(prog != nullptr);
-    auto& sub = onlySub(*prog);
-    auto& seq = bodySeq(*sub._body);
-    auto p = dynamic_cast<const Print*>(seq._items[0].get());
-    REQUIRE(p != nullptr);
-    auto v = dynamic_cast<const Variable*>(p->_expr.get());
-    REQUIRE(v != nullptr);
-    CHECK(v->_name == "x");
-}
-
 // ---- LET ----
 
 TEST_CASE("Parse LET number", "[parser]")
@@ -193,25 +151,11 @@ TEST_CASE("Parse LET text", "[parser]")
     CHECK(t->_value == "text");
 }
 
-// ---- INPUT ----
-
-TEST_CASE("Parse INPUT", "[parser]")
-{
-    auto prog = parseStr("SUB Main\nINPUT n\nEND SUB\n");
-    REQUIRE(prog != nullptr);
-    auto& sub = onlySub(*prog);
-    auto& seq = bodySeq(*sub._body);
-    REQUIRE(seq._items.size() == 1);
-    auto inp = dynamic_cast<const Input*>(seq._items[0].get());
-    REQUIRE(inp != nullptr);
-    CHECK(inp->_variable->_name == "n");
-}
-
 // ---- IF ----
 
 TEST_CASE("Parse IF-THEN without else", "[parser]")
 {
-    auto prog = parseStr("SUB Main\nIF 1 THEN\nPRINT 0\nEND IF\nEND SUB\n");
+    auto prog = parseStr("SUB Main\nIF 1 THEN\nLET x = 0\nEND IF\nEND SUB\n");
     REQUIRE(prog != nullptr);
     auto& sub = onlySub(*prog);
     auto& seq = bodySeq(*sub._body);
@@ -226,7 +170,7 @@ TEST_CASE("Parse IF-THEN without else", "[parser]")
 
 TEST_CASE("Parse IF-THEN-ELSE", "[parser]")
 {
-    auto prog = parseStr("SUB Main\nIF 1 THEN\nPRINT 1\nELSE\nPRINT 0\nEND IF\nEND SUB\n");
+    auto prog = parseStr("SUB Main\nIF 1 THEN\nLET x = 1\nELSE\nLET y = 0\nEND IF\nEND SUB\n");
     REQUIRE(prog != nullptr);
     auto& sub = onlySub(*prog);
     auto& seq = bodySeq(*sub._body);
@@ -242,7 +186,7 @@ TEST_CASE("Parse IF-THEN-ELSE", "[parser]")
 
 TEST_CASE("Parse WHILE loop", "[parser]")
 {
-    auto prog = parseStr("SUB Main\nWHILE n <> 0\nPRINT n\nEND WHILE\nEND SUB\n");
+    auto prog = parseStr("SUB Main\nWHILE n <> 0\nLET y = n\nEND WHILE\nEND SUB\n");
     REQUIRE(prog != nullptr);
     auto& sub = onlySub(*prog);
     auto& seq = bodySeq(*sub._body);
@@ -258,7 +202,7 @@ TEST_CASE("Parse WHILE loop", "[parser]")
 
 TEST_CASE("Parse FOR loop", "[parser]")
 {
-    auto prog = parseStr("SUB Main\nFOR i = 1 TO 10\nPRINT i\nEND FOR\nEND SUB\n");
+    auto prog = parseStr("SUB Main\nFOR i = 1 TO 10\nLET x = i\nEND FOR\nEND SUB\n");
     REQUIRE(prog != nullptr);
     auto& sub = onlySub(*prog);
     auto& seq = bodySeq(*sub._body);
@@ -271,7 +215,7 @@ TEST_CASE("Parse FOR loop", "[parser]")
 
 TEST_CASE("Parse FOR with STEP", "[parser]")
 {
-    auto prog = parseStr("SUB Main\nFOR i = 1 TO 10 STEP 2\nPRINT i\nEND FOR\nEND SUB\n");
+    auto prog = parseStr("SUB Main\nFOR i = 1 TO 10 STEP 2\nLET x = i\nEND FOR\nEND SUB\n");
     REQUIRE(prog != nullptr);
     auto& sub = onlySub(*prog);
     auto& seq = bodySeq(*sub._body);
@@ -282,7 +226,7 @@ TEST_CASE("Parse FOR with STEP", "[parser]")
 
 TEST_CASE("Parse FOR with negative STEP", "[parser]")
 {
-    auto prog = parseStr("SUB Main\nFOR i = 10 TO 1 STEP -1\nPRINT i\nEND FOR\nEND SUB\n");
+    auto prog = parseStr("SUB Main\nFOR i = 10 TO 1 STEP -1\nLET x = i\nEND FOR\nEND SUB\n");
     REQUIRE(prog != nullptr);
     auto& sub = onlySub(*prog);
     auto& seq = bodySeq(*sub._body);
@@ -443,14 +387,14 @@ TEST_CASE("Parse TRUE and FALSE literals", "[parser]")
 
 TEST_CASE("Valid program reports no errors", "[parser][recovery]")
 {
-    auto [prog, errors] = parseStrWithErrors("SUB Main\nPRINT 1\nEND SUB\n");
+    auto [prog, errors] = parseStrWithErrors("SUB Main\nLET x = 1\nEND SUB\n");
     REQUIRE(prog != nullptr);
     CHECK(errors.empty());
 }
 
 TEST_CASE("Recover from missing THEN in IF", "[parser][recovery]")
 {
-    auto [prog, errors] = parseStrWithErrors("SUB Main\nIF 1\nPRINT 1\nEND IF\nEND SUB\n");
+    auto [prog, errors] = parseStrWithErrors("SUB Main\nIF 1\nLET x = 1\nEND IF\nEND SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(errors.size() == 1);
     CHECK(errors[0].line == 2);
@@ -464,12 +408,12 @@ TEST_CASE("Recover from missing THEN in IF", "[parser][recovery]")
     REQUIRE(i != nullptr);
     auto& thenBody = bodySeq(*i->_branches[0]->_decision);
     REQUIRE(thenBody._items.size() == 1);
-    CHECK(dynamic_cast<const Print*>(thenBody._items[0].get()) != nullptr);
+    CHECK(dynamic_cast<const Let*>(thenBody._items[0].get()) != nullptr);
 }
 
 TEST_CASE("Recover from END without IF", "[parser][recovery]")
 {
-    auto [prog, errors] = parseStrWithErrors("SUB Main\nIF 1 THEN\nPRINT 0\nEND\nPRINT 1\nEND SUB\n");
+    auto [prog, errors] = parseStrWithErrors("SUB Main\nIF 1 THEN\nLET x = 0\nEND\nLET y = 1\nEND SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(errors.size() == 1);
     CHECK(errors[0].line == 4);
@@ -480,12 +424,12 @@ TEST_CASE("Recover from END without IF", "[parser][recovery]")
     auto& seq = bodySeq(*sub._body);
     REQUIRE(seq._items.size() == 2);
     CHECK(dynamic_cast<const If*>(seq._items[0].get()) != nullptr);
-    CHECK(dynamic_cast<const Print*>(seq._items[1].get()) != nullptr);
+    CHECK(dynamic_cast<const Let*>(seq._items[1].get()) != nullptr);
 }
 
 TEST_CASE("Unclosed inner block keeps the subroutine body", "[parser][recovery]")
 {
-    auto [prog, errors] = parseStrWithErrors("SUB Main\nWHILE 1\nPRINT 1\nEND SUB\n");
+    auto [prog, errors] = parseStrWithErrors("SUB Main\nWHILE 1\nLET x = 1\nEND SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(!errors.empty());
     CHECK(errors[0].message.find("WHILE") != std::string::npos);
@@ -502,7 +446,7 @@ TEST_CASE("Unclosed inner block keeps the subroutine body", "[parser][recovery]"
 
 TEST_CASE("Recover from missing END SUB", "[parser][recovery]")
 {
-    auto [prog, errors] = parseStrWithErrors("SUB Main\nPRINT 1\nSUB Other\nPRINT 2\nEND SUB\n");
+    auto [prog, errors] = parseStrWithErrors("SUB Main\nLET x = 1\nSUB Other\nLET y = 2\nEND SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(errors.size() == 1);
     CHECK(errors[0].message.find("END SUB") != std::string::npos);
@@ -515,7 +459,7 @@ TEST_CASE("Recover from missing END SUB", "[parser][recovery]")
 
 TEST_CASE("Recover from unknown statement token", "[parser][recovery]")
 {
-    auto [prog, errors] = parseStrWithErrors("SUB Main\nFOO\nPRINT 1\nEND SUB\n");
+    auto [prog, errors] = parseStrWithErrors("SUB Main\nFOO\nLET x = 1\nEND SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(errors.size() == 1);
     CHECK(errors[0].line == 2);
@@ -523,12 +467,12 @@ TEST_CASE("Recover from unknown statement token", "[parser][recovery]")
     auto& sub = onlySub(*prog);
     auto& seq = bodySeq(*sub._body);
     REQUIRE(seq._items.size() == 1);
-    CHECK(dynamic_cast<const Print*>(seq._items[0].get()) != nullptr);
+    CHECK(dynamic_cast<const Let*>(seq._items[0].get()) != nullptr);
 }
 
 TEST_CASE("Bad expression reports the expression error", "[parser][recovery]")
 {
-    auto [prog, errors] = parseStrWithErrors("SUB Main\nPRINT *\nPRINT 1\nEND SUB\n");
+    auto [prog, errors] = parseStrWithErrors("SUB Main\nLET x = *\nLET y = 1\nEND SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(errors.size() == 1);
     CHECK(errors[0].message.find("արտահայտություն") != std::string::npos);
@@ -538,16 +482,16 @@ TEST_CASE("Bad expression reports the expression error", "[parser][recovery]")
     auto& sub = onlySub(*prog);
     auto& seq = bodySeq(*sub._body);
     REQUIRE(seq._items.size() == 2);
-    auto p = dynamic_cast<const Print*>(seq._items[1].get());
-    REQUIRE(p != nullptr);
-    auto n = dynamic_cast<const Number*>(p->_expr.get());
+    auto l = dynamic_cast<const Let*>(seq._items[1].get());
+    REQUIRE(l != nullptr);
+    auto n = dynamic_cast<const Number*>(l->_expr.get());
     REQUIRE(n != nullptr);
     CHECK(n->_value == 1.0);
 }
 
 TEST_CASE("Recover from unclosed parenthesis", "[parser][recovery]")
 {
-    auto [prog, errors] = parseStrWithErrors("SUB Main\nPRINT (1\nPRINT 2\nEND SUB\n");
+    auto [prog, errors] = parseStrWithErrors("SUB Main\nLET x = (1\nLET y = 2\nEND SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(errors.size() == 1);
     CHECK(errors[0].message.find(")") != std::string::npos);
@@ -559,7 +503,7 @@ TEST_CASE("Recover from unclosed parenthesis", "[parser][recovery]")
 
 TEST_CASE("Report independent errors in separate subroutines", "[parser][recovery]")
 {
-    auto [prog, errors] = parseStrWithErrors("SUB Main\nLET = 1\nEND SUB\nSUB Other\nPRINT )\nEND SUB\n");
+    auto [prog, errors] = parseStrWithErrors("SUB Main\nLET = 1\nEND SUB\nSUB Other\nLET x = )\nEND SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(errors.size() == 2);
     CHECK(errors[0].line == 2);
@@ -569,7 +513,7 @@ TEST_CASE("Report independent errors in separate subroutines", "[parser][recover
 
 TEST_CASE("Garbage before the first subroutine", "[parser][recovery]")
 {
-    auto [prog, errors] = parseStrWithErrors("GARBAGE\nSUB Main\nPRINT 1\nEND SUB\n");
+    auto [prog, errors] = parseStrWithErrors("GARBAGE\nSUB Main\nLET x = 1\nEND SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(errors.size() == 1);
     CHECK(errors[0].line == 1);
@@ -648,14 +592,14 @@ TEST_CASE("Parse function call with multiple args", "[parser]")
 
 TEST_CASE("Parse multiple statements", "[parser]")
 {
-    auto prog = parseStr("SUB Main\nLET x = 1\nLET y = 2\nPRINT y\nEND SUB\n");
+    auto prog = parseStr("SUB Main\nLET x = 1\nLET y = 2\nLET z = y\nEND SUB\n");
     REQUIRE(prog != nullptr);
     auto& sub = onlySub(*prog);
     auto& seq = bodySeq(*sub._body);
     REQUIRE(seq._items.size() == 3);
     CHECK(dynamic_cast<const Let*>(seq._items[0].get()) != nullptr);
     CHECK(dynamic_cast<const Let*>(seq._items[1].get()) != nullptr);
-    CHECK(dynamic_cast<const Print*>(seq._items[2].get()) != nullptr);
+    CHECK(dynamic_cast<const Let*>(seq._items[2].get()) != nullptr);
 }
 
 // ---- IF-ELSEIF ----
@@ -665,11 +609,11 @@ TEST_CASE("Parse IF with ELSEIF", "[parser]")
     auto prog = parseStr(
         "SUB Main\n"
         "IF x = 1 THEN\n"
-        "  PRINT \"one\"\n"
+        "  LET r = \"one\"\n"
         "ELSEIF x = 2 THEN\n"
-        "  PRINT \"two\"\n"
+        "  LET r = \"two\"\n"
         "ELSE\n"
-        "  PRINT \"other\"\n"
+        "  LET r = \"other\"\n"
         "END IF\n"
         "END SUB\n");
     REQUIRE(prog != nullptr);
@@ -691,7 +635,7 @@ TEST_CASE("Parse IF with ELSEIF", "[parser]")
 
 TEST_CASE("Parse error: missing END SUB", "[parser]")
 {
-    auto errors = parseErrors("SUB Main\nPRINT 1\n");
+    auto errors = parseErrors("SUB Main\nLET x = 1\n");
     REQUIRE(errors.size() == 1);
     CHECK(errors[0].line == 3);
     CHECK(errors[0].message.find("END SUB") != std::string::npos);
@@ -699,7 +643,7 @@ TEST_CASE("Parse error: missing END SUB", "[parser]")
 
 TEST_CASE("Parse error: missing END IF", "[parser]")
 {
-    auto errors = parseErrors("SUB Main\nIF 1 THEN\nPRINT 1\nEND SUB\n");
+    auto errors = parseErrors("SUB Main\nIF 1 THEN\nLET x = 1\nEND SUB\n");
     REQUIRE(!errors.empty());
     CHECK(errors[0].line == 4);
     CHECK(errors[0].message.find("IF") != std::string::npos);
@@ -715,7 +659,7 @@ TEST_CASE("Parse error: stray token", "[parser]")
 
 TEST_CASE("Parse error: IF without THEN", "[parser]")
 {
-    auto errors = parseErrors("SUB Main\nIF 1\nPRINT 1\nEND IF\nEND SUB\n");
+    auto errors = parseErrors("SUB Main\nIF 1\nLET x = 1\nEND IF\nEND SUB\n");
     REQUIRE(errors.size() == 1);
     CHECK(errors[0].line == 2);
     CHECK(errors[0].message.find("THEN") != std::string::npos);
@@ -725,13 +669,13 @@ TEST_CASE("Parse error: IF without THEN", "[parser]")
 
 TEST_CASE("Parse program with comments", "[parser]")
 {
-    auto prog = parseStr("' header\nSUB Main\n' body\nPRINT 1\n' footer\nEND SUB\n");
+    auto prog = parseStr("' header\nSUB Main\n' body\nLET x = 1\n' footer\nEND SUB\n");
     REQUIRE(prog != nullptr);
     auto& sub = onlySub(*prog);
     CHECK(sub._name == "Main");
     auto& seq = bodySeq(*sub._body);
     REQUIRE(seq._items.size() == 1);
-    CHECK(dynamic_cast<const Print*>(seq._items[0].get()) != nullptr);
+    CHECK(dynamic_cast<const Let*>(seq._items[0].get()) != nullptr);
 }
 
 // ---- Power operator ----
@@ -973,7 +917,7 @@ TEST_CASE("Parse nested array subscript", "[parser]")
 
 TEST_CASE("Parse FOR with variable bounds", "[parser]")
 {
-    auto prog = parseStr("SUB Main\nFOR i = start TO end\nPRINT i\nEND FOR\nEND SUB\n");
+    auto prog = parseStr("SUB Main\nFOR i = start TO end\nLET x = i\nEND FOR\nEND SUB\n");
     REQUIRE(prog != nullptr);
     auto& sub = onlySub(*prog);
     auto& seq = bodySeq(*sub._body);
@@ -990,7 +934,7 @@ TEST_CASE("Parse FOR with variable bounds", "[parser]")
 
 TEST_CASE("Parse FOR with expression bounds", "[parser]")
 {
-    auto prog = parseStr("SUB Main\nFOR i = 1 + 2 TO n * 2\nPRINT i\nEND FOR\nEND SUB\n");
+    auto prog = parseStr("SUB Main\nFOR i = 1 + 2 TO n * 2\nLET x = i\nEND FOR\nEND SUB\n");
     REQUIRE(prog != nullptr);
     auto& sub = onlySub(*prog);
     auto& seq = bodySeq(*sub._body);
@@ -1024,7 +968,7 @@ TEST_CASE("Parse function call with no arguments in expression", "[parser]")
 
 TEST_CASE("Parse IF inside WHILE", "[parser]")
 {
-    auto prog = parseStr("SUB Main\nWHILE n <> 0\nIF n > 0 THEN\nPRINT 1\nEND IF\nEND WHILE\nEND SUB\n");
+    auto prog = parseStr("SUB Main\nWHILE n <> 0\nIF n > 0 THEN\nLET x = 1\nEND IF\nEND WHILE\nEND SUB\n");
     REQUIRE(prog != nullptr);
     auto& sub = onlySub(*prog);
     auto& seq = bodySeq(*sub._body);
@@ -1043,7 +987,7 @@ TEST_CASE("Parse nested IF", "[parser]")
         "SUB Main\n"
         "IF a THEN\n"
         "  IF b THEN\n"
-        "    PRINT 1\n"
+        "    LET x = 1\n"
         "  END IF\n"
         "END IF\n"
         "END SUB\n");
@@ -1060,7 +1004,7 @@ TEST_CASE("Parse nested IF", "[parser]")
 
 TEST_CASE("Parse WHILE inside FOR", "[parser]")
 {
-    auto prog = parseStr("SUB Main\nFOR i = 1 TO 10\nWHILE x <> 0\nPRINT i\nEND WHILE\nEND FOR\nEND SUB\n");
+    auto prog = parseStr("SUB Main\nFOR i = 1 TO 10\nWHILE x <> 0\nLET y = i\nEND WHILE\nEND FOR\nEND SUB\n");
     REQUIRE(prog != nullptr);
     auto& sub = onlySub(*prog);
     auto& seq = bodySeq(*sub._body);
@@ -1079,13 +1023,13 @@ TEST_CASE("Parse IF with two ELSEIF branches", "[parser]")
     auto prog = parseStr(
         "SUB Main\n"
         "IF x = 1 THEN\n"
-        "  PRINT \"one\"\n"
+        "  LET r = \"one\"\n"
         "ELSEIF x = 2 THEN\n"
-        "  PRINT \"two\"\n"
+        "  LET r = \"two\"\n"
         "ELSEIF x = 3 THEN\n"
-        "  PRINT \"three\"\n"
+        "  LET r = \"three\"\n"
         "ELSE\n"
-        "  PRINT \"other\"\n"
+        "  LET r = \"other\"\n"
         "END IF\n"
         "END SUB\n");
     REQUIRE(prog != nullptr);
@@ -1102,9 +1046,9 @@ TEST_CASE("Parse IF with ELSEIF only, no ELSE", "[parser]")
     auto prog = parseStr(
         "SUB Main\n"
         "IF x = 1 THEN\n"
-        "  PRINT \"one\"\n"
+        "  LET r = \"one\"\n"
         "ELSEIF x = 2 THEN\n"
-        "  PRINT \"two\"\n"
+        "  LET r = \"two\"\n"
         "END IF\n"
         "END SUB\n");
     REQUIRE(prog != nullptr);
@@ -1151,7 +1095,7 @@ TEST_CASE("Parse chained comparison", "[parser]")
 
 TEST_CASE("Parse error: missing END FOR", "[parser]")
 {
-    auto errors = parseErrors("SUB Main\nFOR i = 1 TO 10\nPRINT i\nEND SUB\n");
+    auto errors = parseErrors("SUB Main\nFOR i = 1 TO 10\nLET x = i\nEND SUB\n");
     REQUIRE(!errors.empty());
     CHECK(errors[0].line == 4);
     CHECK(errors[0].message.find("FOR") != std::string::npos);
@@ -1159,7 +1103,7 @@ TEST_CASE("Parse error: missing END FOR", "[parser]")
 
 TEST_CASE("Parse error: missing END WHILE", "[parser]")
 {
-    auto errors = parseErrors("SUB Main\nWHILE 1\nPRINT 1\nEND SUB\n");
+    auto errors = parseErrors("SUB Main\nWHILE 1\nLET x = 1\nEND SUB\n");
     REQUIRE(!errors.empty());
     CHECK(errors[0].line == 4);
     CHECK(errors[0].message.find("WHILE") != std::string::npos);
@@ -1183,7 +1127,7 @@ TEST_CASE("Parse error: LET without equals", "[parser]")
 
 TEST_CASE("Parse error: stray text after expression", "[parser]")
 {
-    auto errors = parseErrors("SUB Main\nPRINT 1 2\nEND SUB\n");
+    auto errors = parseErrors("SUB Main\nLET x = 1 2\nEND SUB\n");
     REQUIRE(errors.size() == 1);
     CHECK(errors[0].line == 2);
     CHECK(errors[0].message.find("2") != std::string::npos);
@@ -1193,9 +1137,9 @@ TEST_CASE("Parse error: stray text after expression", "[parser]")
 
 TEST_CASE("Cascade suppression prevents duplicate errors", "[parser][recovery]")
 {
-    // PRINT 1 ] — parseNewLines-ը սխալ է գրանցում, բայց sync-ի սխալը
+    // LET x = 1 ] — parseNewLines-ը սխալ է գրանցում, բայց sync-ի սխալը
     // ճնշվում է, քանի որ advance չի կանչվել parseNewLines-ից հետո
-    auto [prog, errors] = parseStrWithErrors("SUB Main\nPRINT 1 ]\nEND SUB\n");
+    auto [prog, errors] = parseStrWithErrors("SUB Main\nLET x = 1 ]\nEND SUB\n");
     REQUIRE(prog != nullptr);
     REQUIRE(errors.size() == 1);
     CHECK(errors[0].line == 2);
@@ -1210,9 +1154,9 @@ TEST_CASE("ELSEIF without THEN is recovered", "[parser][recovery]")
     auto [prog, errors] = parseStrWithErrors(
         "SUB Main\n"
         "IF a THEN\n"
-        "  PRINT 1\n"
+        "  LET x = 1\n"
         "ELSEIF b\n"
-        "  PRINT 2\n"
+        "  LET y = 2\n"
         "END IF\n"
         "END SUB\n");
     REQUIRE(prog != nullptr);
@@ -1226,15 +1170,5 @@ TEST_CASE("ELSEIF without THEN is recovered", "[parser][recovery]")
     auto i = dynamic_cast<const If*>(seq._items[0].get());
     REQUIRE(i != nullptr);
     REQUIRE(i->_branches.size() == 2);
-}
-
-// ---- INPUT ----
-
-TEST_CASE("INPUT without identifier", "[parser]")
-{
-    auto errors = parseErrors("SUB Main\nINPUT\nEND SUB\n");
-    REQUIRE(errors.size() == 1);
-    CHECK(errors[0].line == 2);
-    CHECK(errors[0].message.find("IDENT") != std::string::npos);
 }
 

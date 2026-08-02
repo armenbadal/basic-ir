@@ -14,7 +14,7 @@ using namespace std::string_view_literals;
 namespace basic {
 
 const std::set FirstStat = {
-    Token::Let, Token::Dim, Token::Input, Token::Print,
+    Token::Let, Token::Dim,
     Token::If, Token::While, Token::For, Token::Call
 };
 const std::set FirstExpr = {
@@ -30,8 +30,8 @@ const std::set FollowStat = {
 
 // Հրամանի մակարդակի համաժամեցման կետերը
 const std::set<Token> StatementSync = {
-    Token::NewLine, Token::Let, Token::Dim, Token::Input, 
-    Token::Print, Token::If, Token::While, Token::For, 
+    Token::NewLine, Token::Let, Token::Dim, 
+    Token::If, Token::While, Token::For, 
     Token::Call, Token::End, Token::ElseIf, Token::Else,
     Token::Subroutine, Token::Eof
 };
@@ -160,7 +160,7 @@ Sequence::Ptr Parser::parseSequence()
     return node<Sequence>(std::move(items), line);
 }
 
-// Statement = Let | Dim | Input | Print | If | While | For | Call.
+// Statement = Let | Dim | If | While | For | Call.
 Statement::Ptr Parser::parseOneStatement()
 {
     if( lookahead.is(Token::Let) )
@@ -168,12 +168,6 @@ Statement::Ptr Parser::parseOneStatement()
 
     if( lookahead.is(Token::Dim) )
         return parseDim();
-
-    if( lookahead.is(Token::Input) )
-        return parseInput();
-
-    if( lookahead.is(Token::Print) )
-        return parsePrint();
 
     if( lookahead.is(Token::If) )
         return parseIf();
@@ -216,28 +210,6 @@ Dim::Ptr Parser::parseDim()
     match(Token::RightBrack);
 
     return node<Dim>(name, size, line);
-}
-
-// Input = 'INPUT' IDENT.
-Input::Ptr Parser::parseInput()
-{
-    auto line = lookahead.line;
-
-    match(Token::Input);
-    auto vnm = match(Token::Identifier);
-
-    return node<Input>(node<Variable>(vnm, line), line);
-}
-
-// Print = 'PRINT' Expression.
-Print::Ptr Parser::parsePrint()
-{
-    auto line = lookahead.line;
-
-    match(Token::Print);
-    auto expr = parseExpression();
-
-    return node<Print>(expr, line);
 }
 
 // If = 'IF' Expression 'THEN' Statements {'ELSEIF' Expression 'THEN' Statements } ['ELSE' Statements] 'END' 'IF'.

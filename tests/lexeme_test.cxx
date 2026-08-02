@@ -53,7 +53,7 @@ TEST_CASE("Lexeme::is matches literal tokens", "[lexeme]")
 {
     Lexeme num{Token::Number, "99", 1};
     CHECK(num.is(Token::Number, Token::True, Token::False));
-    CHECK_FALSE(num.is(Token::Subroutine, Token::Input));
+    CHECK_FALSE(num.is(Token::Subroutine, Token::Dim));
 }
 
 TEST_CASE("Lexeme::is matches operator tokens", "[lexeme]")
@@ -108,8 +108,6 @@ TEST_CASE("toString for all Token values", "[lexeme]")
     CHECK(toString(Token::False) == "FALSE");
     CHECK(toString(Token::Identifier) == "IDENT");
     CHECK(toString(Token::Subroutine) == "SUB");
-    CHECK(toString(Token::Input) == "INPUT");
-    CHECK(toString(Token::Print) == "PRINT");
     CHECK(toString(Token::Let) == "LET");
     CHECK(toString(Token::If) == "IF");
     CHECK(toString(Token::Then) == "THEN");

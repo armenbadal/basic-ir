@@ -1,14 +1,13 @@
 
 SUB Main
-  INPUT n
+  LET n = 0
   WHILE n <> 0
-    PRINT n
+    LET out = n
     LET n = n - 1
   END WHILE
 END SUB
 
 SUB f(x$, y)
-  PRINT x$
-  PRINT y
+  LET a$ = x$
+  LET b = y
 END SUB
-

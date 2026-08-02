@@ -22,8 +22,6 @@ private:
     void visit(Sequence::Ptr node) override;
     void visit(Dim::Ptr node) override;
     void visit(Let::Ptr node) override;
-    void visit(Input::Ptr node) override;
-    void visit(Print::Ptr node) override;
     void visit(If::Ptr node) override;
     void visit(While::Ptr node) override;
     void visit(For::Ptr node) override;

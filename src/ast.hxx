@@ -22,8 +22,6 @@ enum class NodeKind : int {
     Array,      // զանգվածի տարրեր
     Sequence,   // հրամանների հաջորդում
     Dim,        // զանգվածի սահմանում
-    Input,      // տվյալների ներմուծում
-    Print,      // տվյալների արտածում
     Let,        // վերագրում
     If,         // լրիվ ճյուղավորում
     IfThen,     // կարճ ճյուղավորում
@@ -251,32 +249,6 @@ public:
     const std::string _name;     // անունը
     const Expression::Ptr _size; // չափը
 };
-
-// Տվյալների ներմուծում
-class Input : public Statement {
-public:
-    Input(Variable::Ptr variable, Position pos)
-        : Statement{NodeKind::Input, pos}
-        , _variable{std::move(variable)}
-    {}
-    using Ptr = std::shared_ptr<Input>;
-
-    const Variable::Ptr _variable;   // ներմուծվող փոփոխական
-};
-
-
-// Տվյալների արտածում
-class Print : public Statement {
-public:
-    Print(Expression::Ptr expr, Position pos)
-        : Statement{NodeKind::Print, pos}
-        , _expr{std::move(expr)}
-    {}
-    using Ptr = std::shared_ptr<Print>;
-
-    const Expression::Ptr _expr; // արտածվող արտահայտությունը
-};
-
 
 // Վերագրում (միաժամանակ՝ փոփոխականի սահմանում)
 class Let : public Statement {

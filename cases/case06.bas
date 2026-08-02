@@ -1,21 +1,20 @@
 
 '
 SUB Main
-  CALL printOne
-  CALL printTwo 3.1415
-  CALL printThree 777, "Ok!"
+  CALL one
+  CALL two 3.1415
+  CALL three 777, "Ok!"
 END SUB
 
-SUB printOne
-  PRINT "Hi!"
+SUB one
+  LET a$ = "Hi!"
 END SUB
 
-SUB printTwo(x)
-  PRINT x
+SUB two(x)
+  LET b = x
 END SUB
 
-SUB printThree(x, y$)
-  PRINT x
-  PRINT y$
+SUB three(x, y$)
+  LET c = x
+  LET d$ = y$
 END SUB
-

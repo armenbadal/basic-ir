@@ -114,15 +114,6 @@ void Checker::visit(Let::Ptr node)
         throw TypeError{std::format("{} փոփոխականին վերագրվում է {} արժեք։", pt, et)};
 }
 
-void Checker::visit(Input::Ptr node)
-{
-}
-
-void Checker::visit(Print::Ptr node)
-{
-    visit(node->_expr);
-}
-
 void Checker::visit(If::Ptr node)
 {
     visit(node->_condition);

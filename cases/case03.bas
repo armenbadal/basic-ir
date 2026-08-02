@@ -1,7 +1,5 @@
 
 SUB Main
   LET a$ = "345"
-  PRINT NOT a$
+  LET b$ = NOT a$
 END SUB
-
-

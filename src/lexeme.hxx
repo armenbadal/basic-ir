@@ -15,9 +15,8 @@ enum class Token : int {
     False,      // FALSE հաստատունը
 
     Subroutine, // SUB
-    Input,      // INPUT
-    Print,      // PRINT
     Dim,        // DIM
+    As,         // AS
     Let,        // LET
     If,         // IF
     Then,       // THEN

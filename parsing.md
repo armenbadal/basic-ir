@@ -177,7 +177,7 @@ auto name = match(Token::Identifier);
 
 ```cpp
 const std::set FirstStat = {
-    Token::Let, Token::Dim, Token::Input, Token::Print,
+    Token::Let, Token::Dim,
     Token::If, Token::While, Token::For, Token::Call
 };
 const std::set FirstExpr = {
@@ -281,7 +281,7 @@ void Parser::parseNewLines()
 ```
 
 Քերականությունն ասում է `NewLines = EOL { EOL }.` — **առնվազն մեկ**։ Ուստի
-տողի ավարտի բացակայությունը սխալ է. առանց այս ստուգման `PRINT 1 PRINT 2`
+տողի ավարտի բացակայությունը սխալ է. առանց այս ստուգման `LET a = 1 LET b = 2`
 տողը լուռ կընդունվեր որպես երկու հրաման։
 
 Այն մեկ տեղում, որտեղ քերականությունը դատարկ տողերը թույլ է տալիս, բայց չի
@@ -561,7 +561,7 @@ IF sym = expected THEN Get(sym) ELSE Mark("... expected") END
 ```basic
 SUB Main
 IF 1
-PRINT 1
+LET a = 1
 END IF
 END SUB
 ```
@@ -575,7 +575,7 @@ END SUB
 
 (basic-program (basic-subroutine "Main" '()
   (basic-sequence (basic-if (basic-number 1)
-    (basic-sequence (basic-print (basic-number 1)))))))
+    (basic-sequence (basic-let (basic-variable "a") (basic-number 1)))))))
 ```
 
 Բլոկների ավարտի համար կա առանձին օժանդակ ֆունկցիա.
@@ -749,9 +749,9 @@ if( !diagnostics.errors().empty() ) {
 |-------|---------|------------------------|
 | `IF 1` (առանց `THEN`) | 1 | `IF`-ը վերականգնվում է ամբողջությամբ |
 | `IF 1 THEN ... END` (առանց `IF`) | 1 | `IF`-ը և հաջորդող հրամանը պահպանվում են |
-| `PRINT (1` | 1 | `PRINT`-ը և հաջորդող հրամանը պահպանվում են |
+| `LET x = (1` | 1 | `LET`-ը և հաջորդող հրամանը պահպանվում են |
 | `SUB Main` առանց `END SUB` | 1 | երկու ենթածրագրերն էլ պահպանվում են |
-| `PRINT *` | 1 | չեզոք հանգույց, հաջորդ հրամանը՝ նորմալ |
+| `LET x = *` | 1 | չեզոք հանգույց, հաջորդ հրամանը՝ նորմալ |
 | `FOO` հրամանի փոխարեն | 1 | հրամանը բաց է թողնվում |
 | `LET = 1` | 1 | անանուն փոփոխականով `LET` |
 | `SUB` առանց անվան | 1 | անանուն ենթածրագիր՝ ամբողջական մարմնով |
@@ -766,7 +766,7 @@ if( !diagnostics.errors().empty() ) {
 ```basic
 SUB Main
 WHILE 1
-PRINT 1
+LET x = 1
 END SUB
 ```
 

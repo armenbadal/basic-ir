@@ -5,48 +5,8 @@
 #include <stdbool.h>
 
 /*
-  թվային ֆունկցիաներ
-*/
-
-/**/
-double number_input(const char* prompt)
-{
-  printf("%s ", prompt);
-	double nval = 0.0;
-	scanf("%lf", &nval);
-	while( '\n' != getchar() ) {}
-  return nval;
-}
-
-/**/
-void number_print(double vl)
-{
-    printf("%lf\n", vl);
-}
-
-
-/*
   տեքստային ֆունկցիաներ
 */
-
-/**/
-char *text_input(const char* prompt)
-{
-  printf("%s ", prompt);
-  char buffer[1024] = { 0 };
-  fgets(buffer, 1023, stdin);
-  size_t slen = strlen(buffer);
-  char *res = malloc(slen);
-  strncpy(res, buffer, slen - 1);
-  res[slen-1] = '\0';
-  return res;
-}
-
-/**/
-void text_print(const char* vl)
-{
-    printf("%s\n", vl);
-}
 
 /**/
 char *text_clone(const char *sr)

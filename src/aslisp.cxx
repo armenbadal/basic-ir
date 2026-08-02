@@ -87,16 +87,6 @@ std::string Lisper::visit(Let& node)
                        visit(*node._expr));
 }
 
-std::string Lisper::visit(Input& node)
-{
-    return std::format("(basic-input (basic-variable \"{}\"))", node._variable->_name);
-}
-
-std::string Lisper::visit(Print& node)
-{
-    return std::format("(basic-print {})", visit(*node._expr));
-}
-
 std::string Lisper::visit(Dim& node)
 {
     return std::format("(basic-dim \"{}\" {})", node._name, visit(*node._size));

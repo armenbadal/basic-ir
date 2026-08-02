@@ -11,7 +11,7 @@ END SUB
 
 SUB Main
   LET a$ = "Yes" & "?"
-  PRINT a$
+  LET b$ = a$
 END SUB
 
 SUB p$(a$, b$, c$)

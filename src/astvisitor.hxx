@@ -20,10 +20,6 @@ protected:
             return derived().visit(static_cast<Dim&>(node));
         case NodeKind::Let:
             return derived().visit(static_cast<Let&>(node));
-        case NodeKind::Input:
-            return derived().visit(static_cast<Input&>(node));
-        case NodeKind::Print:
-            return derived().visit(static_cast<Print&>(node));
         case NodeKind::If:
             return derived().visit(static_cast<If&>(node));
         case NodeKind::IfThen:
