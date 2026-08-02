@@ -7,12 +7,10 @@ Subroutine = 'SUB' IDENT [ '(' IdentList ')' ] Sequence 'END' 'SUB' .
 IdentList  = IDENT { ',' IDENT } .
 
 Sequence   = { Statement } .
-Statement  = Let | Dim | Input | Print | If | While | For | Call .
+Statement  = Let | Dim | If | While | For | Call .
 
 Let    = 'LET' IDENT '=' Expression .
-Dim    = 'DIM' IDENT '[' Expression ']' .
-Input  = 'INPUT' IDENT .
-Print  = 'PRINT' Expression .
+Dim    = 'DIM' IDENT '[' Expression ']' 'AS' (REAL | TEXT | BOOL) .
 
 If     = 'IF' Expression 'THEN' Sequence
          { 'ELSEIF' Expression 'THEN' Sequence }

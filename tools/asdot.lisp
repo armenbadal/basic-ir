@@ -39,19 +39,6 @@
 	(connect-nodes cnum value)
 	cnum))
 
-(defun basic-input (prompt var)
-  (let ((cnum (new-index)))
-	(ast-node cnum "INPUT")
-	(connect-nodes cnum prompt)
-	(connect-nodes cnum var)
-	cnum))
-
-(defun basic-print (expr)
-  (let ((cnum (new-index)))
-	(ast-node cnum "PRINT")
-	(connect-nodes cnum expr)
-	cnum))
-
 (defun basic-if (condition decision alternative)
   (let ((cnum (new-index)))
 	(ast-node cnum "IF")

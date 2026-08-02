@@ -183,37 +183,6 @@ void IrEmitter::visit(Let::Ptr let)
     builder.CreateStore(val, addr);
 }
 
-void IrEmitter::visit(Input::Ptr inp)
-{
-    auto pt = typeOfName(inp->_variable->_name);
-    std::string_view funcName;
-    if( pt == 'B' )
-        funcName = "bool_input";
-    if( pt == 'N' )
-        funcName = "number_input";
-    else if( pt == 'T' )
-        funcName = "text_input";
-
-    auto* prompt = builder.CreateGlobalString("? ", "prompt");
-    auto* val = createLibraryFuncCall(funcName, {prompt});
-    builder.CreateStore(val, varAddresses[inp->_variable->_name]);
-}
-
-void IrEmitter::visit(Print::Ptr pri)
-{
-    visit(pri->_expr);
-    auto* expr = _result;
-
-    auto et = exprType(pri->_expr);
-    if( et == 'T' ) {
-        createLibraryFuncCall("text_print", {expr});
-        if( createsTempText(pri->_expr) )
-            createLibraryFuncCall("free", {expr});
-    }
-    else if( et == 'N' )
-        createLibraryFuncCall("number_print", {expr});
-}
-
 void IrEmitter::visit(If::Ptr sif)
 {
     auto* func = builder.GetInsertBlock()->getParent();
@@ -493,8 +462,6 @@ void IrEmitter::setCurrentBlock(llvm::Function* fun, llvm::BasicBlock* bl)
 void IrEmitter::prepareLibrary()
 {
     declareLibraryFunction("text_clone", "T(T)");
-    declareLibraryFunction("text_input", "T(T)");
-    declareLibraryFunction("text_print", "V(T)");
     declareLibraryFunction("text_conc", "T(TT)");
     declareLibraryFunction("text_mid", "T(TNN)");
     declareLibraryFunction("text_str", "T(N)");
@@ -504,9 +471,6 @@ void IrEmitter::prepareLibrary()
     declareLibraryFunction("text_ge", "B(TT)");
     declareLibraryFunction("text_lt", "B(TT)");
     declareLibraryFunction("text_le", "B(TT)");
-
-    declareLibraryFunction("number_input", "N(T)");
-    declareLibraryFunction("number_print", "V(N)");
 
     declareLibraryFunction("pow", "N(NN)");
     declareLibraryFunction("sqrt", "N(N)");
@@ -547,10 +511,10 @@ llvm::FunctionCallee IrEmitter::libraryFunction(std::string_view name)
 
 llvm::FunctionCallee IrEmitter::userFunction(std::string_view name)
 {
-    if( "MID$" == name )
+    if( "MID" == name )
         return libraryFunction("text_mid");
 
-    if( "STR$" == name )
+    if( "STR" == name )
         return libraryFunction("text_str");
 
     if( "SQR" == name )

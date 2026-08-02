@@ -31,11 +31,6 @@ static Sequence::Ptr makeSeq(std::vector<Statement::Ptr> items)
     return std::make_shared<Sequence>(std::move(items), 2);
 }
 
-static Print::Ptr makePrint(Expression::Ptr expr)
-{
-    return std::make_shared<Print>(std::move(expr), 3);
-}
-
 static Let::Ptr makeLet(std::string_view var, Expression::Ptr expr)
 {
     return std::make_shared<Let>(std::make_shared<Variable>(var, 4), std::move(expr), 5);
@@ -62,14 +57,9 @@ static Call::Ptr makeCall(std::string_view callee, std::vector<Expression::Ptr> 
     return std::make_shared<Call>(callee, std::move(args), 10);
 }
 
-static Input::Ptr makeInput(std::string_view var)
+static Dim::Ptr makeDim(std::string_view name, Expression::Ptr size, std::string_view type)
 {
-    return std::make_shared<Input>(std::make_shared<Variable>(var, 11), 12);
-}
-
-static Dim::Ptr makeDim(std::string_view name, Expression::Ptr size)
-{
-    return std::make_shared<Dim>(name, std::move(size), 13);
+    return std::make_shared<Dim>(name, std::move(size), type, 13);
 }
 
 static std::string tos(Program::Ptr prog)
@@ -108,22 +98,16 @@ TEST_CASE("Subroutine with parameters", "[lisp]")
     CHECK_THAT(result, ContainsSubstring("'((basic-variable \"x\") (basic-variable \"y\"))"));
 }
 
-TEST_CASE("Print number", "[lisp]")
-{
-    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makePrint(node<Number>(42.0, 1))}))}));
-    CHECK_THAT(result, ContainsSubstring("(basic-print (basic-number 42))"));
-}
-
-TEST_CASE("Print text", "[lisp]")
-{
-    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makePrint(node<Text>("hello", 1))}))}));
-    CHECK_THAT(result, ContainsSubstring("(basic-print (basic-text \"hello\"))"));
-}
-
 TEST_CASE("Let assign number", "[lisp]")
 {
-    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeLet("x", node<Number>(10.0, 1))}))}));
-    CHECK_THAT(result, ContainsSubstring("(basic-let (basic-variable \"x\") (basic-number 10))"));
+    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeLet("x", node<Number>(42.0, 1))}))}));
+    CHECK_THAT(result, ContainsSubstring("(basic-let (basic-variable \"x\") (basic-number 42))"));
+}
+
+TEST_CASE("Let assign text", "[lisp]")
+{
+    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeLet("x", node<Text>("hello", 1))}))}));
+    CHECK_THAT(result, ContainsSubstring("(basic-let (basic-variable \"x\") (basic-text \"hello\"))"));
 }
 
 TEST_CASE("Let assign boolean", "[lisp]")
@@ -149,48 +133,48 @@ TEST_CASE("Binary comparison", "[lisp]")
 TEST_CASE("Unary NOT", "[lisp]")
 {
     auto expr = node<Unary>(Operation::Not, node<Boolean>(false, 1), 2);
-    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makePrint(expr)}))}));
+    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeLet("x", expr)}))}));
     CHECK_THAT(result, ContainsSubstring("(basic-unary \"NOT\" (basic-boolean NIL))"));
 }
 
 TEST_CASE("Unary negation", "[lisp]")
 {
     auto expr = node<Unary>(Operation::Sub, node<Number>(5.0, 1), 2);
-    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makePrint(expr)}))}));
+    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeLet("x", expr)}))}));
     CHECK_THAT(result, ContainsSubstring("(basic-unary \"SUB\" (basic-number 5))"));
 }
 
 TEST_CASE("If without else", "[lisp]")
 {
     auto cond = node<Boolean>(true, 1);
-    auto thenP = makePrint(node<Text>("yes", 2));
-    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeIf(cond, thenP, nullptr)}))}));
-    CHECK_THAT(result, ContainsSubstring("(basic-if (basic-if-then (basic-boolean T) (basic-print (basic-text \"yes\"))))"));
+    auto thenS = makeLet("x", node<Number>(1.0, 2));
+    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeIf(cond, thenS, nullptr)}))}));
+    CHECK_THAT(result, ContainsSubstring("(basic-if (basic-if-then (basic-boolean T) (basic-let (basic-variable \"x\") (basic-number 1))))"));
 }
 
 TEST_CASE("If with else", "[lisp]")
 {
     auto cond = node<Boolean>(false, 1);
-    auto thenP = makePrint(node<Text>("t", 2));
-    auto elseP = makePrint(node<Text>("f", 3));
-    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeIf(cond, thenP, elseP)}))}));
-    CHECK_THAT(result, ContainsSubstring("(basic-if (basic-if-then (basic-boolean NIL) (basic-print (basic-text \"t\"))) (basic-print (basic-text \"f\")))"));
+    auto thenS = makeLet("x", node<Number>(1.0, 2));
+    auto elseS = makeLet("y", node<Number>(2.0, 3));
+    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeIf(cond, thenS, elseS)}))}));
+    CHECK_THAT(result, ContainsSubstring("(basic-if (basic-if-then (basic-boolean NIL) (basic-let (basic-variable \"x\") (basic-number 1))) (basic-let (basic-variable \"y\") (basic-number 2)))"));
 }
 
 TEST_CASE("While loop", "[lisp]")
 {
     auto cond = node<Binary>(Operation::Lt, node<Variable>("i", 1), node<Number>(10.0, 2), 3);
-    auto body = makePrint(node<Variable>("i", 4));
+    auto body = makeLet("x", node<Variable>("i", 4));
     auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeWhile(cond, body)}))}));
-    CHECK_THAT(result, ContainsSubstring("(basic-while (basic-binary \"LT\" (basic-variable \"i\") (basic-number 10)) (basic-print (basic-variable \"i\")))"));
+    CHECK_THAT(result, ContainsSubstring("(basic-while (basic-binary \"LT\" (basic-variable \"i\") (basic-number 10)) (basic-let (basic-variable \"x\") (basic-variable \"i\")))"));
 }
 
 TEST_CASE("For loop", "[lisp]")
 {
-    auto body = makePrint(node<Number>(0.0, 1));
+    auto body = makeLet("x", node<Number>(0.0, 1));
     auto f = makeFor("i", node<Number>(1.0, 2), node<Number>(10.0, 3), node<Number>(1.0, 4), body);
     auto result = tos(makeProg({makeSub("Main", {}, makeSeq({f}))}));
-    CHECK_THAT(result, ContainsSubstring("(basic-for (basic-variable \"i\") (basic-number 1) (basic-number 10) (basic-number 1) (basic-print (basic-number 0)))"));
+    CHECK_THAT(result, ContainsSubstring("(basic-for (basic-variable \"i\") (basic-number 1) (basic-number 10) (basic-number 1) (basic-let (basic-variable \"x\") (basic-number 0)))"));
 }
 
 TEST_CASE("Call subroutine", "[lisp]")
@@ -199,30 +183,31 @@ TEST_CASE("Call subroutine", "[lisp]")
     CHECK_THAT(result, ContainsSubstring("(basic-call \"foo\" (basic-number 1) (basic-text \"bar\"))"));
 }
 
-TEST_CASE("Input statement", "[lisp]")
-{
-    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeInput("x")}))}));
-    CHECK_THAT(result, ContainsSubstring("(basic-input (basic-variable \"x\"))"));
-}
-
 TEST_CASE("Dim statement", "[lisp]")
 {
-    auto d = makeDim("arr", node<Number>(100.0, 1));
+    auto d = makeDim("arr", node<Number>(100.0, 1), "REAL");
     auto result = tos(makeProg({makeSub("Main", {}, makeSeq({d}))}));
-    CHECK_THAT(result, ContainsSubstring("(basic-dim \"arr\" (basic-number 100))"));
+    CHECK_THAT(result, ContainsSubstring("(basic-dim \"arr\" (basic-number 100) \"REAL\")"));
+}
+
+TEST_CASE("Dim statement without size", "[lisp]")
+{
+    auto d = makeDim("arr", nullptr, "REAL");
+    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({d}))}));
+    CHECK_THAT(result, ContainsSubstring("(basic-dim \"arr\" NIL \"REAL\")"));
 }
 
 TEST_CASE("Array expression", "[lisp]")
 {
     auto arr = node<Array>(std::vector<Expression::Ptr>{node<Number>(1.0, 1), node<Number>(2.0, 2)}, 3);
-    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makePrint(arr)}))}));
+    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeLet("x", arr)}))}));
     CHECK_THAT(result, ContainsSubstring("(basic-array (basic-number 1) (basic-number 2))"));
 }
 
 TEST_CASE("Apply function", "[lisp]")
 {
     auto ap = node<Apply>("ABS", std::vector<Expression::Ptr>{node<Number>(-5.0, 1)}, 2);
-    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makePrint(ap)}))}));
+    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeLet("x", ap)}))}));
     CHECK_THAT(result, ContainsSubstring("(basic-apply \"ABS\" (basic-number -5))"));
 }
 
@@ -238,14 +223,14 @@ TEST_CASE("Multiple statements", "[lisp]")
 TEST_CASE("Power operator", "[lisp]")
 {
     auto expr = node<Binary>(Operation::Pow, node<Number>(2.0, 1), node<Number>(3.0, 2), 3);
-    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makePrint(expr)}))}));
+    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeLet("x", expr)}))}));
     CHECK_THAT(result, ContainsSubstring("(basic-binary \"POW\" (basic-number 2) (basic-number 3))"));
 }
 
 TEST_CASE("Mod operator", "[lisp]")
 {
     auto expr = node<Binary>(Operation::Mod, node<Number>(7.0, 1), node<Number>(3.0, 2), 3);
-    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makePrint(expr)}))}));
+    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeLet("x", expr)}))}));
     CHECK_THAT(result, ContainsSubstring("(basic-binary \"MOD\" (basic-number 7) (basic-number 3))"));
 }
 
@@ -253,46 +238,46 @@ TEST_CASE("Nested binary expressions", "[lisp]")
 {
     auto ab = node<Binary>(Operation::Add, node<Number>(1.0, 1), node<Number>(2.0, 2), 4);
     auto expr = node<Binary>(Operation::Mul, ab, node<Number>(3.0, 3), 5);
-    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makePrint(expr)}))}));
+    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeLet("x", expr)}))}));
     CHECK_THAT(result, ContainsSubstring("(basic-binary \"MUL\" (basic-binary \"ADD\" (basic-number 1) (basic-number 2)) (basic-number 3))"));
 }
 
 TEST_CASE("Variable reference", "[lisp]")
 {
-    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makePrint(node<Variable>("result", 1))}))}));
-    CHECK_THAT(result, ContainsSubstring("(basic-print (basic-variable \"result\"))"));
+    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeLet("x", node<Variable>("result", 1))}))}));
+    CHECK_THAT(result, ContainsSubstring("(basic-let (basic-variable \"x\") (basic-variable \"result\"))"));
 }
 
 TEST_CASE("Boolean true", "[lisp]")
 {
-    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makePrint(node<Boolean>(true, 1))}))}));
-    CHECK_THAT(result, ContainsSubstring("(basic-print (basic-boolean T))"));
+    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeLet("x", node<Boolean>(true, 1))}))}));
+    CHECK_THAT(result, ContainsSubstring("(basic-let (basic-variable \"x\") (basic-boolean T))"));
 }
 
 TEST_CASE("Boolean false", "[lisp]")
 {
-    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makePrint(node<Boolean>(false, 1))}))}));
-    CHECK_THAT(result, ContainsSubstring("(basic-print (basic-boolean NIL))"));
+    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeLet("x", node<Boolean>(false, 1))}))}));
+    CHECK_THAT(result, ContainsSubstring("(basic-let (basic-variable \"x\") (basic-boolean NIL))"));
 }
 
 TEST_CASE("Concatenation operator", "[lisp]")
 {
     auto expr = node<Binary>(Operation::Conc, node<Text>("a", 1), node<Text>("b", 2), 3);
-    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makePrint(expr)}))}));
+    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeLet("x", expr)}))}));
     CHECK_THAT(result, ContainsSubstring("(basic-binary \"CONC\" (basic-text \"a\") (basic-text \"b\"))"));
 }
 
 TEST_CASE("AND operator", "[lisp]")
 {
     auto expr = node<Binary>(Operation::And, node<Boolean>(true, 1), node<Boolean>(false, 2), 3);
-    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makePrint(expr)}))}));
+    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeLet("x", expr)}))}));
     CHECK_THAT(result, ContainsSubstring("(basic-binary \"AND\" (basic-boolean T) (basic-boolean NIL))"));
 }
 
 TEST_CASE("OR operator", "[lisp]")
 {
     auto expr = node<Binary>(Operation::Or, node<Boolean>(true, 1), node<Boolean>(false, 2), 3);
-    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makePrint(expr)}))}));
+    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeLet("x", expr)}))}));
     CHECK_THAT(result, ContainsSubstring("(basic-binary \"OR\" (basic-boolean T) (basic-boolean NIL))"));
 }
 
@@ -304,14 +289,14 @@ TEST_CASE("Empty call", "[lisp]")
 
 TEST_CASE("Number with decimal", "[lisp]")
 {
-    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makePrint(node<Number>(3.14159, 1))}))}));
+    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeLet("x", node<Number>(3.14159, 1))}))}));
     CHECK_THAT(result, ContainsSubstring("(basic-number 3.14159)"));
 }
 
 TEST_CASE("Text with special characters", "[lisp]")
 {
     auto t = node<Text>("line1\nline2", 1);
-    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makePrint(t)}))}));
+    auto result = tos(makeProg({makeSub("Main", {}, makeSeq({makeLet("x", t)}))}));
     CHECK_THAT(result, ContainsSubstring("(basic-text \"line1\nline2\")"));
 }
 

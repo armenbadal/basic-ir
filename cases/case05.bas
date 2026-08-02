@@ -1,12 +1,11 @@
 
 SUB Main
-  INPUT k
-  PRINT k
+  LET k = 0
+  LET p = k
 
-  INPUT "Enter a number", n
-  PRINT n
+  LET n = 0
+  LET q = n
 
-  INPUT "Ներմուծեք մի տեքստ։", e$
-  PRINT e$
+  LET e = "տեքստ"
+  LET f = e
 END SUB
-

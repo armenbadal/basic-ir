@@ -28,12 +28,13 @@ TEST_CASE("SemanticModel stores node annotations", "[semantic]")
 
 TEST_CASE("Semantic analysis annotates declarations and calls", "[semantic]")
 {
-    auto parameter = node<Variable>("message$", 1);
-    auto echo = node<Subroutine>("Echo", std::vector<Variable::Ptr>{parameter}, node<Sequence>(std::vector<Statement::Ptr>{node<Print>(parameter, 2)}, 2), 1);
+    auto parameter = node<Variable>("message", 1);
+    auto echo = node<Subroutine>("Echo", std::vector<Variable::Ptr>{parameter}, node<Sequence>(std::vector<Statement::Ptr>{node<Let>(parameter, node<Number>(1, 2), 2)}, 2), 1);
 
-    auto value = node<Variable>("value$", 4);
-    auto call = node<Call>("Echo", std::vector<Expression::Ptr>{value}, 5);
-    auto main = node<Subroutine>("Main", std::vector<Variable::Ptr>{}, node<Sequence>(std::vector<Statement::Ptr>{node<Let>(value, node<Text>("hello", 4), 4), call}, 4), 3);
+    auto buffer = node<Dim>("buffer", node<Number>(10, 1), "REAL", 1);
+    auto count = node<Variable>("count", 4);
+    auto call = node<Call>("Echo", std::vector<Expression::Ptr>{count}, 5);
+    auto main = node<Subroutine>("Main", std::vector<Variable::Ptr>{}, node<Sequence>(std::vector<Statement::Ptr>{buffer, node<Let>(count, node<Number>(1, 4), 4), call}, 4), 3);
     auto program = node<Program>(std::vector<Subroutine::Ptr>{echo, main}, 1);
 
     SymbolTable symbols;
@@ -43,7 +44,7 @@ TEST_CASE("Semantic analysis annotates declarations and calls", "[semantic]")
     analyzer.analyze(program);
 
     CHECK(diagnostics.count() == 0);
-    REQUIRE(model.type(value->id()).has_value());
-    CHECK(**model.type(value->id()) == *Types::text());
+    REQUIRE(model.type(count->id()).has_value());
+    CHECK(**model.type(count->id()) == *Types::real());
     CHECK(model.symbol(call->id()).has_value());
 }

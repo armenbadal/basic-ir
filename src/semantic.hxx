@@ -37,8 +37,6 @@ public:
     void visit(Sequence& node);
     void visit(Dim& node);
     void visit(Let& node);
-    void visit(Input& node);
-    void visit(Print& node);
     void visit(If& node);
     void visit(If::IfThen& node);
     void visit(While& node);
@@ -57,7 +55,9 @@ public:
 private:
     Type::Ptr expressionType(const Expression::Ptr& expression);
     std::optional<SymbolId> variableSymbol(const Variable& variable);
+    std::vector<SymbolId> declaredParameters(Subroutine& subroutine);
     void requireType(const Node& node, const Type& actual, const Type& expected, std::string_view context);
+    void requireCondition(const Node& node, const Type& actual, std::string_view context);
 
     void error(const Node& node, std::string_view fmt, auto&&... args)
     {
@@ -69,6 +69,7 @@ private:
     SymbolTable& _symbols;
     SemanticModel& _semantic;
     Diagnostics& _diagnostics;
+    std::string _currentSubroutine;
 };
 
 } // namespace basic

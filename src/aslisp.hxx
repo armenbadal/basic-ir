@@ -20,8 +20,6 @@ public:
     std::string visit(Sequence& node);
     std::string visit(Dim& node);
     std::string visit(Let& node);
-    std::string visit(Input& node);
-    std::string visit(Print& node);
     std::string visit(If& node);
     std::string visit(If::IfThen& node);
     std::string visit(While& node);

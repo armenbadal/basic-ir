@@ -42,6 +42,7 @@ public:
     VariableSymbol(SymbolId id, std::string name, Type::Ptr type, Storage storage = Storage::Local);
 
     const Type& type() const noexcept;
+    const Type::Ptr& typePtr() const noexcept;
     Storage storage() const noexcept;
 
     Symbol::Kind kind() const noexcept override;
@@ -57,10 +58,13 @@ public:
     ~SubroutineSymbol() override = default;
     const std::vector<SymbolId>& parameters() const;
     void setParameters(std::vector<SymbolId> parameters);
+    const Type::Ptr& returnType() const noexcept;
+    void setReturnType(Type::Ptr type);
     Symbol::Kind kind() const noexcept override;
 
 private:
     std::vector<SymbolId> _parameters;
+    Type::Ptr _returnType{Types::real()};
 };
 
 class SymbolTable {

@@ -40,8 +40,6 @@ private:
     void visit(Sequence::Ptr seq) override;
     void visit(Dim::Ptr dim) override;
     void visit(Let::Ptr let) override;
-    void visit(Input::Ptr inp) override;
-    void visit(Print::Ptr pri) override;
     void visit(If::Ptr sif) override;
     void visit(For::Ptr sfor) override;
     void visit(While::Ptr swhi) override;

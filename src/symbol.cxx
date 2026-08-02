@@ -29,6 +29,11 @@ const Type& VariableSymbol::type() const noexcept
     return *_type;
 }
 
+const Type::Ptr& VariableSymbol::typePtr() const noexcept
+{
+    return _type;
+}
+
 VariableSymbol::Storage VariableSymbol::storage() const noexcept
 {
     return _storage;
@@ -52,6 +57,16 @@ const std::vector<SymbolId>& SubroutineSymbol::parameters() const
 void SubroutineSymbol::setParameters(std::vector<SymbolId> parameters)
 {
     _parameters = std::move(parameters);
+}
+
+const Type::Ptr& SubroutineSymbol::returnType() const noexcept
+{
+    return _returnType;
+}
+
+void SubroutineSymbol::setReturnType(Type::Ptr type)
+{
+    _returnType = std::move(type);
 }
 
 Symbol::Kind SubroutineSymbol::kind() const noexcept

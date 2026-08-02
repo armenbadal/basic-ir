@@ -12,8 +12,10 @@ static inline std::map<std::string_view, Token> keywords{
     { "SUB",    Token::Subroutine },
     { "LET",    Token::Let },
     { "DIM",    Token::Dim },
-    { "PRINT",  Token::Print },
-    { "INPUT",  Token::Input },
+    { "AS",     Token::As },
+    { "REAL",   Token::Real },
+    { "TEXT",   Token::Text },
+    { "BOOL",   Token::Bool },
     { "IF",     Token::If },
     { "THEN",   Token::Then },
     { "ELSEIF", Token::ElseIf },
@@ -27,9 +29,7 @@ static inline std::map<std::string_view, Token> keywords{
     { "MOD",    Token::Mod },
     { "AND",    Token::And },
     { "OR",     Token::Or },
-    { "NOT",    Token::Not },
-    { "TRUE",   Token::True },
-    { "FALSE",  Token::False }
+    { "NOT",    Token::Not }
 };
 
 // մետասիմվոլների ցուցակ
@@ -51,7 +51,7 @@ static inline std::map<char, Token> metasymbols{
 
 template<typename Predicate>
 requires std::predicate<Predicate, char>
-std::string read_while(std::istream& input, Predicate predicate)
+std::string readWhile(std::istream& input, Predicate predicate)
 {
     std::string result;
     char ch = '\0';
@@ -96,11 +96,11 @@ Scanner::Scanner(std::istream& input)
 // Հերթական լեքսեմը կարդալու ֆունկցիա
 Lexeme Scanner::scan()
 {
-    read_while(source, isSpace);
+    readWhile(source, isSpace);
 
     // մեկնաբանություններ
     if( source.peek() == '\'' ) {
-        read_while(source, [](char c) { return c != '\n'; });
+        readWhile(source, [](char c) { return c != '\n'; });
         return scan();
     }
 
@@ -177,16 +177,16 @@ Lexeme Scanner::scanNumber()
 {
     const auto pos = line;
     // կարդալ թվանշանների շարք
-    std::string value = read_while(source, isDigit);
+    std::string value = readWhile(source, isDigit);
     
     // եթե հերթական նիշը «.» է, ապա հանդիպել է իրական թվի լիտերալ
     if (!source.eof() && source.peek() == '.') {
         source.get();
         value += '.';
-        value += read_while(source, isDigit);
+        value += readWhile(source, isDigit);
     }
 
-    return { Token::Number, value, pos };
+    return { Token::RealLit, value, pos };
 }
 
 
@@ -194,10 +194,10 @@ Lexeme Scanner::scanText()
 {
     source.ignore();
     const auto pos = line;
-    std::string value = read_while(source, [](char c) { return c != '"'; });
+    std::string value = readWhile(source, [](char c) { return c != '"'; });
     if( !source.eof() && source.peek() == '"' )
         source.ignore();
-    return { Token::Text, value, pos };
+    return { Token::TextLit, value, pos };
 }
 
 
@@ -205,16 +205,10 @@ Lexeme Scanner::scanIdentifier()
 {
     const auto pos = line;
     // կարդալ թվանշանների ու տառերի հաջորդականություն
-    std::string value = read_while(source, isAlnum);
+    std::string value = readWhile(source, isAlnum);
 
-    // եթե հանդիպել է «$» կամ «?», ապա դա էլ կցել լեքսեմի արժեքին
-    if (!source.eof()) {
-        char next = source.peek();
-        if (next == '$' || next == '?') {
-            source.get();
-            value += next;
-        }
-    }
+    if( value == "TRUE" || value == "FALSE" )
+        return { Token::BoolLit, value, pos };
 
     // լեքսեմի արժեքը փնտրել ծառայողական բառերի ցուցակում
     auto ival = keywords.find(value);
