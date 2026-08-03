@@ -111,21 +111,28 @@ Subroutine::Ptr Parser::parseSubroutine()
     match(Token::Subroutine);
     auto name = match(Token::Identifier); // ենթածրագրի անունը
 
-    // պարամետրերը՝ որպես փոփոխականներ
-    std::vector<Variable::Ptr> parameters;
+    // պարամետրերը՝ որպես հայտարարություններ
+    std::vector<Dim::Ptr> parameters;
     if( lookahead.is(Token::LeftPar) ) {
         match(Token::LeftPar);
         if( lookahead.is(Token::Identifier) ) {
-            auto param = match(Token::Identifier);
-            parameters.push_back(node<Variable>(param, line));
+            auto param = parseDeclaration(false);
+            parameters.push_back(param);
             while( lookahead.is(Token::Comma) ) {
                 match(Token::Comma);
-                param = match(Token::Identifier);
-                parameters.push_back(node<Variable>(param, line));
+                param = parseDeclaration(false);
+                parameters.push_back(param);
             }
         }
         match(Token::RightPar);
     }
+    std::string returnType{"empty"};
+    if( lookahead.is(Token::As) ) {
+        match(Token::As);
+        if( lookahead.is(Token::Real, Token::Text, Token::Bool) )
+        returnType = match(lookahead.kind);
+    }
+
 
     // մարմինը
     auto body = parseSequence();
@@ -204,12 +211,21 @@ Dim::Ptr Parser::parseDim()
     auto line = lookahead.line;
 
     match(Token::Dim);
+    return parseDeclaration(true);
+}
+
+Dim::Ptr Parser::parseDeclaration(bool sizeRequired)
+{
+    auto line = lookahead.line;
     auto name = match(Token::Identifier);
 
     Expression::Ptr size;
     if( lookahead.is(Token::LeftBrack) ) {
         match(Token::LeftBrack);
-        size = parseExpression();
+        if( sizeRequired && !FirstExpr.contains(lookahead.kind) )
+            size = parseExpression();
+        else
+            diagnostics.mark(lookahead.line, std::format("Սպասվում է չափը, բայց հանդիպել է {}։", describe(lookahead)));
         match(Token::RightBrack);
     }
 
