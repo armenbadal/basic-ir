@@ -358,18 +358,21 @@ public:
 class Subroutine : public Node {
 public:
     Subroutine(std::string_view name, 
-               std::vector<Variable::Ptr> parameters,
+               std::vector<Dim::Ptr> parameters,
+               std::string_view returnType,
                Statement::Ptr body,
                Position pos)
         : Node{NodeKind::Subroutine, pos}
         , _name{name}
         , _parameters{std::move(parameters)}
+        , _returnType{returnType}
         , _body{std::move(body)}
     {}
     using Ptr = std::shared_ptr<Subroutine>;
 
     const std::string _name = "";                 //<! անուն
-    const std::vector<Variable::Ptr> _parameters; //<! պարամետրեր
+    const std::vector<Dim::Ptr> _parameters; //<! պարամետրեր
+    const std::string _returnType;    //<! վերադարձրած տիպը
     const Statement::Ptr _body;                   //<! մարմին
 };
 

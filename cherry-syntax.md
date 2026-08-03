@@ -1,48 +1,44 @@
 # BASIC-IR Grammar (Niklaus Wirth EBNF)
 
 ```ebnf
-Program = { Subroutine } .
+Program = [NewLines] { Subroutine } .
 
-Subroutine = 'SUB' IDENT [ '(' IdentList ')' ] Sequence 'END' 'SUB' .
-IdentList  = IDENT { ',' IDENT } .
+Subroutine = 'SUB' IDENT [ '(' ParameterList ')' ] ['AS' TypeName] Sequence 'END' 'SUB'.
+ParameterList = Parameter { ',' Parameter }.
+Parameter = IDENT [ '[' [ Expression ] ']' ] 'AS' TypeName.
+TypeName = REAL | TEXT | BOOL.
 
-Sequence   = { Statement } .
-Statement  = Let | Dim | If | While | For | Call .
+Sequence   = NewLines { Statement NewLines }.
+Statement  = Let | Dim | If | While | For | Call.
 
-Let    = 'LET' IDENT '=' Expression .
-Dim    = 'DIM' IDENT '[' Expression ']' 'AS' (REAL | TEXT | BOOL) .
+Let    = 'LET' IDENT '=' Expression.
+
+Dim    = 'DIM' IDENT [ '[' Expression ']' ] 'AS' TypeName.
 
 If     = 'IF' Expression 'THEN' Sequence
          { 'ELSEIF' Expression 'THEN' Sequence }
          [ 'ELSE' Sequence ]
-         'END' 'IF' .
+         'END' 'IF'.
 
-While  = 'WHILE' Expression Sequence 'END' 'WHILE' .
+While  = 'WHILE' Expression Sequence 'END' 'WHILE'.
 
 For    = 'FOR' IDENT '=' Expression 'TO' Expression
          [ 'STEP' [ '-' ] Number ]
-         Sequence 'END' 'FOR' .
+         Sequence 'END' 'FOR'.
 
-Call   = 'CALL' IDENT [ ExpressionList ] .
-ExpressionList = Expression { ',' Expression } .
+Call   = 'CALL' IDENT [ ExpressionList ].
 
-Expression = Addition [ CompOp Addition ] .
-Addition   = Multiplication { AddOp Multiplication } .
-Multiplication = Power { MulOp Power } .
-Power      = Factor [ '^' Power ] .
-Unary      = { UnaryOp } Base .
-Base       = TrueOrFalse | Number | Text | IDENT | Grouped | Apply .
-Grouped    = '(' Expression ')' .
-Apply      = IDENT '(' [ ExpressionList ] ')' .
+ExpressionList = Expression { ',' Expression }.
 
-TrueOrFalse = 'TRUE' | 'FALSE' .
-Number      = NUMBER .
-Text        = TEXT .
-
-CompOp = '=' | '<>' | '>' | '>=' | '<' | '<=' .
-AddOp  = '+' | '-' | '&' | 'OR' .
-MulOp  = '*' | '/' | 'MOD' | 'AND' | QUOT .
-UnaryOp = '+' | '-' | 'NOT' .
+Expression = Addition [ ('=' | '<>' | '>' | '>=' | '<' | '<=') Addition ].
+Addition   = Multiplication { ('+' | '-' | '&' | 'OR') Multiplication }.
+Multiplication = Power { ('*' | '/' | 'MOD' | 'AND' | '\') Power }.
+Power      = Unary [ '^' Power ].
+Unary      = { ('+' | '-' | 'NOT') } Subscript.
+Subscript  = Factor { '[' Expression ']' }.
+Base       = 'TRUE' | 'FALSE' | NUMBER | TEXT | IDENT | Grouped | Apply.
+Grouped    = '(' Expression ')'.
+Apply      = IDENT '(' [ ExpressionList ] ')'.
 ```
 
 **Wirth EBNF conventions:**
