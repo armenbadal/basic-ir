@@ -93,23 +93,44 @@ TEST_CASE("Parse empty parens subroutine", "[parser]")
 
 TEST_CASE("Parse subroutine with one parameter", "[parser]")
 {
-    auto prog = parseStr("SUB f(x)\nEND SUB\n");
+    auto prog = parseStr("SUB f(x AS REAL)\nEND SUB\n");
     REQUIRE(prog != nullptr);
     auto& sub = onlySub(*prog);
     CHECK(sub._name == "f");
     REQUIRE(sub._parameters.size() == 1);
     CHECK(sub._parameters[0]->_name == "x");
+    CHECK(sub._parameters[0]->_type == "REAL");
 }
 
 TEST_CASE("Parse subroutine with multiple parameters", "[parser]")
 {
-    auto prog = parseStr("SUB f(x, y, z)\nEND SUB\n");
+    auto prog = parseStr("SUB f(x AS REAL, y AS TEXT, z AS BOOL)\nEND SUB\n");
     REQUIRE(prog != nullptr);
     auto& sub = onlySub(*prog);
     REQUIRE(sub._parameters.size() == 3);
     CHECK(sub._parameters[0]->_name == "x");
+    CHECK(sub._parameters[0]->_type == "REAL");
     CHECK(sub._parameters[1]->_name == "y");
+    CHECK(sub._parameters[1]->_type == "TEXT");
     CHECK(sub._parameters[2]->_name == "z");
+    CHECK(sub._parameters[2]->_type == "BOOL");
+}
+
+TEST_CASE("Parse subroutine return type", "[parser]")
+{
+    auto prog = parseStr("SUB f(x AS REAL) AS TEXT\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    CHECK(sub._name == "f");
+    CHECK(sub._returnType == "TEXT");
+}
+
+TEST_CASE("Parse subroutine without return type", "[parser]")
+{
+    auto prog = parseStr("SUB f(x AS REAL)\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    CHECK(sub._returnType == "empty");
 }
 
 TEST_CASE("Parse multiple subroutines", "[parser]")
@@ -119,6 +140,66 @@ TEST_CASE("Parse multiple subroutines", "[parser]")
     REQUIRE(prog->_subroutines.size() == 2);
     CHECK(prog->_subroutines[0]->_name == "A");
     CHECK(prog->_subroutines[1]->_name == "B");
+}
+
+TEST_CASE("Parse subroutine parameter with array size", "[parser]")
+{
+    auto prog = parseStr("SUB f(a[10] AS REAL)\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    REQUIRE(sub._parameters.size() == 1);
+    CHECK(sub._parameters[0]->_name == "a");
+    CHECK(sub._parameters[0]->_type == "REAL");
+    auto n = dynamic_cast<const Number*>(sub._parameters[0]->_size.get());
+    REQUIRE(n != nullptr);
+    CHECK(n->_value == 10.0);
+}
+
+TEST_CASE("Parse subroutine parameter with empty brackets", "[parser]")
+{
+    auto prog = parseStr("SUB f(a[] AS REAL)\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    REQUIRE(sub._parameters.size() == 1);
+    CHECK(sub._parameters[0]->_name == "a");
+    CHECK(sub._parameters[0]->_type == "REAL");
+    CHECK(sub._parameters[0]->_size == nullptr);
+}
+
+TEST_CASE("Parse subroutine return type without parameters", "[parser]")
+{
+    auto prog = parseStr("SUB f AS TEXT\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    CHECK(sub._name == "f");
+    CHECK(sub._returnType == "TEXT");
+    CHECK(sub._parameters.empty());
+}
+
+TEST_CASE("Parse subroutine return type with all type keywords", "[parser]")
+{
+    auto prog = parseStr("SUB a AS REAL\nEND SUB\nSUB b AS TEXT\nEND SUB\nSUB c AS BOOL\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    REQUIRE(prog->_subroutines.size() == 3);
+    CHECK(prog->_subroutines[0]->_returnType == "REAL");
+    CHECK(prog->_subroutines[1]->_returnType == "TEXT");
+    CHECK(prog->_subroutines[2]->_returnType == "BOOL");
+}
+
+TEST_CASE("Parse error: subroutine parameter without type", "[parser]")
+{
+    auto errors = parseErrors("SUB f(x)\nEND SUB\n");
+    REQUIRE(errors.size() == 1);
+    CHECK(errors[0].line == 1);
+    CHECK(errors[0].message.find("'AS'") != std::string::npos);
+}
+
+TEST_CASE("Parse error: subroutine parameter with invalid type", "[parser]")
+{
+    auto errors = parseErrors("SUB f(x AS FOO)\nEND SUB\n");
+    REQUIRE(errors.size() == 1);
+    CHECK(errors[0].line == 1);
+    CHECK(errors[0].message.find("REAL") != std::string::npos);
 }
 
 // ---- LET ----
@@ -958,6 +1039,22 @@ TEST_CASE("Parse nested array subscript", "[parser]")
     CHECK(inner->_operation == Operation::Index);
 }
 
+TEST_CASE("Parse chained array subscripts", "[parser]")
+{
+    auto prog = parseStr("SUB Main\nLET x = a[1][2]\nEND SUB\n");
+    REQUIRE(prog != nullptr);
+    auto& sub = onlySub(*prog);
+    auto& seq = bodySeq(*sub._body);
+    auto l = dynamic_cast<const Let*>(seq._items[0].get());
+    REQUIRE(l != nullptr);
+    auto outer = dynamic_cast<const Binary*>(l->_expr.get());
+    REQUIRE(outer != nullptr);
+    CHECK(outer->_operation == Operation::Index);
+    auto inner = dynamic_cast<const Binary*>(outer->_left.get());
+    REQUIRE(inner != nullptr);
+    CHECK(inner->_operation == Operation::Index);
+}
+
 // ---- FOR additional tests ----
 
 TEST_CASE("Parse FOR with variable bounds", "[parser]")
@@ -1159,7 +1256,7 @@ TEST_CASE("Parse error: DIM without size", "[parser]")
     auto errors = parseErrors("SUB Main\nDIM arr[]\nEND SUB\n");
     REQUIRE(errors.size() == 2);
     CHECK(errors[0].line == 2);
-    CHECK(errors[0].message.find("արտահայտություն") != std::string::npos);
+    CHECK(errors[0].message.find("չափը") != std::string::npos);
     CHECK(errors[1].line == 2);
     CHECK(errors[1].message.find("'AS'") != std::string::npos);
 }

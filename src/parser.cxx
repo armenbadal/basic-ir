@@ -126,6 +126,8 @@ Subroutine::Ptr Parser::parseSubroutine()
         }
         match(Token::RightPar);
     }
+
+    // վերադարձվող արժեքի տիպը
     std::string returnType{"empty"};
     if( lookahead.is(Token::As) ) {
         match(Token::As);
@@ -133,13 +135,12 @@ Subroutine::Ptr Parser::parseSubroutine()
         returnType = match(lookahead.kind);
     }
 
-
     // մարմինը
     auto body = parseSequence();
 
     parseBlockEnd(Token::Subroutine);
 
-    return node<Subroutine>(name, parameters, body, line);
+    return node<Subroutine>(name, parameters, returnType, body, line);
 }
 
 // Statements = NewLines { Statement NewLines }.
@@ -222,9 +223,9 @@ Dim::Ptr Parser::parseDeclaration(bool sizeRequired)
     Expression::Ptr size;
     if( lookahead.is(Token::LeftBrack) ) {
         match(Token::LeftBrack);
-        if( sizeRequired && !FirstExpr.contains(lookahead.kind) )
+        if( FirstExpr.contains(lookahead.kind) )
             size = parseExpression();
-        else
+        else if( sizeRequired )
             diagnostics.mark(lookahead.line, std::format("Սպասվում է չափը, բայց հանդիպել է {}։", describe(lookahead)));
         match(Token::RightBrack);
     }
