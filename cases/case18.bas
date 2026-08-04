@@ -1,5 +1,5 @@
 
-SUB Gcd(x, y)
+SUB Gcd(x AS REAL, y AS REAL) AS REAL
     WHILE x * y <> 0
         IF x > y THEN
             LET x = x - y

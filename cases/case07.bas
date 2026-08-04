@@ -1,5 +1,5 @@
 
-SUB IsPrime(n)
+SUB IsPrime(n AS REAL) AS BOOL
   IF n <= 2 THEN
   	 LET IsPrime = TRUE
   ELSEIF n MOD 2 = 0 THEN

@@ -1,6 +1,6 @@
 
 ' երկու ներդրված WHILE
-SUB f(x, y)
+SUB f(x AS REAL, y AS REAL)
   WHILE x > y
     LET x = x - 1
     WHILE y < 10

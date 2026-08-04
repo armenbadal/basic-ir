@@ -190,16 +190,16 @@ TEST_CASE("Parse error: subroutine parameter without type", "[parser]")
 {
     auto errors = parseErrors("SUB f(x)\nEND SUB\n");
     REQUIRE(errors.size() == 1);
-    CHECK(errors[0].line == 1);
-    CHECK(errors[0].message.find("'AS'") != std::string::npos);
+    CHECK(std::get<0>(errors[0]) == 1);
+    CHECK(std::get<1>(errors[0]).find("'AS'") != std::string::npos);
 }
 
 TEST_CASE("Parse error: subroutine parameter with invalid type", "[parser]")
 {
     auto errors = parseErrors("SUB f(x AS FOO)\nEND SUB\n");
     REQUIRE(errors.size() == 1);
-    CHECK(errors[0].line == 1);
-    CHECK(errors[0].message.find("REAL") != std::string::npos);
+    CHECK(std::get<0>(errors[0]) == 1);
+    CHECK(std::get<1>(errors[0]).find("REAL") != std::string::npos);
 }
 
 // ---- LET ----
@@ -1256,7 +1256,7 @@ TEST_CASE("Parse error: DIM without size", "[parser]")
     auto errors = parseErrors("SUB Main\nDIM arr[]\nEND SUB\n");
     REQUIRE(errors.size() == 2);
     CHECK(std::get<0>(errors[0]) == 2);
-    CHECK(std::get<1>(errors[0]).find("արտահայտություն") != std::string::npos);
+    CHECK(std::get<1>(errors[0]).find("Սպասվում է չափը") != std::string::npos);
     CHECK(std::get<0>(errors[1]) == 2);
     CHECK(std::get<1>(errors[1]).find("'AS'") != std::string::npos);
 }

@@ -30,6 +30,7 @@ public:
     static Type::Ptr array(Type::Ptr elementType);
 };
 
+
 class ScalarType : public Type {
 public:
     enum class Kind {

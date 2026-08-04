@@ -10,11 +10,11 @@ SUB one
   LET a = "Hi!"
 END SUB
 
-SUB two(x)
+SUB two(x AS REAL)
   LET b = x
 END SUB
 
-SUB three(x, y)
+SUB three(x AS REAL, y AS TEXT)
   LET c = x
   LET d = y
 END SUB

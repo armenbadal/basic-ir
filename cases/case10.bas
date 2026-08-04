@@ -4,11 +4,11 @@ SUB Main
   CALL g STR(8), "Ok", a
 END SUB
 
-SUB f(e)
+SUB f(e AS TEXT) AS TEXT
   LET f = MID(e, 2, 1)
 END SUB
 
-SUB g(e, k, m)
+SUB g(e AS TEXT, k AS TEXT, m AS TEXT)
   LET a = e
 END SUB
 
