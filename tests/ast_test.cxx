@@ -219,7 +219,7 @@ TEST_CASE("Sequence node", "[ast]")
 TEST_CASE("Dim node", "[ast]")
 {
     auto size = node<Number>(10.0, 1);
-    Dim d{"arr", size, "REAL", 2};
+    Dim d{"arr", size, "REAL", true, 2};
     CHECK(d.kind == NodeKind::Dim);
     CHECK(d._name == "arr");
     CHECK(d._type == "REAL");
@@ -314,9 +314,9 @@ TEST_CASE("Call node with no arguments", "[ast]")
 TEST_CASE("Subroutine node", "[ast]")
 {
     auto body = std::make_shared<Sequence>(std::vector<Statement::Ptr>{}, 2);
-    auto p1 = std::make_shared<Dim>("x", nullptr, "REAL", 1);
-    auto p2 = std::make_shared<Dim>("y", nullptr, "TEXT", 1);
-    Subroutine s{"Main", {p1, p2}, "empty", body, 1};
+    auto p1 = std::make_shared<Dim>("x", nullptr, "REAL", false, 1);
+    auto p2 = std::make_shared<Dim>("y", nullptr, "TEXT", false, 1);
+    Subroutine s{"Main", {p1, p2}, "nothing", body, 1};
     CHECK(s.kind == NodeKind::Subroutine);
     CHECK(s._name == "Main");
     CHECK(s._parameters.size() == 2);
@@ -329,7 +329,7 @@ TEST_CASE("Subroutine node", "[ast]")
 TEST_CASE("Subroutine node with no parameters", "[ast]")
 {
     auto body = std::make_shared<Sequence>(std::vector<Statement::Ptr>{}, 2);
-    Subroutine s{"P0", {}, "empty", body, 1};
+    Subroutine s{"P0", {}, "nothing", body, 1};
     CHECK(s._parameters.empty());
 }
 
@@ -338,7 +338,7 @@ TEST_CASE("Subroutine node with no parameters", "[ast]")
 TEST_CASE("Program node", "[ast]")
 {
     auto body = std::make_shared<Sequence>(std::vector<Statement::Ptr>{}, 2);
-    auto sub = std::make_shared<Subroutine>("Main", std::vector<Dim::Ptr>{}, "empty", body, 1);
+    auto sub = std::make_shared<Subroutine>("Main", std::vector<Dim::Ptr>{}, "nothing", body, 1);
     Program prog{{sub}, 0};
     CHECK(prog.kind == NodeKind::Program);
     CHECK(prog._subroutines.size() == 1);
@@ -347,8 +347,8 @@ TEST_CASE("Program node", "[ast]")
 TEST_CASE("Program node with multiple subroutines", "[ast]")
 {
     auto body = std::make_shared<Sequence>(std::vector<Statement::Ptr>{}, 2);
-    auto s1 = std::make_shared<Subroutine>("A", std::vector<Dim::Ptr>{}, "empty", body, 1);
-    auto s2 = std::make_shared<Subroutine>("B", std::vector<Dim::Ptr>{}, "empty", body, 2);
+    auto s1 = std::make_shared<Subroutine>("A", std::vector<Dim::Ptr>{}, "nothing", body, 1);
+    auto s2 = std::make_shared<Subroutine>("B", std::vector<Dim::Ptr>{}, "nothing", body, 2);
     Program prog{{s1, s2}, 0};
     CHECK(prog._subroutines.size() == 2);
     CHECK(prog._subroutines[0]->_name == "A");
@@ -370,7 +370,7 @@ TEST_CASE("NodeKind values match node types", "[ast]")
     CHECK(node<Apply>("", std::vector<Expression::Ptr>{}, 1)->kind == NodeKind::Apply);
     CHECK(node<Array>(std::vector<Expression::Ptr>{}, 1)->kind == NodeKind::Array);
     CHECK(node<Sequence>(std::vector<Statement::Ptr>{}, 1)->kind == NodeKind::Sequence);
-    CHECK(node<Dim>("", dummy, "REAL", 1)->kind == NodeKind::Dim);
+    CHECK(node<Dim>("", dummy, "REAL", false, 1)->kind == NodeKind::Dim);
     CHECK(node<Let>(std::make_shared<Variable>("", 1), dummy, 1)->kind == NodeKind::Let);
     CHECK(node<If>(std::vector<If::IfThen::Ptr>{std::make_shared<If::IfThen>(dummy, node<Let>(std::make_shared<Variable>("", 1), dummy, 1), 1)}, nullptr, 1)->kind == NodeKind::If);
     CHECK(node<While>(dummy, node<Let>(std::make_shared<Variable>("", 1), dummy, 1), 1)->kind == NodeKind::While);
@@ -380,7 +380,7 @@ TEST_CASE("NodeKind values match node types", "[ast]")
     CHECK(node<Call>("", std::vector<Expression::Ptr>{}, 1)->kind == NodeKind::Call);
 
     auto seq = node<Sequence>(std::vector<Statement::Ptr>{}, 1);
-    CHECK(node<Subroutine>("", std::vector<Dim::Ptr>{}, "empty", seq, 1)->kind == NodeKind::Subroutine);
+    CHECK(node<Subroutine>("", std::vector<Dim::Ptr>{}, "nothing", seq, 1)->kind == NodeKind::Subroutine);
     CHECK(node<Program>(std::vector<Subroutine::Ptr>{}, 1)->kind == NodeKind::Program);
 }
 

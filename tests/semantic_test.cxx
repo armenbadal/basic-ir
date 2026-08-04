@@ -28,16 +28,17 @@ TEST_CASE("SemanticModel stores node annotations", "[semantic]")
 
 TEST_CASE("Semantic analysis annotates declarations and calls", "[semantic]")
 {
-    auto parameter = node<Dim>("message", nullptr, "REAL", 1);
+    auto parameter = node<Dim>("message", nullptr, "REAL", false, 1);
     auto message = node<Variable>("message", 1);
-    auto echo = node<Subroutine>("Echo", std::vector<Dim::Ptr>{parameter}, "empty",
+    auto echo = node<Subroutine>("Echo", std::vector<Dim::Ptr>{parameter}, "nothing",
         node<Sequence>(std::vector<Statement::Ptr>{node<Let>(message, node<Number>(1, 2), 2)}, 2), 1);
 
-    auto buffer = node<Dim>("buffer", node<Number>(10, 1), "REAL", 1);
+    auto buffer = node<Dim>("buffer", node<Number>(10, 1), "REAL", true, 1);
     auto count = node<Variable>("count", 4);
+    auto countDecl = node<Dim>("count", nullptr, "REAL", false, 3);
     auto call = node<Call>("Echo", std::vector<Expression::Ptr>{count}, 5);
-    auto main = node<Subroutine>("Main", std::vector<Dim::Ptr>{}, "empty",
-        node<Sequence>(std::vector<Statement::Ptr>{buffer, node<Let>(count, node<Number>(1, 4), 4), call}, 4), 3);
+    auto main = node<Subroutine>("Main", std::vector<Dim::Ptr>{}, "nothing",
+        node<Sequence>(std::vector<Statement::Ptr>{buffer, countDecl, node<Let>(count, node<Number>(1, 4), 4), call}, 4), 3);
     auto program = node<Program>(std::vector<Subroutine::Ptr>{echo, main}, 1);
 
     SymbolTable symbols;
@@ -54,16 +55,16 @@ TEST_CASE("Semantic analysis annotates declarations and calls", "[semantic]")
 
 TEST_CASE("Semantic analysis respects declared parameter types", "[semantic]")
 {
-    auto parameter = node<Dim>("x", nullptr, "TEXT", 1);
+    auto parameter = node<Dim>("x", nullptr, "TEXT", false, 1);
     auto x = node<Variable>("x", 2);
     // DIM y AS REAL ... LET y = x + 1. «+»-ն սպասում է REAL օպերանդներ, իսկ x-ը TEXT է
     auto body = node<Sequence>(
         std::vector<Statement::Ptr>{
-            node<Dim>("y", nullptr, "REAL", 2),
+            node<Dim>("y", nullptr, "REAL", false, 2),
             node<Let>(node<Variable>("y", 3),
-                      node<Binary>(Operation::Add, x, node<Number>(1, 3), 3), 3)},
+                node<Binary>(Operation::Add, x, node<Number>(1, 3), 3), 3)},
         2);
-    auto sub = node<Subroutine>("f", std::vector<Dim::Ptr>{parameter}, "empty", body, 1);
+    auto sub = node<Subroutine>("f", std::vector<Dim::Ptr>{parameter}, "nothing", body, 1);
     auto program = node<Program>(std::vector<Subroutine::Ptr>{sub}, 1);
 
     SymbolTable symbols;
@@ -96,7 +97,7 @@ TEST_CASE("Semantic analysis checks assignments to the declared return type", "[
 TEST_CASE("Semantic analysis resolves declared return type at call sites", "[semantic]")
 {
     // SUB f(x AS REAL) AS BOOL ... LET f = x > 0
-    auto parameter = node<Dim>("x", nullptr, "REAL", 1);
+    auto parameter = node<Dim>("x", nullptr, "REAL", false, 1);
     auto x = node<Variable>("x", 2);
     auto f = node<Variable>("f", 2);
     auto body = node<Sequence>(
@@ -108,8 +109,9 @@ TEST_CASE("Semantic analysis resolves declared return type at call sites", "[sem
     // SUB Main ... LET y = f(1)
     auto apply = node<Apply>("f", std::vector<Expression::Ptr>{node<Number>(1, 4)}, 4);
     auto y = node<Variable>("y", 4);
-    auto main = node<Subroutine>("Main", std::vector<Dim::Ptr>{}, "empty",
-        node<Sequence>(std::vector<Statement::Ptr>{node<Let>(y, apply, 4)}, 4), 3);
+    auto yDecl = node<Dim>("y", nullptr, "BOOL", false, 3);
+    auto main = node<Subroutine>("Main", std::vector<Dim::Ptr>{}, "nothing",
+        node<Sequence>(std::vector<Statement::Ptr>{yDecl, node<Let>(y, apply, 4)}, 4), 3);
     auto program = node<Program>(std::vector<Subroutine::Ptr>{func, main}, 1);
 
     SymbolTable symbols;
@@ -126,11 +128,11 @@ TEST_CASE("Semantic analysis resolves declared return type at call sites", "[sem
 TEST_CASE("Semantic analysis checks argument types against parameters", "[semantic]")
 {
     // SUB g(x AS REAL) ... CALL g("text") — արգումենտը TEXT է, պարամետրը՝ REAL
-    auto parameter = node<Dim>("x", nullptr, "REAL", 1);
-    auto func = node<Subroutine>("g", std::vector<Dim::Ptr>{parameter}, "empty",
+    auto parameter = node<Dim>("x", nullptr, "REAL", false, 1);
+    auto func = node<Subroutine>("g", std::vector<Dim::Ptr>{parameter}, "nothing",
         node<Sequence>(std::vector<Statement::Ptr>{}, 2), 1);
     auto call = node<Call>("g", std::vector<Expression::Ptr>{node<Text>("text", 3)}, 3);
-    auto main = node<Subroutine>("Main", std::vector<Dim::Ptr>{}, "empty",
+    auto main = node<Subroutine>("Main", std::vector<Dim::Ptr>{}, "nothing",
         node<Sequence>(std::vector<Statement::Ptr>{call}, 3), 2);
     auto program = node<Program>(std::vector<Subroutine::Ptr>{func, main}, 1);
 

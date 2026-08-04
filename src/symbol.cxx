@@ -4,76 +4,6 @@
 
 namespace basic {
 
-Symbol::Symbol(SymbolId id, std::string name)
-    : _name{std::move(name)}, _id{id}
-{
-}
-
-SymbolId Symbol::id() const noexcept
-{
-    return _id;
-}
-
-std::string_view Symbol::name() const noexcept
-{
-    return _name;
-}
-
-VariableSymbol::VariableSymbol(SymbolId id, std::string name, Type::Ptr type, Storage storage)
-    : Symbol{id, std::move(name)}, _type{std::move(type)}, _storage{storage}
-{
-}
-
-const Type& VariableSymbol::type() const noexcept
-{
-    return *_type;
-}
-
-const Type::Ptr& VariableSymbol::typePtr() const noexcept
-{
-    return _type;
-}
-
-VariableSymbol::Storage VariableSymbol::storage() const noexcept
-{
-    return _storage;
-}
-
-Symbol::Kind VariableSymbol::kind() const noexcept
-{
-    return Symbol::Kind::Variable;
-}
-
-SubroutineSymbol::SubroutineSymbol(SymbolId id, std::string name, std::vector<SymbolId> parameters)
-    : Symbol{id, std::move(name)}, _parameters{std::move(parameters)}
-{
-}
-
-const std::vector<SymbolId>& SubroutineSymbol::parameters() const
-{
-    return _parameters;
-}
-
-void SubroutineSymbol::setParameters(std::vector<SymbolId> parameters)
-{
-    _parameters = std::move(parameters);
-}
-
-const Type::Ptr& SubroutineSymbol::returnType() const noexcept
-{
-    return _returnType;
-}
-
-void SubroutineSymbol::setReturnType(Type::Ptr type)
-{
-    _returnType = std::move(type);
-}
-
-Symbol::Kind SubroutineSymbol::kind() const noexcept
-{
-    return Symbol::Kind::Subroutine;
-}
-
 class SymbolTable::Scope {
 public:
     Scope() = default;
@@ -118,13 +48,14 @@ SymbolId SymbolTable::nextId()
     return _nextId++;
 }
 
-SymbolId SymbolTable::declareVariable(std::string name, Type::Ptr type)
+SymbolId SymbolTable::declareVariable(std::string name, Type::Ptr type,
+    VariableSymbol::Storage storage)
 {
     if( _scopes.back().lookup(name) )
         return 0;
 
     SymbolId id = nextId();
-    _symbols.push_back(std::make_unique<VariableSymbol>(id, name, std::move(type), VariableSymbol::Storage::Local));
+    _symbols.push_back(std::make_unique<VariableSymbol>(id, name, std::move(type), storage));
     _scopes.back().declare(std::move(name), id);
     return id;
 }
@@ -140,13 +71,13 @@ SymbolId SymbolTable::declareParameter(std::string name, Type::Ptr type)
     return id;
 }
 
-SymbolId SymbolTable::declareSubroutine(std::string name, std::vector<SymbolId> parameters)
+SymbolId SymbolTable::declareSubroutine(std::string name, std::vector<Type::Ptr> parameterTypes, std::optional<Type::Ptr> returnType)
 {
     if( _scopes.back().lookup(name) )
         return 0;
 
     SymbolId id = nextId();
-    _symbols.push_back(std::make_unique<SubroutineSymbol>(id, name, std::move(parameters)));
+    _symbols.push_back(std::make_unique<SubroutineSymbol>(id, name, std::move(parameterTypes), std::move(returnType)));
     _scopes.back().declare(std::move(name), id);
     return id;
 }
@@ -156,6 +87,16 @@ std::optional<SymbolId> SymbolTable::lookup(std::string_view name) const
     for( auto it = _scopes.rbegin(); it != _scopes.rend(); ++it )
         if( auto id = it->lookup(name) )
             return id;
+
+    return std::nullopt;
+}
+
+std::optional<SymbolId> SymbolTable::lookupSubroutine(std::string_view name) const
+{
+    for( auto it = _scopes.rbegin(); it != _scopes.rend(); ++it )
+        if( auto id = it->lookup(name) )
+            if( symbol(*id).kind() == Symbol::Kind::Subroutine )
+                return id;
 
     return std::nullopt;
 }

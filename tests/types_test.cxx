@@ -5,6 +5,17 @@
 
 using namespace basic;
 
+TEST_CASE("Nothing type names and equality", "[types]")
+{
+    CHECK(Types::nothing()->name() == "NOTHING");
+    CHECK(Types::nothing()->kind() == Type::Kind::Nothing);
+
+    CHECK(Types::nothing() == Types::nothing()); // singleton check
+    CHECK(*Types::nothing() == *Types::nothing());
+    CHECK_FALSE(*Types::nothing() == *Types::real());
+    CHECK_FALSE(*Types::nothing() == *Types::array(Types::real()));
+}
+
 TEST_CASE("ScalarType names and equality", "[types]")
 {
     auto realType1 = Types::real();
@@ -54,11 +65,30 @@ TEST_CASE("VariableSymbol functionality", "[symbol]")
 
 TEST_CASE("SubroutineSymbol functionality", "[symbol]")
 {
-    SubroutineSymbol subSym{2, "foo", {10, 11}};
+    SubroutineSymbol subSym{2, "foo", {Types::real(), Types::text()}, Types::boolean()};
     CHECK(subSym.id() == 2);
     CHECK(subSym.name() == "foo");
     CHECK(subSym.kind() == Symbol::Kind::Subroutine);
-    CHECK(subSym.parameters() == std::vector<SymbolId>{10, 11});
+
+    REQUIRE(subSym.parameterTypes().size() == 2);
+    CHECK(*subSym.parameterTypes()[0] == *Types::real());
+    CHECK(*subSym.parameterTypes()[1] == *Types::text());
+    REQUIRE(subSym.returnType().has_value());
+    CHECK(**subSym.returnType() == *Types::boolean());
+
+    // պրոցեդուրան (առանց AS) ունի NOTHING վերադարձի տիպ
+    SubroutineSymbol procSym{3, "g", {}, Types::nothing()};
+    REQUIRE(procSym.returnType().has_value());
+    CHECK(**procSym.returnType() == *Types::nothing());
+}
+
+TEST_CASE("Types::fromKeyword maps type keywords", "[types]")
+{
+    CHECK(*Types::fromKeyword("REAL") == *Types::real());
+    CHECK(*Types::fromKeyword("TEXT") == *Types::text());
+    CHECK(*Types::fromKeyword("BOOL") == *Types::boolean());
+    // անհայտ ծառայողական բառը տալիս է Nothing
+    CHECK(*Types::fromKeyword("FOO") == *Types::nothing());
 }
 
 TEST_CASE("SymbolTable declarations and lookup", "[symbol]")
@@ -67,7 +97,7 @@ TEST_CASE("SymbolTable declarations and lookup", "[symbol]")
 
     SymbolId x = table.declareVariable("x", Types::real());
     SymbolId p = table.declareParameter("p", Types::text());
-    SymbolId foo = table.declareSubroutine("foo", {x, p});
+    SymbolId foo = table.declareSubroutine("foo", {}, Types::nothing());
 
     CHECK(table.lookup("x") == x);
     CHECK(table.lookup("p") == p);
@@ -79,7 +109,27 @@ TEST_CASE("SymbolTable declarations and lookup", "[symbol]")
     CHECK(table.symbol(x).name() == "x");
     CHECK(table.symbol<VariableSymbol>(x).kind() == Symbol::Kind::Variable);
     CHECK(table.symbol<VariableSymbol>(x).type() == *Types::real());
-    CHECK(table.symbol<SubroutineSymbol>(foo).parameters() == std::vector<SymbolId>{x, p});
+    CHECK(table.symbol<SubroutineSymbol>(foo).parameterTypes().empty());
+}
+
+TEST_CASE("lookupSubroutine ignores shadowing variables", "[symbol]")
+{
+    SymbolTable table;
+
+    table.declareSubroutine("f", {}, Types::nothing());
+    CHECK(table.lookupSubroutine("f").has_value());
+
+    // նույն անունով փոփոխականը չի խանգարում ենթածրագիր գտնելուն
+    table.openScope();
+    table.declareVariable("f", Types::real());
+    CHECK(table.lookupSubroutine("f").has_value());
+    CHECK(table.symbol<SubroutineSymbol>(*table.lookupSubroutine("f")).name() == "f");
+
+    // իսկ սովորական lookup-ը գտնում է մոտակա (փոփոխականի) սիմվոլը
+    CHECK(table.symbol<VariableSymbol>(*table.lookup("f")).type() == *Types::real());
+
+    table.closeScope();
+    CHECK(table.lookupSubroutine("f").has_value());
 }
 
 TEST_CASE("SymbolTable scoping", "[symbol]")

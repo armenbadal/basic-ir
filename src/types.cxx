@@ -7,6 +7,12 @@ bool operator==(const Type& lhs, const Type& rhs) noexcept
     return lhs.equals(rhs);
 }
 
+Type::Ptr Types::nothing()
+{
+    static Type::Ptr instance = std::make_shared<Nothing>();
+    return instance;
+}
+
 Type::Ptr Types::real()
 {
     static Type::Ptr instance = std::make_shared<ScalarType>(ScalarType::Kind::Real);
@@ -30,10 +36,17 @@ Type::Ptr Types::array(Type::Ptr elementType)
     return std::make_shared<ArrayType>(std::move(elementType));
 }
 
-ScalarType::ScalarType(Kind kind)
-    : _kind{kind}
+Type::Ptr Types::fromKeyword(std::string_view keyword)
 {
+    if( keyword == "REAL" )
+        return real();
+    if( keyword == "TEXT" )
+        return text();
+    if( keyword == "BOOL" )
+        return boolean();
+    return nothing();
 }
+
 
 std::string_view ScalarType::name() const
 {
@@ -57,31 +70,6 @@ bool ScalarType::equals(const Type& other) const noexcept
     return _kind == rhs._kind;
 }
 
-Type::Kind ScalarType::kind() const noexcept
-{
-    return Type::Kind::Scalar;
-}
-
-ArrayType::ArrayType(Type::Ptr elementType)
-    : _elementType{std::move(elementType)}
-{
-}
-
-std::string_view ArrayType::name() const
-{
-    return "ARRAY";
-}
-
-const Type& ArrayType::elementType() const noexcept
-{
-    return *_elementType;
-}
-
-Type::Ptr ArrayType::elementTypePtr() const noexcept
-{
-    return _elementType;
-}
-
 bool ArrayType::equals(const Type& other) const noexcept
 {
     if( other.kind() != Type::Kind::Array )
@@ -89,11 +77,6 @@ bool ArrayType::equals(const Type& other) const noexcept
 
     auto const& rhs = static_cast<const ArrayType&>(other);
     return _elementType->equals(*rhs._elementType);
-}
-
-Type::Kind ArrayType::kind() const noexcept
-{
-    return Type::Kind::Array;
 }
 
 } // namespace basic

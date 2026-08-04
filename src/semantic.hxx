@@ -6,13 +6,14 @@
 #include "symbol.hxx"
 #include "types.hxx"
 
+#include <format>
 #include <optional>
 #include <string_view>
 #include <unordered_map>
 
 namespace basic {
 
-// SemanticModel-ը պահպանում է AST հանգույցների և սիմվոլների 
+// SemanticModel-ը պահպանում է AST հանգույցների և սիմվոլների
 // միջև կապը, ինչպես նաև AST հանգույցների և տիպերի միջև կապը
 class SemanticModel {
 public:
@@ -55,11 +56,11 @@ public:
     void visit(Boolean& node);
 
 private:
+    void declareSubroutines(const Program& node);
     Type::Ptr expressionType(const Expression::Ptr& expression);
     std::optional<SymbolId> variableSymbol(const Variable& variable);
-    std::vector<SymbolId> declaredParameters(Subroutine& subroutine);
     Type::Ptr parameterType(const Dim& parameter);
-    Type::Ptr declaredReturnType(const Subroutine& subroutine);
+    std::vector<Type::Ptr> parameterTypes(const Subroutine& subroutine);
     void requireType(const Node& node, const Type& actual, const Type& expected, std::string_view context);
     void requireCondition(const Node& node, const Type& actual, std::string_view context);
 
@@ -73,8 +74,6 @@ private:
     SymbolTable& _symbols;
     SemanticModel& _semantic;
     Diagnostics& _diagnostics;
-    std::string _currentSubroutine;
-    std::optional<Type::Ptr> _currentReturnType;
 };
 
 } // namespace basic

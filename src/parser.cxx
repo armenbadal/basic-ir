@@ -128,7 +128,7 @@ Subroutine::Ptr Parser::parseSubroutine()
     }
 
     // վերադարձվող արժեքի տիպը
-    std::string returnType{"empty"};
+    std::string returnType{"nothing"};
     if( lookahead.is(Token::As) ) {
         match(Token::As);
         if( lookahead.is(Token::Real, Token::Text, Token::Bool) )
@@ -221,6 +221,7 @@ Dim::Ptr Parser::parseDeclaration(bool sizeRequired)
     auto name = match(Token::Identifier);
 
     Expression::Ptr size;
+    bool isArray = false;
     if( lookahead.is(Token::LeftBrack) ) {
         match(Token::LeftBrack);
         if( FirstExpr.contains(lookahead.kind) )
@@ -228,6 +229,7 @@ Dim::Ptr Parser::parseDeclaration(bool sizeRequired)
         else if( sizeRequired )
             diagnostics.mark(lookahead.line, std::format("Սպասվում է չափը, բայց հանդիպել է {}։", describe(lookahead)));
         match(Token::RightBrack);
+        isArray = true;
     }
 
     match(Token::As);
@@ -238,7 +240,7 @@ Dim::Ptr Parser::parseDeclaration(bool sizeRequired)
     else
         diagnostics.mark(lookahead.line, std::format("Սպասվում է տիպ (REAL | TEXT | BOOL), բայց հանդիպել է {}։", describe(lookahead)));
 
-    return node<Dim>(name, size, type, line);
+    return node<Dim>(name, size, type, isArray, line);
 }
 
 // If = 'IF' Expression 'THEN' Statements {'ELSEIF' Expression 'THEN' Statements } ['ELSE' Statements] 'END' 'IF'.

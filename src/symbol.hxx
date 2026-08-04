@@ -10,7 +10,7 @@
 namespace basic {
 
 using SymbolId = unsigned int;
-constexpr SymbolId UnknownSymbol = 0; 
+constexpr SymbolId UnknownSymbol = 0;
 
 class Symbol {
 public:
@@ -19,11 +19,20 @@ public:
         Subroutine,
     };
 
-    Symbol(SymbolId id, std::string name);
+    Symbol(SymbolId id, std::string name)
+        : _name{std::move(name)}, _id{id}
+    {}
     virtual ~Symbol() = default;
 
-    SymbolId id() const noexcept;
-    std::string_view name() const noexcept;
+    SymbolId id() const noexcept
+    {
+        return _id;
+    }
+
+    std::string_view name() const noexcept
+    {
+        return _name;
+    }
 
     virtual Kind kind() const noexcept = 0;
 
@@ -32,40 +41,75 @@ private:
     const SymbolId _id{0};
 };
 
+
 class VariableSymbol : public Symbol {
 public:
     enum class Storage {
         Local,
         Parameter,
+        ReturnValue
     };
 
-    VariableSymbol(SymbolId id, std::string name, Type::Ptr type, Storage storage = Storage::Local);
+    VariableSymbol(SymbolId id, std::string name, Type::Ptr type, Storage storage = Storage::Local)
+        : Symbol{id, std::move(name)}
+        , _type{std::move(type)}
+        , _storage{storage}
+    {}
 
-    const Type& type() const noexcept;
-    const Type::Ptr& typePtr() const noexcept;
-    Storage storage() const noexcept;
+    const Type& type() const noexcept
+    {
+        return *_type;
+    }
 
-    Symbol::Kind kind() const noexcept override;
+    const Type::Ptr& typePtr() const noexcept
+    {
+        return _type;
+    }
+
+    Storage storage() const noexcept
+    {
+        return _storage;
+    }
+
+    Symbol::Kind kind() const noexcept override
+    {
+        return Symbol::Kind::Variable;
+    }
 
 private:
     Type::Ptr _type;
     Storage _storage;
 };
 
+
 class SubroutineSymbol : public Symbol {
 public:
-    SubroutineSymbol(SymbolId id, std::string name, std::vector<SymbolId> parameters);
-    ~SubroutineSymbol() override = default;
-    const std::vector<SymbolId>& parameters() const;
-    void setParameters(std::vector<SymbolId> parameters);
-    const Type::Ptr& returnType() const noexcept;
-    void setReturnType(Type::Ptr type);
-    Symbol::Kind kind() const noexcept override;
+    SubroutineSymbol(SymbolId id, std::string name, std::vector<Type::Ptr> parameterTypes, std::optional<Type::Ptr> returnType)
+        : Symbol{id, std::move(name)}
+        , _parameterTypes{std::move(parameterTypes)}
+        , _returnType{std::move(returnType)}
+    {}
+
+    const std::vector<Type::Ptr>& parameterTypes() const noexcept
+    {
+        return _parameterTypes;
+    }
+
+    std::optional<Type::Ptr> returnType() const noexcept
+    {
+        return _returnType;
+    }
+
+    Symbol::Kind kind() const noexcept override
+    {
+        return Symbol::Kind::Subroutine;
+    }
 
 private:
-    std::vector<SymbolId> _parameters;
-    Type::Ptr _returnType{Types::real()};
+    std::vector<Type::Ptr> _parameterTypes;
+    std::optional<Type::Ptr> _returnType;
 };
+
 
 class SymbolTable {
 public:
@@ -75,11 +119,14 @@ public:
     void openScope();
     void closeScope();
 
-    SymbolId declareVariable(std::string name, Type::Ptr type);
+    SymbolId declareVariable(std::string name, Type::Ptr type,
+        VariableSymbol::Storage storage = VariableSymbol::Storage::Local);
     SymbolId declareParameter(std::string name, Type::Ptr type);
-    SymbolId declareSubroutine(std::string name, std::vector<SymbolId> parameters);
+    SymbolId declareSubroutine(std::string name, std::vector<Type::Ptr> parameterTypes, std::optional<Type::Ptr> returnType);
 
     std::optional<SymbolId> lookup(std::string_view name) const;
+    // Փնտրում է ենթածրագրի սիմվոլը՝ անտեսելով նույն անունով փոփոխականները
+    std::optional<SymbolId> lookupSubroutine(std::string_view name) const;
     bool exists(std::string_view name) const;
 
     Symbol& symbol(SymbolId id);

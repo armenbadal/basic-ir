@@ -130,7 +130,7 @@ TEST_CASE("Parse subroutine without return type", "[parser]")
     auto prog = parseStr("SUB f(x AS REAL)\nEND SUB\n");
     REQUIRE(prog != nullptr);
     auto& sub = onlySub(*prog);
-    CHECK(sub._returnType == "empty");
+    CHECK(sub._returnType == "nothing");
 }
 
 TEST_CASE("Parse multiple subroutines", "[parser]")

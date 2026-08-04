@@ -1,22 +1,10 @@
 #include "semantic.hxx"
 
-#include <algorithm>
 #include <format>
-#include <tuple>
+#include <set>
 #include <utility>
 
 namespace basic {
-
-static Type::Ptr typeFromKeyword(std::string_view keyword)
-{
-    if( keyword == "TEXT" )
-        return Types::text();
-    if( keyword == "BOOL" )
-        return Types::boolean();
-    if( keyword == "REAL" )
-        return Types::real();
-    return nullptr;
-}
 
 void SemanticModel::bind(NodeId node, SymbolId symbol)
 {
@@ -46,7 +34,9 @@ std::optional<Type::Ptr> SemanticModel::type(NodeId node) const
 
 
 SemanticAnalyzer::SemanticAnalyzer(SymbolTable& symbols, SemanticModel& semantic, Diagnostics& diagnostics)
-    : _symbols{symbols}, _semantic{semantic}, _diagnostics{diagnostics}
+    : _symbols{symbols}
+    , _semantic{semantic}
+    , _diagnostics{diagnostics}
 {
 }
 
@@ -58,80 +48,70 @@ void SemanticAnalyzer::analyze(const Program::Ptr& program)
 
 void SemanticAnalyzer::visit(Program& node)
 {
-    // նախ հայտարարում ենք բոլոր ենթածրագրերը, որպեսզի կանչի սխալներ չլինեն
-    for( const auto& subroutine : node._subroutines ) {
-        const auto id = _symbols.declareSubroutine(subroutine->_name, {});
-        if( id == UnknownSymbol ) {
-            error(*subroutine, "'{}' ենթածրագիրն արդեն հայտարարված է", subroutine->_name);
-            continue;
-        }
-        _semantic.bind(subroutine->id(), id);
-    }
+    declareSubroutines(node);
 
-    // առաջին փուլ. որոշել բոլոր ենթածրագրերի պարամետրերի ցուցակը
-    // և վերադարձրած արժեքի տիպը, որպեսզի կանչի ստուգումը հաշվի
-    // առնի հետո հայտարարված ենթածրագրերը
-    for( const auto& subroutine : node._subroutines ) {
-        const auto id = _semantic.symbol(subroutine->id());
-        if( id ) {
-            auto& subr = static_cast<SubroutineSymbol&>(_symbols.symbol(*id));
-            subr.setParameters(declaredParameters(*subroutine));
-            subr.setReturnType(declaredReturnType(*subroutine));
-        }
-    }
-
-    // երկրորդ փուլ. ստուգել բոլոր ենթածրագրերի մարմինները
     for( const auto& subroutine : node._subroutines )
         visit(*subroutine);
 }
 
-std::vector<SymbolId> SemanticAnalyzer::declaredParameters(Subroutine& subroutine)
+void SemanticAnalyzer::declareSubroutines(const Program& node)
 {
-    _symbols.openScope();
-
-    std::vector<SymbolId> parameters;
-    for( const auto& parameter : subroutine._parameters ) {
-        const auto type = parameterType(*parameter);
-        const auto id = _symbols.declareParameter(parameter->_name, type);
+    for( const auto& subroutine : node._subroutines ) {
+        auto ps = parameterTypes(*subroutine);
+        auto r = Types::fromKeyword(subroutine->_returnType);
+        const auto id = _symbols.declareSubroutine(subroutine->_name, ps, r);
         if( id == UnknownSymbol ) {
-            error(*parameter, "'{}' պարամետրն արդեն հայտարարված է", parameter->_name);
+            error(*subroutine, "'{}' ենթածրագիրն արդեն հայտարարված է", subroutine->_name);
             continue;
         }
-        parameters.push_back(id);
-        _semantic.bind(parameter->id(), id);
-        _semantic.setType(parameter->id(), type);
-    }
 
-    _symbols.closeScope();
-    return parameters;
+        _semantic.bind(subroutine->id(), id);
+    }
 }
 
 Type::Ptr SemanticAnalyzer::parameterType(const Dim& parameter)
 {
-    const auto elementType = typeFromKeyword(parameter._type);
-    return parameter._size ? Types::array(elementType) : elementType;
+    const auto elementType = Types::fromKeyword(parameter._type);
+    return parameter._isArray ? Types::array(elementType) : elementType;
 }
 
-Type::Ptr SemanticAnalyzer::declaredReturnType(const Subroutine& subroutine)
+std::vector<Type::Ptr> SemanticAnalyzer::parameterTypes(const Subroutine& subroutine)
 {
-    if( subroutine._returnType == "empty" )
-        return Types::real();
-    return typeFromKeyword(subroutine._returnType);
+    std::vector<Type::Ptr> types;
+    std::set<std::string> seen;
+    for( const auto& parameter : subroutine._parameters ) {
+        if( !seen.insert(parameter->_name).second ) {
+            error(*parameter, "'{}' պարամետրն արդեն հայտարարված է", parameter->_name);
+            continue;
+        }
+        types.push_back(parameterType(*parameter));
+    }
+    return types;
 }
 
 void SemanticAnalyzer::visit(Subroutine& node)
 {
     _symbols.openScope();
-    for( const auto& parameter : node._parameters )
-        _symbols.declareParameter(parameter->_name, parameterType(*parameter));
 
-    _currentSubroutine = node._name;
-    _currentReturnType = node._returnType == "empty"
-        ? std::nullopt
-        : std::optional<Type::Ptr>{typeFromKeyword(node._returnType)};
+    // պարամետրերը՝ հայտարարված տիպերով
+    for( const auto& parameter : node._parameters ) {
+        const auto type = parameterType(*parameter);
+        const auto id = _symbols.declareParameter(parameter->_name, type);
+        if( id == UnknownSymbol )
+            continue;
+        _semantic.bind(parameter->id(), id);
+        _semantic.setType(parameter->id(), type);
+    }
+
+    if( node._returnType != "nothing" ) {
+        if( const auto returnType = Types::fromKeyword(node._returnType) ) {
+            const auto id = _symbols.declareVariable(node._name, returnType, VariableSymbol::Storage::ReturnValue);
+            if( id == UnknownSymbol )
+                error(node, "'{}' փոփոխականն արդեն հայտարարված է", node._name);
+        }
+    }
+
     visit(*node._body);
-    _currentSubroutine.clear();
-    _currentReturnType.reset();
 
     _symbols.closeScope();
 }
@@ -149,8 +129,8 @@ void SemanticAnalyzer::visit(Dim& node)
         requireType(*node._size, *sizeType, *Types::real(), "զանգվածի չափը");
     }
 
-    const auto elementType = typeFromKeyword(node._type);
-    const auto type = node._size ? Types::array(elementType) : elementType;
+    const auto elementType = Types::fromKeyword(node._type);
+    const auto type = node._isArray ? Types::array(elementType) : elementType;
     const auto id = _symbols.declareVariable(node._name, type);
     if( id == UnknownSymbol ) {
         error(node, "'{}' փոփոխականն արդեն հայտարարված է", node._name);
@@ -163,44 +143,14 @@ void SemanticAnalyzer::visit(Dim& node)
 void SemanticAnalyzer::visit(Let& node)
 {
     const auto valueType = expressionType(node._expr);
-    auto id = _symbols.lookup(node._variable->_name);
-    if( !id ) {
-        const auto newId = _symbols.declareVariable(node._variable->_name, valueType);
-        if( newId != UnknownSymbol )
-            id = newId;
-    }
 
-    if( !id ) {
-        error(*node._variable, "'{}' փոփոխականն արդեն հայտարարված է", node._variable->_name);
+    // LET-ը երբեք չի հայտարարում. ձախ մասը պետք է գոյություն ունեցող
+    // փոփոխական լինի, հակառակ դեպքում variableSymbol-ը սխալ է հայտնում
+    const auto id = variableSymbol(*node._variable);
+    if( !id )
         return;
-    }
 
-    const auto& symbol = _symbols.symbol(*id);
-    if( symbol.kind() != Symbol::Kind::Variable ) {
-        // ենթածրագիրն իր անունով է վերադարձնում արժեքը
-        if( symbol.kind() == Symbol::Kind::Subroutine && node._variable->_name == _currentSubroutine ) {
-            auto& subroutine = static_cast<SubroutineSymbol&>(_symbols.symbol(*id));
-            // եթե ենթածրագիրն ունի հայտարարված վերադարձի տիպ, ապա
-            // անվանը վերագրումը պետք է համապատասխանի այդ տիպին
-            if( _currentReturnType ) {
-                requireType(node, *valueType, **_currentReturnType,
-                            std::format("'{}' ենթածրագրի վերադարձրած արժեքը", _currentSubroutine));
-                _semantic.bind(node._variable->id(), *id);
-                _semantic.setType(node._variable->id(), *_currentReturnType);
-                _semantic.setType(node.id(), *_currentReturnType);
-                return;
-            }
-            subroutine.setReturnType(valueType);
-            _semantic.bind(node._variable->id(), *id);
-            _semantic.setType(node._variable->id(), valueType);
-            _semantic.setType(node.id(), valueType);
-            return;
-        }
-        error(*node._variable, "'{}' փոփոխական չէ", node._variable->_name);
-        return;
-    }
-
-    const auto& variable = static_cast<const VariableSymbol&>(symbol);
+    const auto& variable = static_cast<const VariableSymbol&>(_symbols.symbol(*id));
     _semantic.bind(node._variable->id(), *id);
     _semantic.setType(node._variable->id(), variable.typePtr());
     _semantic.setType(node.id(), variable.typePtr());
@@ -231,6 +181,8 @@ void SemanticAnalyzer::visit(While& node)
 
 void SemanticAnalyzer::visit(For& node)
 {
+    // FOR-ի պարամետրը իմպլիցիտ հայտարարվում է որպես REAL,
+    // եթե նույն անունով փոփոխական գոյություն չունի
     if( !_symbols.lookup(node._parameter->_name) )
         _symbols.declareVariable(node._parameter->_name, Types::real());
 
@@ -250,6 +202,7 @@ void SemanticAnalyzer::visit(For& node)
 void SemanticAnalyzer::visit(Call& node)
 {
     visit(*node._subrCall);
+
     if( const auto id = _semantic.symbol(node._subrCall->id()) )
         _semantic.bind(node.id(), *id);
 }
@@ -274,12 +227,12 @@ void SemanticAnalyzer::visit(Apply& node)
         Type::Ptr type;
     };
     static const std::unordered_map<std::string, Builtin> builtins{
-        { "STR", { 1, Types::text() } },
-        { "MID", { 3, Types::text() } },
-        { "SQR", { 1, Types::real() } },
-        { "SIN", { 1, Types::real() } },
-        { "COS", { 1, Types::real() } },
-        { "ABS", { 1, Types::real() } },
+        {"STR", {1, Types::text()}},
+        {"MID", {3, Types::text()}},
+        {"SQR", {1, Types::real()}},
+        {"SIN", {1, Types::real()}},
+        {"COS", {1, Types::real()}},
+        {"ABS", {1, Types::real()}},
     };
 
     if( auto it = builtins.find(node._callee); it != builtins.end() ) {
@@ -295,41 +248,37 @@ void SemanticAnalyzer::visit(Apply& node)
     for( const auto& argument : node._arguments )
         expressionType(argument);
 
-    // փնտրում ենք կանչվող ենթածրագիրը
-    const auto id = _symbols.lookup(node._callee);
+    // փնտրում ենք կանչվող ենթածրագիրը՝ անտեսելով նույն անունով
+    // փոփոխականները (որ չխանգարի վերադարձի փոփոխականը ռեկուրսիայի ժամանակ)
+    const auto id = _symbols.lookupSubroutine(node._callee);
     if( !id ) {
         error(node, "'{}' անունով ենթածրագիր սահմանված չէ", node._callee);
         _semantic.setType(node.id(), Types::real());
         return;
     }
 
-    // ստուգում ենք, որ գտած օբյեկտը ենթածրագիր է
-    const auto& symbol = _symbols.symbol(*id);
-    if( symbol.kind() != Symbol::Kind::Subroutine ) {
-        error(node, "'{}'-ը ենթածրագիր չէ", node._callee);
-        _semantic.setType(node.id(), Types::real());
-        return;
-    }
-
-    // ստուգում ենք արգումենտների քանակի համապատասխանությունը
-    // ենթածրագրի սահմանման հետ
-    const auto& subroutine = static_cast<const SubroutineSymbol&>(symbol);
+    const auto& subroutine = static_cast<const SubroutineSymbol&>(_symbols.symbol(*id));
     _semantic.bind(node.id(), *id);
-    if( node._arguments.size() != subroutine.parameters().size() ) {
+
+    // ստուգում ենք արգումենտների քանակի ու տիպերի համապատասխանությունը
+    // ենթածրագրի ստորագրության հետ
+    const auto& parameterTypes = subroutine.parameterTypes();
+    if( node._arguments.size() != parameterTypes.size() ) {
         error(node, "'{}'-ի արգումենտների քանակը սխալ է", node._callee);
-    } else {
-        // ստուգում ենք յուրաքանչյուր արգումենտի տիպը պարամետրի տիպի հետ
+    }
+    else {
         for( std::size_t index = 0; index < node._arguments.size(); ++index ) {
-            const auto& parameter = static_cast<const VariableSymbol&>(
-                _symbols.symbol(subroutine.parameters()[index]));
             const auto argumentType = _semantic.type(node._arguments[index]->id()).value_or(Types::real());
-            requireType(*node._arguments[index], *argumentType, parameter.type(),
-                        std::format("'{}'-ի {} արգումենտը", node._callee, index + 1));
+            requireType(*node._arguments[index], *argumentType, *parameterTypes[index],
+                std::format("'{}'-ի {} արգումենտը", node._callee, index + 1));
         }
     }
 
-    // ենթածրագրի վերադարձի տիպը հայտարարումից է
-    _semantic.setType(node.id(), subroutine.returnType());
+    // վերադարձի տիպը որոշվում է միայն հայտարարված AS-ով. պրոցեդուրան
+    // (NOTHING տիպով) արժեք չի վերադարձնում, և դրա կանչը արտահայտության
+    // մեջ կբռնվի տիպերի անհամապատասխանությամբ
+    if( const auto returnType = subroutine.returnType() )
+        _semantic.setType(node.id(), *returnType);
 }
 
 void SemanticAnalyzer::visit(Binary& node)
@@ -353,8 +302,8 @@ void SemanticAnalyzer::visit(Binary& node)
         return;
     }
 
-    // մյուս երկտեղանի գործողությոնների երկու օպերանդներն էլ պետք 
-    // է ունենան նույն տիպը, իսկ արդյունքի տիպը որոծշվում է 
+    // մյուս երկտեղանի գործողությոնների երկու օպերանդներն էլ պետք
+    // է ունենան նույն տիպը, իսկ արդյունքի տիպը որոծշվում է
     // գործողության տեսակով
     switch( node._operation ) {
         case Operation::Add:

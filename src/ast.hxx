@@ -242,15 +242,19 @@ public:
 // Զանգվածի սահմանում
 class Dim : public Statement {
 public:
-    Dim(std::string_view name, Expression::Ptr size, std::string_view type, Position pos)
+    Dim(std::string_view name, Expression::Ptr size, std::string_view type, bool isArray, Position pos)
         : Statement{NodeKind::Dim, pos}
-        , _name{name}, _size{std::move(size)}, _type{type}
+        , _name{name}
+        , _size{std::move(size)}
+        , _type{type}
+        , _isArray{isArray}
     {}
     using Ptr = std::shared_ptr<Dim>;
 
     const std::string _name;     // անունը
     const Expression::Ptr _size; // չափը
     const std::string _type;    // տիպը (REAL, TEXT, BOOL)
+    bool _isArray;
 };
 
 // Վերագրում (միաժամանակ՝ փոփոխականի սահմանում)

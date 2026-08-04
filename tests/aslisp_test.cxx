@@ -22,8 +22,8 @@ static Subroutine::Ptr makeSub(std::string_view name, std::vector<std::string> p
 {
     std::vector<Dim::Ptr> dims;
     for (auto& p : params)
-        dims.push_back(std::make_shared<Dim>(p, nullptr, "REAL", 1));
-    return std::make_shared<Subroutine>(name, std::move(dims), "empty", std::move(body), 1);
+        dims.push_back(std::make_shared<Dim>(p, nullptr, "REAL", false, 1));
+    return std::make_shared<Subroutine>(name, std::move(dims), "nothing", std::move(body), 1);
 }
 
 static Sequence::Ptr makeSeq(std::vector<Statement::Ptr> items)
@@ -59,7 +59,8 @@ static Call::Ptr makeCall(std::string_view callee, std::vector<Expression::Ptr> 
 
 static Dim::Ptr makeDim(std::string_view name, Expression::Ptr size, std::string_view type)
 {
-    return std::make_shared<Dim>(name, std::move(size), type, 13);
+    bool isArray = size != nullptr;
+    return std::make_shared<Dim>(name, std::move(size), type, isArray, 13);
 }
 
 static std::string tos(Program::Ptr prog)
@@ -101,9 +102,9 @@ TEST_CASE("Subroutine with parameters", "[lisp]")
 TEST_CASE("Subroutine with sized parameters", "[lisp]")
 {
     std::vector<Dim::Ptr> params;
-    params.push_back(std::make_shared<Dim>("a", node<Number>(10.0, 1), "REAL", 1));
-    params.push_back(std::make_shared<Dim>("b", nullptr, "TEXT", 1));
-    auto sub = std::make_shared<Subroutine>("f", std::move(params), "empty", makeSeq({}), 1);
+    params.push_back(std::make_shared<Dim>("a", node<Number>(10.0, 1), "REAL", true, 1));
+    params.push_back(std::make_shared<Dim>("b", nullptr, "TEXT", false, 1));
+    auto sub = std::make_shared<Subroutine>("f", std::move(params), "nothing", makeSeq({}), 1);
     auto result = tos(makeProg({sub}));
     CHECK_THAT(result, ContainsSubstring("'((basic-dim :name \"a\" :size (basic-number :value 10) :type \"REAL\") (basic-dim :name \"b\" :size NIL :type \"TEXT\"))"));
 }
