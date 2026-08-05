@@ -4,19 +4,21 @@
 
 namespace basic {
 
+// Տեսանելիության մեկ տիրույթը
 class SymbolTable::Scope {
 public:
     Scope() = default;
 
+    // սահմանել/ավելացնել
     bool declare(std::string name, SymbolId id)
     {
         return _symbols.emplace(std::move(name), id).second;
     }
 
+    // փնտրել
     std::optional<SymbolId> lookup(std::string_view name) const noexcept
     {
         auto it = _symbols.find(std::string{name});
-
         if( it == _symbols.end() )
             return std::nullopt;
 
@@ -24,6 +26,7 @@ public:
     }
 
 private:
+    // սիմվոլների համար "անուն" -> "ID" կապը
     std::unordered_map<std::string, SymbolId> _symbols;
 };
 
@@ -43,13 +46,13 @@ void SymbolTable::closeScope()
         _scopes.pop_back();
 }
 
+
 SymbolId SymbolTable::nextId()
 {
     return _nextId++;
 }
 
-SymbolId SymbolTable::declareVariable(std::string name, Type::Ptr type,
-    VariableSymbol::Storage storage)
+SymbolId SymbolTable::declareVariable(std::string name, Type::Ptr type, VariableSymbol::Storage storage)
 {
     if( _scopes.back().lookup(name) )
         return 0;
@@ -115,7 +118,5 @@ const Symbol& SymbolTable::symbol(SymbolId id) const
 {
     return *_symbols.at(id - 1);
 }
-
-SymbolTable::~SymbolTable() = default;
 
 } // namespace basic

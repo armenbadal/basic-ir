@@ -12,8 +12,10 @@ namespace basic {
 using SymbolId = unsigned int;
 constexpr SymbolId UnknownSymbol = 0;
 
+// Ծրագրում հանդիպող անունները ստեղծում են սիմվոլներ
 class Symbol {
 public:
+    // դրանք կարող են երկու բան ցույց տալ. փոփոխական (նաև զանգված) կամ ենթածրագիր
     enum class Kind {
         Variable,
         Subroutine,
@@ -41,13 +43,14 @@ private:
     const SymbolId _id{0};
 };
 
-
+// Փոփոխական (կամ զանգված) ցույց տվող սիմվոլ
 class VariableSymbol : public Symbol {
 public:
+    // կարող է ունենալ երեք դեր. 
     enum class Storage {
-        Local,
-        Parameter,
-        ReturnValue
+        Local,  // լոկալ փոփոխական, DIM֊ով հայտարարված
+        Parameter, // ենթածրագրի պարամետր
+        ReturnValue // անբացահտ ստեծված արժեք՝ ենթածրագրից վերադարձնելու համար
     };
 
     VariableSymbol(SymbolId id, std::string name, Type::Ptr type, Storage storage = Storage::Local)
@@ -81,7 +84,7 @@ private:
     Storage _storage;
 };
 
-
+// Ենթածրագրի սիմվոլ
 class SubroutineSymbol : public Symbol {
 public:
     SubroutineSymbol(SymbolId id, std::string name, std::vector<Type::Ptr> parameterTypes, std::optional<Type::Ptr> returnType)
@@ -111,16 +114,16 @@ private:
 };
 
 
+// Սիմվոլների աղյուսակ
 class SymbolTable {
 public:
     SymbolTable();
-    ~SymbolTable();
+    ~SymbolTable() = default;
 
     void openScope();
     void closeScope();
 
-    SymbolId declareVariable(std::string name, Type::Ptr type,
-        VariableSymbol::Storage storage = VariableSymbol::Storage::Local);
+    SymbolId declareVariable(std::string name, Type::Ptr type, VariableSymbol::Storage storage = VariableSymbol::Storage::Local);
     SymbolId declareParameter(std::string name, Type::Ptr type);
     SymbolId declareSubroutine(std::string name, std::vector<Type::Ptr> parameterTypes, std::optional<Type::Ptr> returnType);
 

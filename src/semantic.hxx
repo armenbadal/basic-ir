@@ -27,6 +27,7 @@ private:
     std::unordered_map<NodeId, Type::Ptr> _types;
 };
 
+
 class SemanticAnalyzer : public ASTVisitor<SemanticAnalyzer> {
 public:
     SemanticAnalyzer(SymbolTable& symbols, SemanticModel& semantic, Diagnostics& diagnostics);
