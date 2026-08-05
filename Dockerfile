@@ -23,17 +23,29 @@ RUN wget -q https://github.com/Kitware/CMake/releases/download/v4.2.6/cmake-4.2.
     /tmp/cmake-install.sh --skip-license --prefix=/usr/local && \
     rm /tmp/cmake-install.sh
 
-# LLVM 22 տեղադրում (պաշտոնական apt.llvm.org սկրիպտով)
+# LLVM 20 տեղադրում (պաշտոնական apt.llvm.org սկրիպտով)
 RUN wget https://apt.llvm.org/llvm.sh && \
     chmod +x llvm.sh && \
-    ./llvm.sh 22 all && \
+    ./llvm.sh 20 all && \
     rm llvm.sh
 
+# GCC 16 (վերջին stable version) — ubuntu-toolchain-r/test PPA-ի միջոցով,
+# քանի որ Ubuntu 24.04-ի default repo-ում միայն GCC 13-ն է հասանելի
+RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test && \
+    apt-get update && \
+    apt-get install -y gcc-16 g++-16 && \
+    rm -rf /var/lib/apt/lists/*
+
+# gcc-16/g++-16-ը գրանցում ենք update-alternatives-ում (առանձին խմբում՝ "gcc"/"g++" անունով),
+# բայց cc/c++ default-ը թողնում ենք clang-ի վրա (ինչպես ավելի վաղ կարգավորել ենք)
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-16 100 && \
+    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-16 100
+
 # clang/clang++-ը դարձնում ենք default (update-alternatives)
-RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-22 100 && \
-    update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-22 100 && \
-    update-alternatives --install /usr/bin/cc cc /usr/bin/clang-22 100 && \
-    update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-22 100
+RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-20 100 && \
+    update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-20 100 && \
+    update-alternatives --install /usr/bin/cc cc /usr/bin/clang-20 100 && \
+    update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-20 100
 
 # Catch2 v3-ը build անում ենք source-ից (apt-ի տարբերակը սովորաբար հին է)
 RUN git clone --depth 1 --branch v3.7.1 https://github.com/catchorg/Catch2.git /tmp/Catch2 && \
